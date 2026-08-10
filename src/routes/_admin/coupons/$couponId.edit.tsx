@@ -23,6 +23,7 @@ function CouponEditPage() {
     valid_from: '2026-06-01',
     valid_until: '2026-08-31',
     is_active: true,
+    reason: 'Cập nhật thông tin mã khuyến mãi',
   });
 
   const [expectedVersion, setExpectedVersion] = useState<number | string>(1);
@@ -49,6 +50,7 @@ function CouponEditPage() {
             valid_from: c.effective_from || c.valid_from || '2026-06-01',
             valid_until: c.effective_to || c.valid_until || '2026-08-31',
             is_active: c.status === 'active' || c.is_active !== false,
+            reason: (c as any).reason || 'Cập nhật thông tin mã khuyến mãi',
           });
         }
       } catch (err: any) {
@@ -81,6 +83,7 @@ function CouponEditPage() {
         status: formData.is_active ? 'active' : 'inactive',
         expected_version: Number(expectedVersion) || 1,
         version: Number(expectedVersion) || 1,
+        reason: formData.reason || 'Cập nhật thông tin mã khuyến mãi',
       } as any);
       toast.success(`Đã cập nhật thay đổi mã khuyến mãi ${formData.code}`);
       navigate({ to: '/coupons' as any });
@@ -215,6 +218,20 @@ function CouponEditPage() {
               value={formData.valid_until}
               onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
               className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              Lý Do Điều Chỉnh (Reason) <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.reason}
+              onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+              placeholder="VD: Cập nhật tỷ lệ giảm giá theo chính sách bán hàng mới..."
+              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-blue-500"
+              required
             />
           </div>
         </div>
