@@ -36,6 +36,7 @@ function ScheduleEditPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
@@ -44,14 +45,15 @@ function ScheduleEditPage() {
         arrival_time: '10:00',
         recurrence: 'daily',
         is_active: formData.status === 'active',
-        effective_from: formData.validFrom,
-        effective_to: formData.validTo,
+        effective_from: formData.validFrom || undefined,
+        effective_to: formData.validTo || undefined,
       });
-      toast.success(`Đã lưu thay đổi cho lịch chạy ${formData.code}`);
+      toast.success(`Đã lưu thay đổi cho lịch chạy ${formData.code}`, { id: 'schedule-edit-toast' });
       navigate({ to: '/schedules' as any });
     } catch (err: any) {
       console.error('Update schedule error:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật lịch chạy trên Backend');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Có lỗi xảy ra khi cập nhật lịch chạy trên Backend', { id: 'schedule-edit-toast' });
     } finally {
       setIsSubmitting(false);
     }

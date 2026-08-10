@@ -27,17 +27,21 @@ function TripEditPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     try {
       await updateTrip(tripId, {
         departure_time: `${formData.departureDate} ${formData.departureTime}:00`,
         status: formData.status as any,
         remarks: formData.note,
       });
-      toast.success(`Đã cập nhật thông tin chuyến ${formData.code || tripId}`);
+      toast.success(`Đã cập nhật thông tin chuyến ${formData.code || tripId}`, { id: 'trip-edit-toast' });
       navigate({ to: '/trips' as any });
     } catch (err: any) {
       console.error('Update trip error:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật chuyến tàu trên Backend');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Có lỗi xảy ra khi cập nhật chuyến tàu trên Backend', { id: 'trip-edit-toast' });
     } finally {
       setIsSubmitting(false);
     }

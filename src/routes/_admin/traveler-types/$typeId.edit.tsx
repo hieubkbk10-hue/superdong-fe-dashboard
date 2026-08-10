@@ -33,11 +33,12 @@ function TravelerTypeEditPage() {
         description: formData.description,
         is_active: formData.is_active,
       });
-      toast.success(`Đã cập nhật thay đổi cho phân loại ${formData.name}`);
+      toast.success(`Đã cập nhật thay đổi cho phân loại ${formData.name}`, { id: 'traveler-type-edit-toast' });
       navigate({ to: '/traveler-types' as any });
     } catch (err: any) {
       console.error('Failed to update traveler type:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật phân loại hành khách trên Backend');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Có lỗi xảy ra khi cập nhật phân loại hành khách trên Backend', { id: 'traveler-type-edit-toast' });
     } finally {
       setIsSubmitting(false);
     }

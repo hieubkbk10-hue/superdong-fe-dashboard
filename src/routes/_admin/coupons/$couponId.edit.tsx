@@ -94,6 +94,8 @@ function CouponEditPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     setIsSubmitting(true);
     try {
       const payload: Record<string, any> = {
@@ -104,29 +106,48 @@ function CouponEditPage() {
         min_booking_amount: Number(formData.min_booking_amount),
         max_discount_amount: Number(formData.max_discount_amount),
         usage_limit: Number(formData.usage_limit),
-        effective_from: formData.valid_from,
-        effective_to: formData.valid_until,
         status: formData.is_active ? 'active' : 'inactive',
-        reason: formData.reason || 'Cập nhật thông tin mã khuyến mãi',
       };
 
-      // LOGIC FIX: Send expected_version accurately without falsy fallback
+      if (formData.valid_from && formData.valid_from.trim() !== '') {
+        payload.effective_from = formData.valid_from;
+      }
+      if (formData.valid_until && formData.valid_until.trim() !== '') {
+        payload.effective_to = formData.valid_until;
+      }
+
+      if (formData.reason && formData.reason.trim() !== '') {
+        payload.reason = formData.reason;
+      }
+
       if (expectedVersion !== undefined && expectedVersion !== null) {
         payload.expected_version = expectedVersion;
-        payload.version = expectedVersion;
       }
 
       const res: any = await updateCoupon(couponId, payload as any);
       if (res && res.data && res.data.version !== undefined) {
         setExpectedVersion(res.data.version);
-      } else {
-        setExpectedVersion((prev: number) => Number(prev) + 1);
       }
-      toast.success(`Đã cập nhật thay đổi mã khuyến mãi ${formData.code}`);
+
+      toast.success(`Đã cập nhật thay đổi mã khuyến mãi ${formData.code}`, { id: 'coupon-edit-toast' });
       navigate({ to: '/coupons' as any });
     } catch (err: any) {
       console.error('Failed to update coupon:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật mã khuyến mãi trên Backend Server');
+      const status = err?.response?.status;
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+
+      if (status === 409 || serverMsg.includes('Xung đột phiên bản') || serverMsg.includes('version')) {
+        toast.warning('Dữ liệu đã được cập nhật bởi một phiên thao tác khác. Đang tự động tải lại dữ liệu mới nhất...', { id: 'coupon-edit-toast', duration: 4000 });
+        try {
+          const fresh = await findCouponById(couponId);
+          if (fresh && fresh.data) {
+            const ver = fresh.data.version !== undefined ? fresh.data.version : 0;
+            setExpectedVersion(ver);
+          }
+        } catch (_) {}
+      } else {
+        toast.error(serverMsg || 'Có lỗi xảy ra khi cập nhật mã khuyến mãi', { id: 'coupon-edit-toast' });
+      }
     } finally {
       setIsSubmitting(false);
     }
