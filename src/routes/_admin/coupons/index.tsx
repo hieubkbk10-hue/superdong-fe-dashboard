@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   XCircle,
   Percent,
-  DollarSign,
   Calendar,
   RefreshCw,
   AlertTriangle,
@@ -259,7 +258,7 @@ function CouponsPage() {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
   };
 
-  // Reusable Columns Definition following Newmoon-Admin Employee Table Style
+  // Reusable Columns Definition following Consistent Blue Theme Style
   const columns: Column<Coupon>[] = [
     {
       id: 'code',
@@ -269,8 +268,8 @@ function CouponsPage() {
       sortable: true,
       visible: visibleColumns.code,
       cell: ({ row }) => (
-        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
-          <span className="bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800/80">
+        <span className="font-mono font-bold text-blue-600 dark:text-blue-400 text-xs">
+          <span className="bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800/80">
             {row.code}
           </span>
         </span>
@@ -304,7 +303,7 @@ function CouponsPage() {
             <Percent size={13} className="text-amber-500" /> Giảm {discountVal}%
           </div>
         ) : (
-          <div className="font-bold text-emerald-600 dark:text-emerald-400">
+          <div className="font-bold text-blue-600 dark:text-blue-400">
             Giảm {formatCurrency(discountVal)}
           </div>
         );
@@ -387,7 +386,7 @@ function CouponsPage() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
+            className="h-7 w-7 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50"
             asChild
           >
             <Link
@@ -414,10 +413,10 @@ function CouponsPage() {
 
   return (
     <div className="flex flex-col bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs font-sans text-slate-800 dark:text-slate-200 space-y-4">
-      {/* Top Header Row (Newmoon-Admin Employee List Header Style) */}
+      {/* Top Header Row */}
       <div className="flex flex-wrap items-center justify-between gap-2 pb-1 border-b border-slate-100 dark:border-slate-800/80">
         <h1 className="text-lg font-bold capitalize flex items-center gap-2 text-slate-900 dark:text-white">
-          <Ticket className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <Ticket className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           Danh sách mã khuyến mãi
         </h1>
         
@@ -434,7 +433,7 @@ function CouponsPage() {
           </Button>
           
           <Button
-            variant="success"
+            variant="primary"
             size="sm"
             asChild
             className="h-8 gap-1.5 text-[13px]"
@@ -455,7 +454,7 @@ function CouponsPage() {
         </div>
       )}
 
-      {/* Filter Bar (Newmoon-Admin Employee Filters Bar Style) */}
+      {/* Filter Bar */}
       <div className="flex w-full flex-wrap items-center gap-2">
         {/* Search Box Component */}
         <SearchInput
@@ -486,7 +485,7 @@ function CouponsPage() {
             className="h-9 gap-1.5 text-[13px]"
             title="Ẩn / Hiện các cột trong bảng"
           >
-            <SlidersHorizontal size={14} className="text-emerald-600 dark:text-emerald-400" />
+            <SlidersHorizontal size={14} className="text-blue-600 dark:text-blue-400" />
             <span>Cột</span>
           </Button>
 
@@ -495,7 +494,7 @@ function CouponsPage() {
               <div className="flex items-center justify-end border-b border-slate-100 dark:border-slate-800 pb-1.5">
                 <button
                   onClick={resetColumns}
-                  className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline font-medium cursor-pointer"
+                  className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-medium cursor-pointer"
                 >
                   Mặc định
                 </button>
@@ -512,7 +511,7 @@ function CouponsPage() {
                         type="checkbox"
                         checked={!!visibleColumns[col.key]}
                         onChange={() => toggleColumn(col.key)}
-                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5"
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
                       />
                       {col.label}
                     </span>
@@ -524,7 +523,7 @@ function CouponsPage() {
         </div>
       </div>
 
-      {/* Reusable Newmoon-Admin Styled DataTable Component */}
+      {/* Reusable DataTable Component */}
       <DataTable
         columns={columns}
         data={paginatedCoupons}
@@ -535,7 +534,7 @@ function CouponsPage() {
         emptyText={apiError ? '⚠️ Không thể lấy dữ liệu từ Backend API.' : 'Không có mã khuyến mãi nào phù hợp.'}
       />
 
-      {/* Reusable Newmoon-Admin Styled PaginationBar Component */}
+      {/* Reusable PaginationBar Component */}
       {!loading && (
         <PaginationBar
           currentPage={currentPage}

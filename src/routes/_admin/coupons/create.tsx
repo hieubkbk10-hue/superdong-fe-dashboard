@@ -4,10 +4,9 @@ import { Ticket, ArrowLeft, Save, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { createCoupon } from '@/apis/pricing';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/common/Button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 
 export const Route = createFileRoute('/_admin/coupons/create')({
   component: CouponCreatePage,
@@ -78,181 +77,186 @@ function CouponCreatePage() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl font-sans pb-12">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="outline" size="icon" className="h-9 w-9" asChild>
+    <div className="flex flex-col bg-white dark:bg-slate-950 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs font-sans text-slate-800 dark:text-slate-200 max-w-4xl space-y-6">
+      {/* Top Header Row */}
+      <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <Button variant="light" size="icon" className="h-8 w-8" asChild>
           <Link to={'/coupons' as any} title="Quay lại danh sách">
-            <ArrowLeft size={18} />
+            <ArrowLeft size={16} />
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Ticket className="h-6 w-6 text-primary" />
-            Tạo Mã Khuyến Mãi Mới
+          <h1 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Ticket className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            Tạo mã khuyến mãi mới
           </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Tạo chương trình ưu đãi và voucher cho khách đặt vé Superdong</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Tạo chương trình ưu đãi và voucher cho khách đặt vé Superdong
+          </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <Card className="border shadow-xs">
-          <CardContent className="p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="coupon-code" className="text-xs font-bold text-foreground">
-                  Mã Khuyến Mãi (Coupon Code) <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="coupon-code"
-                  type="text"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase().replace(/\s+/g, '') })}
-                  placeholder="VD: SUPERDONG2026"
-                  className="text-primary font-mono font-bold text-sm uppercase"
-                  required
-                />
-              </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="space-y-1.5">
+            <Label htmlFor="coupon-code" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              Mã Khuyến Mãi (Coupon Code) <span className="text-rose-500">*</span>
+            </Label>
+            <Input
+              id="coupon-code"
+              type="text"
+              value={formData.code}
+              onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase().replace(/\s+/g, '') })}
+              placeholder="VD: SUPERDONG2026"
+              className="text-blue-600 dark:text-blue-400 font-mono font-bold text-xs uppercase h-10 rounded-lg bg-slate-50 dark:bg-slate-900"
+              required
+            />
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="coupon-name" className="text-xs font-bold text-foreground">
-                  Tên Chương Trình (Tùy chọn)
-                </Label>
-                <Input
-                  id="coupon-name"
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="VD: Ưu Đãi Mùa Hè 2026"
-                />
-              </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="discount-type" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              Loại Giảm Giá
+            </Label>
+            <select
+              id="discount-type"
+              value={formData.type}
+              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-xs outline-none cursor-pointer focus:border-blue-500"
+            >
+              <option value="percentage">Theo Phần Trăm (%)</option>
+              <option value="fixed_amount">Số Tiền Cố Định (VND)</option>
+            </select>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="discount-type" className="text-xs font-bold text-foreground">
-                  Loại Giảm Giá
-                </Label>
-                <select
-                  id="discount-type"
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  className="w-full h-9 px-3 border border-input rounded-md bg-background text-foreground text-sm outline-none cursor-pointer focus:ring-1 focus:ring-ring"
-                >
-                  <option value="percentage">Theo Phần Trăm (%)</option>
-                  <option value="fixed_amount">Số Tiền Cố Định (VND)</option>
-                </select>
-              </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="coupon-name" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              Tên Chương Trình (Tùy chọn)
+            </Label>
+            <Input
+              id="coupon-name"
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="VD: Ưu Đãi Mùa Hè 2026"
+              className="text-xs h-10 rounded-lg bg-slate-50 dark:bg-slate-900"
+            />
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="discount-value" className="text-xs font-bold text-foreground">
-                  Giá Trị Giảm Giá {formData.type === 'percentage' ? '(%)' : '(VND)'} <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="discount-value"
-                  type="number"
-                  value={formData.value}
-                  onChange={(e) => setFormData({ ...formData, value: Number(e.target.value) })}
-                  min={1}
-                  required
-                />
-              </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="discount-value" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              Giá Trị Giảm Giá {formData.type === 'percentage' ? '(%)' : '(VND)'} <span className="text-rose-500">*</span>
+            </Label>
+            <Input
+              id="discount-value"
+              type="number"
+              value={formData.value}
+              onChange={(e) => setFormData({ ...formData, value: Number(e.target.value) })}
+              min={1}
+              className="text-xs h-10 rounded-lg bg-slate-50 dark:bg-slate-900"
+              required
+            />
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="min-booking" className="text-xs font-bold text-foreground">
-                  Đơn Giá Tối Thiểu Được Áp Dụng (VND)
-                </Label>
-                <Input
-                  id="min-booking"
-                  type="number"
-                  value={formData.min_booking_amount}
-                  onChange={(e) => setFormData({ ...formData, min_booking_amount: Number(e.target.value) })}
-                  min={0}
-                />
-              </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="min-booking" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              Đơn Giá Tối Thiểu Được Áp Dụng (VND)
+            </Label>
+            <Input
+              id="min-booking"
+              type="number"
+              value={formData.min_booking_amount}
+              onChange={(e) => setFormData({ ...formData, min_booking_amount: Number(e.target.value) })}
+              min={0}
+              className="text-xs h-10 rounded-lg bg-slate-50 dark:bg-slate-900"
+            />
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="max-discount" className="text-xs font-bold text-foreground">
-                  Mức Giảm Tối Đa (VND)
-                </Label>
-                <Input
-                  id="max-discount"
-                  type="number"
-                  value={formData.max_discount_amount}
-                  onChange={(e) => setFormData({ ...formData, max_discount_amount: Number(e.target.value) })}
-                  min={0}
-                />
-              </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="max-discount" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              Mức Giảm Tối Đa (VND)
+            </Label>
+            <Input
+              id="max-discount"
+              type="number"
+              value={formData.max_discount_amount}
+              onChange={(e) => setFormData({ ...formData, max_discount_amount: Number(e.target.value) })}
+              min={0}
+              className="text-xs h-10 rounded-lg bg-slate-50 dark:bg-slate-900"
+            />
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="usage-limit" className="text-xs font-bold text-foreground">
-                  Giới Hạn Lượt Sử Dụng
-                </Label>
-                <Input
-                  id="usage-limit"
-                  type="number"
-                  value={formData.usage_limit}
-                  onChange={(e) => setFormData({ ...formData, usage_limit: Number(e.target.value) })}
-                  min={1}
-                />
-              </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="usage-limit" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              Giới Hạn Lượt Sử Dụng
+            </Label>
+            <Input
+              id="usage-limit"
+              type="number"
+              value={formData.usage_limit}
+              onChange={(e) => setFormData({ ...formData, usage_limit: Number(e.target.value) })}
+              min={1}
+              className="text-xs h-10 rounded-lg bg-slate-50 dark:bg-slate-900"
+            />
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="valid-from" className="text-xs font-bold text-foreground">
-                  Ngày Bắt Đầu Hiệu Lực
-                </Label>
-                <Input
-                  id="valid-from"
-                  type="date"
-                  value={formData.valid_from}
-                  onChange={(e) => setFormData({ ...formData, valid_from: e.target.value })}
-                />
-              </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="valid-from" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              Ngày Bắt Đầu Hiệu Lực
+            </Label>
+            <Input
+              id="valid-from"
+              type="date"
+              value={formData.valid_from}
+              onChange={(e) => setFormData({ ...formData, valid_from: e.target.value })}
+              className="text-xs h-10 rounded-lg bg-slate-50 dark:bg-slate-900"
+            />
+          </div>
 
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="valid-until" className="text-xs font-bold text-foreground">
-                  Ngày Kết Thúc / Hết Hạn
-                </Label>
-                <Input
-                  id="valid-until"
-                  type="date"
-                  value={formData.valid_until}
-                  onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
-                />
-              </div>
-            </div>
+          <div className="space-y-1.5 md:col-span-2">
+            <Label htmlFor="valid-until" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              Ngày Kết Thúc / Hết Hạn
+            </Label>
+            <Input
+              id="valid-until"
+              type="date"
+              value={formData.valid_until}
+              onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
+              className="text-xs h-10 rounded-lg bg-slate-50 dark:bg-slate-900"
+            />
+          </div>
+        </div>
 
-            <div className="flex items-center gap-3 pt-2">
-              <input
-                id="is-active-toggle"
-                type="checkbox"
-                checked={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="h-4 w-4 rounded border-input text-primary focus:ring-ring cursor-pointer"
-              />
-              <Label htmlFor="is-active-toggle" className="text-sm font-semibold cursor-pointer">
-                Kích hoạt sử dụng mã coupon ngay lập tức
-              </Label>
-            </div>
+        <div className="flex items-center gap-3 pt-2">
+          <input
+            id="is-active-toggle"
+            type="checkbox"
+            checked={formData.is_active}
+            onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+          />
+          <Label htmlFor="is-active-toggle" className="text-xs font-semibold cursor-pointer text-slate-800 dark:text-slate-200">
+            Kích hoạt sử dụng mã coupon ngay lập tức
+          </Label>
+        </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-border">
-              <Button variant="outline" type="button" asChild>
-                <Link to={'/coupons' as any}>Hủy Bỏ</Link>
-              </Button>
-              <Button type="submit" disabled={isSubmitting} className="gap-2">
-                {isSubmitting ? (
-                  <>
-                    <RefreshCw size={16} className="animate-spin" />
-                    Đang Lưu...
-                  </>
-                ) : (
-                  <>
-                    <Save size={16} />
-                    Tạo Mã Khuyến Mãi
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <Button variant="light" type="button" asChild>
+            <Link to={'/coupons' as any}>Hủy Bỏ</Link>
+          </Button>
+          <Button type="submit" variant="primary" disabled={isSubmitting} className="gap-2">
+            {isSubmitting ? (
+              <>
+                <RefreshCw size={14} className="animate-spin" />
+                Đang Lưu...
+              </>
+            ) : (
+              <>
+                <Save size={14} />
+                Tạo mã khuyến mãi
+              </>
+            )}
+          </Button>
+        </div>
       </form>
     </div>
   );

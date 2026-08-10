@@ -48,7 +48,6 @@ export function DataTable<T = any>({
   const activeColumns = columns.filter((col) => col.visible !== false);
 
   const renderSortIndicator = (colId: string) => {
-    const isSorted = sortField === colId && sortOrder !== 'none';
     const isAsc = sortField === colId && sortOrder === 'asc';
     const isDesc = sortField === colId && sortOrder === 'desc';
 
@@ -58,14 +57,14 @@ export function DataTable<T = any>({
           size={11}
           className={cn(
             "transition-colors -mb-1",
-            isAsc ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-slate-400 opacity-60 group-hover:opacity-100"
+            isAsc ? "text-blue-600 dark:text-blue-400 font-bold opacity-100" : "text-slate-400 opacity-50 group-hover:opacity-100"
           )}
         />
         <ChevronDown
           size={11}
           className={cn(
             "transition-colors",
-            isDesc ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-slate-400 opacity-60 group-hover:opacity-100"
+            isDesc ? "text-blue-600 dark:text-blue-400 font-bold opacity-100" : "text-slate-400 opacity-50 group-hover:opacity-100"
           )}
         />
       </div>
@@ -75,7 +74,7 @@ export function DataTable<T = any>({
   return (
     <div className={cn("custom-scrollbar overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs", className)}>
       <TableRoot className="w-full text-left text-[13px] border-collapse min-w-max">
-        {/* Table Header (Newmoon-Admin Style: uppercase, text-[#4C5B67], bg-[#f9f9f9]) */}
+        {/* Table Header (Newmoon-Admin Style: uppercase, text-[#4C5B67], bg-[#F9FAFB]) */}
         <TableHeader className="bg-[#F9FAFB] dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800">
           <TableRow className="hover:bg-transparent border-none">
             {activeColumns.map((col, idx) => {

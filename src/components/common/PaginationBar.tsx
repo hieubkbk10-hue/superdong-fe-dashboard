@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/common/Button';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 export interface PaginationBarProps {
@@ -56,7 +56,7 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
         <Button
           variant="outline"
           size="icon"
-          className="h-7 w-7 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"
+          className="h-7 w-7 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
           title="Trang đầu"
@@ -66,7 +66,7 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
         <Button
           variant="outline"
           size="icon"
-          className="h-7 w-7 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"
+          className="h-7 w-7 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
           onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
           disabled={currentPage === 1}
           title="Trang trước"
@@ -81,7 +81,7 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
         <Button
           variant="outline"
           size="icon"
-          className="h-7 w-7 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"
+          className="h-7 w-7 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
           onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
           disabled={currentPage === totalPages}
           title="Trang sau"
@@ -91,7 +91,7 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
         <Button
           variant="outline"
           size="icon"
-          className="h-7 w-7 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"
+          className="h-7 w-7 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage === totalPages}
           title="Trang cuối"
