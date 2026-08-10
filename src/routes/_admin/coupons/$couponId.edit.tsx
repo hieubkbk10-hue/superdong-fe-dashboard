@@ -125,12 +125,36 @@ function CouponEditPage() {
       }
 
       const res: any = await updateCoupon(couponId, payload as any);
-      if (res && res.data && res.data.version !== undefined) {
-        setExpectedVersion(res.data.version);
-      }
+      const updatedVersion = res?.data?.version ?? (expectedVersion !== undefined ? expectedVersion + 1 : 1);
+      setExpectedVersion(updatedVersion);
 
-      toast.success(`Đã cập nhật thay đổi mã khuyến mãi ${formData.code}`, { id: 'coupon-edit-toast' });
-      navigate({ to: '/coupons' as any });
+      toast.success(`Đã lưu thay đổi mã khuyến mãi ${formData.code} thành công! (Phiên bản: ${updatedVersion})`, { id: 'coupon-edit-toast' });
+
+      // Refetch fresh coupon data to keep form state in sync without leaving the edit page
+      if (couponId) {
+        try {
+          const fresh = await findCouponById(couponId);
+          if (fresh && fresh.data) {
+            const coupon = fresh.data;
+            setFormData({
+              name: coupon.name || '',
+              code: coupon.code || '',
+              type: coupon.discount_type === 'percentage' ? 'percentage' : 'fixed_amount',
+              value: coupon.discount_value || 0,
+              min_booking_amount: (coupon as any).min_booking_amount_vnd || (coupon as any).min_booking_amount || 0,
+              max_discount_amount: (coupon as any).max_discount_amount_vnd || (coupon as any).max_discount_amount || 0,
+              usage_limit: coupon.usage_limit || 0,
+              valid_from: coupon.effective_from ? coupon.effective_from.split('T')[0] : '',
+              valid_until: coupon.effective_to ? coupon.effective_to.split('T')[0] : '',
+              is_active: coupon.status === 'active',
+              reason: '',
+            });
+            if ((coupon as any).version !== undefined) {
+              setExpectedVersion((coupon as any).version);
+            }
+          }
+        } catch (_) {}
+      }
     } catch (err: any) {
       console.error('Failed to update coupon:', err);
       const status = err?.response?.status;

@@ -64,8 +64,7 @@ function BoatEditPage() {
         is_express: formData.is_express,
         status: formData.status,
       });
-      toast.success(`Đã lưu thay đổi cho tàu ${formData.name}`, { id: 'boat-edit-toast' });
-      navigate({ to: '/boats' as any });
+      toast.success(`Đã lưu thay đổi cho tàu ${formData.name} thành công!`, { id: 'boat-edit-toast' });
     } catch (err: any) {
       const serverMsg = err?.response?.data?.message || err?.message || '';
       toast.error(serverMsg || 'Có lỗi xảy ra khi cập nhật tàu', { id: 'boat-edit-toast' });

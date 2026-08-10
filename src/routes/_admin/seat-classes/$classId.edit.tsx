@@ -38,8 +38,7 @@ function SeatClassEditPage() {
         description: formData.amenities,
         is_active: formData.status === 'active',
       });
-      toast.success(`Đã lưu thay đổi cho hạng ghế ${formData.name}`, { id: 'seat-class-edit-toast' });
-      navigate({ to: '/seat-classes' as any });
+      toast.success(`Đã lưu thay đổi cho hạng ghế ${formData.name} thành công!`, { id: 'seat-class-edit-toast' });
     } catch (err: any) {
       console.error('Update seat class error:', err);
       const serverMsg = err?.response?.data?.message || err?.message || '';

@@ -33,8 +33,7 @@ function TravelerTypeEditPage() {
         description: formData.description,
         is_active: formData.is_active,
       });
-      toast.success(`Đã cập nhật thay đổi cho phân loại ${formData.name}`, { id: 'traveler-type-edit-toast' });
-      navigate({ to: '/traveler-types' as any });
+      toast.success(`Đã cập nhật thay đổi cho phân loại ${formData.name} thành công!`, { id: 'traveler-type-edit-toast' });
     } catch (err: any) {
       console.error('Failed to update traveler type:', err);
       const serverMsg = err?.response?.data?.message || err?.message || '';

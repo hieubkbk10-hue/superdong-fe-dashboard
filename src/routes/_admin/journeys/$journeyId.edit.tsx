@@ -39,8 +39,7 @@ function JourneyEditPage() {
         description: formData.description,
         is_active: formData.status === 'active',
       });
-      toast.success(`Đã lưu thay đổi cho tuyến ${formData.name}`, { id: 'journey-edit-toast' });
-      navigate({ to: '/journeys' as any });
+      toast.success(`Đã lưu thay đổi cho tuyến ${formData.name} thành công!`, { id: 'journey-edit-toast' });
     } catch (err: any) {
       console.error('Update journey error:', err);
       const serverMsg = err?.response?.data?.message || err?.message || '';

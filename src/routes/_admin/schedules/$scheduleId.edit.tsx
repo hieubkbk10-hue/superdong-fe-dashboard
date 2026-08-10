@@ -48,8 +48,7 @@ function ScheduleEditPage() {
         effective_from: formData.validFrom || undefined,
         effective_to: formData.validTo || undefined,
       });
-      toast.success(`Đã lưu thay đổi cho lịch chạy ${formData.code}`, { id: 'schedule-edit-toast' });
-      navigate({ to: '/schedules' as any });
+      toast.success(`Đã lưu thay đổi cho lịch chạy ${formData.code} thành công!`, { id: 'schedule-edit-toast' });
     } catch (err: any) {
       console.error('Update schedule error:', err);
       const serverMsg = err?.response?.data?.message || err?.message || '';

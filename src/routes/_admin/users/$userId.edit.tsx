@@ -61,8 +61,7 @@ function UserEditPage() {
         email: formData.email,
         phone: formData.phone,
       });
-      toast.success(`Đã cập nhật thông tin tài khoản ${formData.name}`, { id: 'user-edit-toast' });
-      navigate({ to: '/users' as any });
+      toast.success(`Đã cập nhật thông tin tài khoản ${formData.name} thành công!`, { id: 'user-edit-toast' });
     } catch (err: any) {
       console.error('Update user error:', err);
       const serverMsg = err?.response?.data?.message || err?.message || '';

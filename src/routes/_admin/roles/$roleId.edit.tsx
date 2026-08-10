@@ -102,8 +102,7 @@ function RoleEditPage() {
         display_name: formData.display_name,
         description: formData.description,
       } as any);
-      toast.success(`Đã cập nhật phân quyền vai trò ${formData.display_name}`, { id: 'role-edit-toast' });
-      navigate({ to: '/roles' as any });
+      toast.success(`Đã cập nhật phân quyền vai trò ${formData.display_name} thành công!`, { id: 'role-edit-toast' });
     } catch (err: any) {
       console.error('Failed to update role:', err);
       const serverMsg = err?.response?.data?.message || err?.message || '';

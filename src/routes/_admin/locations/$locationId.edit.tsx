@@ -39,8 +39,7 @@ function LocationEditPage() {
         address: formData.address,
         is_active: formData.status === 'active',
       });
-      toast.success(`Đã cập nhật thông tin bến tàu ${formData.name}`, { id: 'location-edit-toast' });
-      navigate({ to: '/locations' as any });
+      toast.success(`Đã cập nhật thông tin bến tàu ${formData.name} thành công!`, { id: 'location-edit-toast' });
     } catch (err: any) {
       console.error('Update location error:', err);
       const serverMsg = err?.response?.data?.message || err?.message || '';

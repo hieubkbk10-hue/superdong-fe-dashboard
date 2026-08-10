@@ -36,8 +36,7 @@ function TripEditPage() {
         status: formData.status as any,
         remarks: formData.note,
       });
-      toast.success(`Đã cập nhật thông tin chuyến ${formData.code || tripId}`, { id: 'trip-edit-toast' });
-      navigate({ to: '/trips' as any });
+      toast.success(`Đã cập nhật thông tin chuyến ${formData.code || tripId} thành công!`, { id: 'trip-edit-toast' });
     } catch (err: any) {
       console.error('Update trip error:', err);
       const serverMsg = err?.response?.data?.message || err?.message || '';
