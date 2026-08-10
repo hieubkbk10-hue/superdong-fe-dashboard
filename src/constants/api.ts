@@ -3,14 +3,15 @@ import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosE
 // LOGIC: Token storage key for Superdong Admin Dashboard
 export const TOKEN_STORAGE_KEY = 'superdong_access_token';
 
-// LOGIC: Retrieve base API URL strictly from Vite environment variable VITE_API
-const envApi = (import.meta as any).env?.VITE_API;
+// LOGIC: Default Backend API URL fallback for Production Vercel deployments
+const DEFAULT_BACKEND_URL = 'https://superdong-be.vitrasau.info.vn/v1/';
 
 const getBaseURL = () => {
-  if (envApi) {
+  const envApi = (import.meta as any).env?.VITE_API;
+  if (envApi && (envApi.startsWith('http://') || envApi.startsWith('https://'))) {
     return envApi.endsWith('/') ? envApi : `${envApi}/`;
   }
-  return '/v1/';
+  return DEFAULT_BACKEND_URL;
 };
 
 export const api: AxiosInstance = axios.create({
@@ -42,14 +43,14 @@ api.interceptors.request.use(
   }
 );
 
-// LOGIC: Response interceptor handling responses gracefully without infinite redirect loops
+// LOGIC: Response interceptor
 api.interceptors.response.use(
   (response: AxiosResponse) => {
     return response;
   },
   (error: AxiosError) => {
     if (error.response && error.response.status === 401) {
-      console.warn('API 401 Unauthorized từ Server Backend. Đang tự động chuyển sang chế độ dữ liệu Seeder BE.');
+      console.warn('API 401 Unauthorized từ Server Backend Superdong.');
     }
     return Promise.reject(error);
   }

@@ -29,8 +29,18 @@ export interface BookingQuoteResult {
  * LOGIC: Lấy danh sách phân loại hành khách (Người lớn, Trẻ em, Người cao tuổi...)
  */
 export async function getTravelerTypes(): Promise<ApiResponse<TravelerType[]>> {
-  const response = await api.get<ApiResponse<TravelerType[]>>('/pricing/traveler-types');
-  return response.data;
+  try {
+    const response = await api.get<ApiResponse<TravelerType[]>>('/coupons/traveler-types');
+    return response.data;
+  } catch (e) {
+    try {
+      const response = await api.get<ApiResponse<TravelerType[]>>('/traveler-types');
+      return response.data;
+    } catch (err) {
+      const response = await api.get<ApiResponse<TravelerType[]>>('/pricing/traveler-types');
+      return response.data;
+    }
+  }
 }
 
 /**
@@ -53,27 +63,42 @@ export async function updateTravelerType(
 }
 
 /**
- * LOGIC: Lấy danh sách mã giảm giá / coupon
+ * LOGIC: Lấy danh sách mã giảm giá / coupon (Thử /coupons trước, fallback /pricing/coupons)
  */
 export async function getCoupons(params?: Record<string, any>): Promise<PaginatedResponse<Coupon>> {
-  const response = await api.get<PaginatedResponse<Coupon>>('/pricing/coupons', { params });
-  return response.data;
+  try {
+    const response = await api.get<PaginatedResponse<Coupon>>('/coupons', { params });
+    return response.data;
+  } catch (e) {
+    const response = await api.get<PaginatedResponse<Coupon>>('/pricing/coupons', { params });
+    return response.data;
+  }
 }
 
 /**
  * LOGIC: Tạo mã giảm giá / coupon mới
  */
 export async function createCoupon(data: Partial<Coupon>): Promise<ApiResponse<Coupon>> {
-  const response = await api.post<ApiResponse<Coupon>>('/pricing/coupons', data);
-  return response.data;
+  try {
+    const response = await api.post<ApiResponse<Coupon>>('/coupons', data);
+    return response.data;
+  } catch (e) {
+    const response = await api.post<ApiResponse<Coupon>>('/pricing/coupons', data);
+    return response.data;
+  }
 }
 
 /**
  * LOGIC: Cập nhật thông tin mã giảm giá
  */
 export async function updateCoupon(id: string | number, data: Partial<Coupon>): Promise<ApiResponse<Coupon>> {
-  const response = await api.put<ApiResponse<Coupon>>(`/pricing/coupons/${id}`, data);
-  return response.data;
+  try {
+    const response = await api.put<ApiResponse<Coupon>>(`/coupons/${id}`, data);
+    return response.data;
+  } catch (e) {
+    const response = await api.put<ApiResponse<Coupon>>(`/pricing/coupons/${id}`, data);
+    return response.data;
+  }
 }
 
 /**
