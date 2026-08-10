@@ -91,10 +91,11 @@ function BookingCreatePage() {
     e.preventDefault();
 
     if (!booker.name || !booker.phone) {
-      toast.error('Vui lòng điền đầy đủ họ tên và số điện thoại người đặt vé!');
+      toast.error('Vui lòng điền đầy đủ họ tên và số điện thoại người đặt vé!', { id: 'booking-create-toast' });
       return;
     }
 
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       await createBooking({
@@ -107,11 +108,12 @@ function BookingCreatePage() {
         payment_status: paymentStatus as any,
         status: 'confirmed',
       });
-      toast.success(`Đã tạo thành công đơn đặt vé cho khách ${booker.name}!`);
+      toast.success(`Đã tạo thành công đơn đặt vé cho khách ${booker.name}!`, { id: 'booking-create-toast' });
       navigate({ to: '/bookings' as any });
     } catch (error: any) {
       console.error('Failed to create booking:', error);
-      toast.error(error?.response?.data?.message || error?.message || 'Lỗi: Không thể tạo đơn đặt vé trên Backend Server');
+      const serverMsg = error?.response?.data?.message || error?.message || '';
+      toast.error(serverMsg || 'Lỗi: Không thể tạo đơn đặt vé trên Backend Server', { id: 'booking-create-toast' });
     } finally {
       setIsSubmitting(false);
     }

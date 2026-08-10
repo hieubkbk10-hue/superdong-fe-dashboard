@@ -28,6 +28,9 @@ function LocationEditPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     try {
       await updateLocation(locationId, {
         code: formData.code,
@@ -36,11 +39,12 @@ function LocationEditPage() {
         address: formData.address,
         is_active: formData.status === 'active',
       });
-      toast.success(`Đã cập nhật thông tin bến tàu ${formData.name}`);
+      toast.success(`Đã cập nhật thông tin bến tàu ${formData.name}`, { id: 'location-edit-toast' });
       navigate({ to: '/locations' as any });
     } catch (err: any) {
       console.error('Update location error:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật bến tàu trên Backend');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Có lỗi xảy ra khi cập nhật bến tàu trên Backend', { id: 'location-edit-toast' });
     } finally {
       setIsSubmitting(false);
     }

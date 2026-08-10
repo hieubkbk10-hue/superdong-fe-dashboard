@@ -94,10 +94,11 @@ function RoleCreatePage() {
     e.preventDefault();
 
     if (!formData.code.trim() || !formData.display_name.trim()) {
-      toast.error('Vui lòng nhập Mã vai trò và Tên hiển thị!');
+      toast.error('Vui lòng nhập Mã vai trò và Tên hiển thị!', { id: 'role-create-toast' });
       return;
     }
 
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       await createRole({
@@ -105,11 +106,12 @@ function RoleCreatePage() {
         display_name: formData.display_name,
         description: formData.description,
       } as any);
-      toast.success(`Đã tạo thành công vai trò ${formData.display_name}`);
+      toast.success(`Đã tạo thành công vai trò ${formData.display_name}`, { id: 'role-create-toast' });
       navigate({ to: '/roles' as any });
     } catch (err: any) {
       console.error('Failed to create role:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Không thể tạo vai trò mới trên Backend Server');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Không thể tạo vai trò mới trên Backend Server', { id: 'role-create-toast' });
     } finally {
       setIsSubmitting(false);
     }

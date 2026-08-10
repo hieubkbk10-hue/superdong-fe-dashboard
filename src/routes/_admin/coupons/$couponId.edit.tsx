@@ -141,7 +141,7 @@ function CouponEditPage() {
         try {
           const fresh = await findCouponById(couponId);
           if (fresh && fresh.data) {
-            const ver = fresh.data.version !== undefined ? fresh.data.version : 0;
+            const ver = (fresh.data as any).version !== undefined ? (fresh.data as any).version : 0;
             setExpectedVersion(ver);
           }
         } catch (_) {}

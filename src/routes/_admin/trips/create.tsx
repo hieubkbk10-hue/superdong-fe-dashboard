@@ -28,6 +28,7 @@ function TripCreatePage() {
       return;
     }
 
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       await createTrip({
@@ -40,11 +41,12 @@ function TripCreatePage() {
         available_seats: 306,
         remarks: formData.note,
       });
-      toast.success('Đã mở chuyến tàu mới thành công!');
+      toast.success('Đã mở chuyến tàu mới thành công!', { id: 'trip-create-toast' });
       navigate({ to: '/trips' as any });
     } catch (err: any) {
       console.error('Create trip error:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Lỗi: Không thể tạo chuyến tàu mới trên Backend Server');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Lỗi: Không thể tạo chuyến tàu mới trên Backend Server', { id: 'trip-create-toast' });
     } finally {
       setIsSubmitting(false);
     }

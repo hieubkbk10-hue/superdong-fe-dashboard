@@ -28,6 +28,9 @@ function JourneyEditPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     try {
       await updateJourney(journeyId, {
         code: formData.code,
@@ -36,11 +39,12 @@ function JourneyEditPage() {
         description: formData.description,
         is_active: formData.status === 'active',
       });
-      toast.success(`Đã lưu thay đổi cho tuyến ${formData.name}`);
+      toast.success(`Đã lưu thay đổi cho tuyến ${formData.name}`, { id: 'journey-edit-toast' });
       navigate({ to: '/journeys' as any });
     } catch (err: any) {
       console.error('Update journey error:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật tuyến trên Backend');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Có lỗi xảy ra khi cập nhật tuyến trên Backend', { id: 'journey-edit-toast' });
     } finally {
       setIsSubmitting(false);
     }

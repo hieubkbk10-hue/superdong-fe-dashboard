@@ -52,6 +52,7 @@ function UserEditPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
@@ -60,11 +61,12 @@ function UserEditPage() {
         email: formData.email,
         phone: formData.phone,
       });
-      toast.success(`Đã cập nhật thông tin tài khoản ${formData.name}`);
+      toast.success(`Đã cập nhật thông tin tài khoản ${formData.name}`, { id: 'user-edit-toast' });
       navigate({ to: '/users' as any });
     } catch (err: any) {
       console.error('Update user error:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật nhân viên trên Backend');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Có lỗi xảy ra khi cập nhật nhân viên trên Backend', { id: 'user-edit-toast' });
     } finally {
       setIsSubmitting(false);
     }

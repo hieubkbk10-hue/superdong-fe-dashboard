@@ -28,14 +28,16 @@ function CouponCreatePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (isSubmitting) return;
+
     if (!formData.code.trim()) {
-      toast.error('Vui lòng nhập Mã khuyến mãi!');
+      toast.error('Vui lòng nhập Mã khuyến mãi!', { id: 'coupon-create-toast' });
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await createCoupon({
+      const payload: Record<string, any> = {
         code: formData.code.toUpperCase(),
         name: `Ưu đãi ${formData.code.toUpperCase()}`,
         discount_type: formData.type === 'percentage' ? 'percentage' : 'fixed_amount',
@@ -43,15 +45,23 @@ function CouponCreatePage() {
         min_booking_amount: Number(formData.min_booking_amount),
         max_discount_amount: Number(formData.max_discount_amount),
         usage_limit: Number(formData.usage_limit),
-        effective_from: formData.valid_from,
-        effective_to: formData.valid_until,
         status: formData.is_active ? 'active' : 'inactive',
-      });
-      toast.success(`Đã tạo thành công mã khuyến mãi ${formData.code.toUpperCase()}`);
+      };
+
+      if (formData.valid_from && formData.valid_from.trim() !== '') {
+        payload.effective_from = formData.valid_from;
+      }
+      if (formData.valid_until && formData.valid_until.trim() !== '') {
+        payload.effective_to = formData.valid_until;
+      }
+
+      await createCoupon(payload as any);
+      toast.success(`Đã tạo thành công mã khuyến mãi ${formData.code.toUpperCase()}`, { id: 'coupon-create-toast' });
       navigate({ to: '/coupons' as any });
     } catch (err: any) {
       console.error('Failed to create coupon:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Không thể tạo mã khuyến mãi trên Backend API');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Không thể tạo mã khuyến mãi trên Backend API', { id: 'coupon-create-toast' });
     } finally {
       setIsSubmitting(false);
     }

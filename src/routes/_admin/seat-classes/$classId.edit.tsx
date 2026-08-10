@@ -27,6 +27,9 @@ function SeatClassEditPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     try {
       await updateSeatClass(classId, {
         code: formData.code,
@@ -35,11 +38,12 @@ function SeatClassEditPage() {
         description: formData.amenities,
         is_active: formData.status === 'active',
       });
-      toast.success(`Đã lưu thay đổi cho hạng ghế ${formData.name}`);
+      toast.success(`Đã lưu thay đổi cho hạng ghế ${formData.name}`, { id: 'seat-class-edit-toast' });
       navigate({ to: '/seat-classes' as any });
     } catch (err: any) {
       console.error('Update seat class error:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật hạng ghế trên Backend');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Có lỗi xảy ra khi cập nhật hạng ghế trên Backend', { id: 'seat-class-edit-toast' });
     } finally {
       setIsSubmitting(false);
     }

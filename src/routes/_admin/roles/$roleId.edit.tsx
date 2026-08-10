@@ -94,6 +94,7 @@ function RoleEditPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       await updateRole(roleId, {
@@ -101,11 +102,12 @@ function RoleEditPage() {
         display_name: formData.display_name,
         description: formData.description,
       } as any);
-      toast.success(`Đã cập nhật phân quyền vai trò ${formData.display_name}`);
+      toast.success(`Đã cập nhật phân quyền vai trò ${formData.display_name}`, { id: 'role-edit-toast' });
       navigate({ to: '/roles' as any });
     } catch (err: any) {
       console.error('Failed to update role:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật vai trò trên Backend Server');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Có lỗi xảy ra khi cập nhật vai trò trên Backend Server', { id: 'role-edit-toast' });
     } finally {
       setIsSubmitting(false);
     }

@@ -29,6 +29,7 @@ function LocationCreatePage() {
       return;
     }
 
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       await createLocation({
@@ -38,11 +39,12 @@ function LocationCreatePage() {
         address: formData.address,
         is_active: formData.status === 'active',
       });
-      toast.success(`Tạo thành công bến tàu mới: ${formData.name}`);
+      toast.success(`Tạo thành công bến tàu mới: ${formData.name}`, { id: 'location-create-toast' });
       navigate({ to: '/locations' as any });
     } catch (err: any) {
       console.error('Create location error:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Lỗi: Không thể tạo bến tàu trên Server Backend');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Lỗi: Không thể tạo bến tàu trên Server Backend', { id: 'location-create-toast' });
     } finally {
       setIsSubmitting(false);
     }

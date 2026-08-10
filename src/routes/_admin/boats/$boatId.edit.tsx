@@ -52,6 +52,7 @@ function BoatEditPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
@@ -63,10 +64,11 @@ function BoatEditPage() {
         is_express: formData.is_express,
         status: formData.status,
       });
-      toast.success(`Đã lưu thay đổi cho tàu ${formData.name}`);
+      toast.success(`Đã lưu thay đổi cho tàu ${formData.name}`, { id: 'boat-edit-toast' });
       navigate({ to: '/boats' as any });
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật tàu');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Có lỗi xảy ra khi cập nhật tàu', { id: 'boat-edit-toast' });
     } finally {
       setIsSubmitting(false);
     }

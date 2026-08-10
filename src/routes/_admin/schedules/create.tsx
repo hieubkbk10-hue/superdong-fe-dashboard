@@ -34,8 +34,10 @@ function ScheduleCreatePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     if (!formData.code) {
-      toast.error('Vui lòng nhập Mã Lịch Chạy Định Kỳ');
+      toast.error('Vui lòng nhập Mã Lịch Chạy Định Kỳ', { id: 'schedule-create-toast' });
       return;
     }
 
@@ -46,14 +48,15 @@ function ScheduleCreatePage() {
         arrival_time: '10:00',
         recurrence: 'daily',
         is_active: formData.status === 'active',
-        effective_from: formData.validFrom,
-        effective_to: formData.validTo,
+        effective_from: formData.validFrom || undefined,
+        effective_to: formData.validTo || undefined,
       });
-      toast.success(`Tạo thành công lịch chạy định kỳ: ${formData.code}`);
+      toast.success(`Tạo thành công lịch chạy định kỳ: ${formData.code}`, { id: 'schedule-create-toast' });
       navigate({ to: '/schedules' as any });
     } catch (err: any) {
       console.error('Create schedule error:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Lỗi: Không thể tạo lịch chạy trên Backend Server');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Có lỗi xảy ra khi tạo lịch chạy trên Backend Server', { id: 'schedule-create-toast' });
     } finally {
       setIsSubmitting(false);
     }

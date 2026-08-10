@@ -28,6 +28,7 @@ function TravelerTypeCreatePage() {
       return;
     }
 
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       await createTravelerType({
@@ -37,11 +38,12 @@ function TravelerTypeCreatePage() {
         description: formData.description,
         is_active: formData.is_active,
       });
-      toast.success(`Đã tạo phân loại hành khách ${formData.name}`);
+      toast.success(`Đã tạo phân loại hành khách ${formData.name}`, { id: 'traveler-type-create-toast' });
       navigate({ to: '/traveler-types' as any });
     } catch (err: any) {
       console.error('Failed to create traveler type:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Không thể tạo phân loại hành khách trên Backend Server');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Không thể tạo phân loại hành khách trên Backend Server', { id: 'traveler-type-create-toast' });
     } finally {
       setIsSubmitting(false);
     }

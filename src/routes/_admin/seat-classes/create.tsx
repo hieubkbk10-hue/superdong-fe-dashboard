@@ -28,6 +28,7 @@ function SeatClassCreatePage() {
       return;
     }
 
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       await createSeatClass({
@@ -37,11 +38,12 @@ function SeatClassCreatePage() {
         description: formData.amenities,
         is_active: formData.status === 'active',
       });
-      toast.success(`Tạo thành công hạng ghế mới: ${formData.name}`);
+      toast.success(`Tạo thành công hạng ghế mới: ${formData.name}`, { id: 'seat-class-create-toast' });
       navigate({ to: '/seat-classes' as any });
     } catch (err: any) {
       console.error('Create seat class error:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Lỗi: Không thể tạo hạng ghế mới trên Backend Server');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Lỗi: Không thể tạo hạng ghế mới trên Backend Server', { id: 'seat-class-create-toast' });
     } finally {
       setIsSubmitting(false);
     }

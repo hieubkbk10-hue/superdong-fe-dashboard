@@ -27,6 +27,7 @@ function BoatCreatePage() {
       return;
     }
 
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       await createBoat({
@@ -37,11 +38,12 @@ function BoatCreatePage() {
         is_express: formData.is_express,
         status: formData.status,
       });
-      toast.success(`Tạo thành công tàu mới: ${formData.name}`);
+      toast.success(`Tạo thành công tàu mới: ${formData.name}`, { id: 'boat-create-toast' });
       navigate({ to: '/boats' as any });
     } catch (err: any) {
       console.error('Create boat error:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Lỗi: Không thể tạo tàu mới trên Server Backend');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Lỗi: Không thể tạo tàu mới trên Server Backend', { id: 'boat-create-toast' });
     } finally {
       setIsSubmitting(false);
     }

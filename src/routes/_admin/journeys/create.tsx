@@ -29,6 +29,7 @@ function JourneyCreatePage() {
       return;
     }
 
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       await createJourney({
@@ -38,11 +39,12 @@ function JourneyCreatePage() {
         description: formData.description,
         is_active: formData.status === 'active',
       });
-      toast.success(`Tạo thành công tuyến hải trình mới: ${formData.name}`);
+      toast.success(`Tạo thành công tuyến hải trình mới: ${formData.name}`, { id: 'journey-create-toast' });
       navigate({ to: '/journeys' as any });
     } catch (err: any) {
       console.error('Create journey error:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Lỗi: Không thể tạo tuyến hải trình mới trên Backend');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Lỗi: Không thể tạo tuyến hải trình mới trên Backend', { id: 'journey-create-toast' });
     } finally {
       setIsSubmitting(false);
     }

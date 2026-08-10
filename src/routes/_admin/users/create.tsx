@@ -27,10 +27,11 @@ function UserCreatePage() {
     e.preventDefault();
 
     if (!formData.name.trim() || !formData.email.trim()) {
-      toast.error('Vui lòng điền Họ tên và Email nhân viên!');
+      toast.error('Vui lòng điền Họ tên và Email nhân viên!', { id: 'user-create-toast' });
       return;
     }
 
+    if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
@@ -40,11 +41,12 @@ function UserCreatePage() {
         phone: formData.phone,
         password: formData.password || undefined,
       } as any);
-      toast.success(`Đã tạo tài khoản nhân viên ${formData.name} trên Server Backend`);
+      toast.success(`Đã tạo tài khoản nhân viên ${formData.name} trên Server Backend`, { id: 'user-create-toast' });
       navigate({ to: '/users' as any });
     } catch (err: any) {
       console.error('Create user error:', err);
-      toast.error(err?.response?.data?.message || err?.message || 'Không thể tạo nhân viên trên Backend API');
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Không thể tạo nhân viên trên Backend API', { id: 'user-create-toast' });
     } finally {
       setIsSubmitting(false);
     }
