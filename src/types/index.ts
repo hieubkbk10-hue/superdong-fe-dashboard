@@ -415,15 +415,23 @@ export interface TravelerType {
 export interface Coupon {
   id: string | number;
   code: string;
-  type: 'percentage' | 'fixed_amount';
-  value: number;
+  name?: string;
+  description?: string;
+  type?: 'percentage' | 'fixed_amount';
+  discount_type?: 'percentage' | 'fixed_amount';
+  value?: number;
+  discount_value?: number;
   min_booking_amount?: number;
+  min_booking_amount_vnd?: number;
   max_discount_amount?: number;
   usage_limit?: number;
   usage_count?: number;
-  valid_from: string;
-  valid_until: string;
-  is_active: boolean;
+  valid_from?: string;
+  valid_until?: string;
+  effective_from?: string;
+  effective_to?: string;
+  is_active?: boolean;
+  status?: string;
   created_at?: string;
   updated_at?: string;
 }

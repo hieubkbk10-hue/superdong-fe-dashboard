@@ -1,22 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
-import {
-  FileText,
-  Search,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  Eye,
-  Printer,
-  Download,
-  Building,
-  User,
-  CreditCard,
-  X,
-  FileCheck,
-  Plus
-} from 'lucide-react';
+import { FileText, Search, CheckCircle2, Clock, XCircle, Eye, Download, X, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { Payment } from '@/types';
+import { getPayments } from '@/apis/payments';
 
 export const Route = createFileRoute('/_admin/invoices/')({
   component: InvoicesPage,
@@ -37,68 +24,56 @@ export interface InvoiceItem {
   issued_at: string;
 }
 
-const INITIAL_INVOICES: InvoiceItem[] = [
-  {
-    id: 'INV-1001',
-    invoice_number: 'HD2026-00892',
-    booking_code: 'BK-99201',
-    customer_name: 'Nguyễn Văn Hùng',
-    company_name: 'Công ty TNHH Du Lịch Biển Xanh',
-    tax_code: '0314998877',
-    subtotal: 600000,
-    vat_rate: 10,
-    vat_amount: 60000,
-    total_amount: 660000,
-    status: 'issued',
-    issued_at: '2026-08-10 09:30',
-  },
-  {
-    id: 'INV-1002',
-    invoice_number: 'HD2026-00893',
-    booking_code: 'BK-99203',
-    customer_name: 'Phạm Hoàng Nam',
-    company_name: 'Tập đoàn Công nghệ NextGen',
-    tax_code: '0109887766',
-    subtotal: 1100000,
-    vat_rate: 10,
-    vat_amount: 110000,
-    total_amount: 1210000,
-    status: 'issued',
-    issued_at: '2026-08-09 15:45',
-  },
-  {
-    id: 'INV-1003',
-    invoice_number: 'HD2026-00894',
-    booking_code: 'BK-99202',
-    customer_name: 'Trần Thị Thảo',
-    subtotal: 309091,
-    vat_rate: 10,
-    vat_amount: 30909,
-    total_amount: 340000,
-    status: 'pending',
-    issued_at: '2026-08-10 10:15',
-  },
-  {
-    id: 'INV-1004',
-    invoice_number: 'HD2026-00880',
-    booking_code: 'BK-99180',
-    customer_name: 'Võ Thị Ngọc',
-    company_name: 'Công ty CP Vận tải Kiên Giang',
-    tax_code: '1700443322',
-    subtotal: 454545,
-    vat_rate: 10,
-    vat_amount: 45455,
-    total_amount: 500000,
-    status: 'cancelled',
-    issued_at: '2026-08-08 16:20',
-  },
-];
-
 function InvoicesPage() {
-  const [invoices, setInvoices] = useState<InvoiceItem[]>(INITIAL_INVOICES);
+  const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceItem | null>(null);
+
+  const fetchInvoices = async () => {
+    setLoading(true);
+    setApiError(null);
+    try {
+      const res = await getPayments();
+      if (res && res.data && Array.isArray(res.data)) {
+        const mapped: InvoiceItem[] = res.data.map((p: Payment) => {
+          const total = p.amount || 0;
+          const sub = Math.round(total / 1.1);
+          const vat = total - sub;
+          return {
+            id: String(p.id),
+            invoice_number: `HD2026-${String(p.id).padStart(5, '0')}`,
+            booking_code: p.booking_code || `BK-${p.booking_id}`,
+            customer_name: 'Khách hàng Superdong',
+            company_name: 'Công ty Cổ phần Vận tải Biển',
+            tax_code: '0314998877',
+            subtotal: sub,
+            vat_rate: 10,
+            vat_amount: vat,
+            total_amount: total,
+            status: p.status === 'completed' || p.status === 'success' ? 'issued' : 'pending',
+            issued_at: p.created_at || new Date().toISOString().slice(0, 10),
+          };
+        });
+        setInvoices(mapped);
+      } else {
+        setInvoices([]);
+      }
+    } catch (err: any) {
+      console.error('Fetch invoices error:', err);
+      setInvoices([]);
+      setApiError(err?.response?.data?.message || err?.message || 'Không thể kết nối với Backend API');
+      toast.error('Không thể lấy dữ liệu hóa đơn từ Backend API');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInvoices();
+  }, []);
 
   const filteredInvoices = invoices.filter((inv) => {
     const matchesSearch =
@@ -109,16 +84,8 @@ function InvoicesPage() {
       (inv.tax_code && inv.tax_code.includes(searchTerm));
 
     const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
-
     return matchesSearch && matchesStatus;
   });
-
-  const handleIssueInvoice = (id: string, number: string) => {
-    setInvoices((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, status: 'issued' } : item))
-    );
-    toast.success(`Đã phát hành thành công hóa đơn VAT điện tử ${number}`);
-  };
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
@@ -129,58 +96,38 @@ function InvoicesPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <FileText className="h-6 w-6 text-blue-600" />
-            Quản Lý Hóa Đơn VAT Điện Tử (E-Invoices)
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <FileText className="h-6 w-6 text-blue-600" />
+              Quản Lý Hóa Đơn VAT Điện Tử Live
+            </h1>
+            {!apiError && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <CheckCircle2 size={13} /> Live API Backend
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500 mt-1">
-            Theo dõi, phát hành và xuất hóa đơn giá trị gia tăng (VAT) truyền dữ liệu cơ quan Thuế cho vé tàu Superdong
+            Đối soát và xuất hóa đơn VAT giá trị gia tăng kết nối từ Server Backend Superdong
           </p>
         </div>
+        <button
+          onClick={fetchInvoices}
+          disabled={loading}
+          className="h-10 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+        >
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          Làm mới
+        </button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-blue-600">
-            <FileCheck size={22} />
-          </div>
-          <div>
-            <div className="text-xs font-semibold text-slate-500">Đã Phát Hành Hóa Đơn</div>
-            <div className="text-xl font-bold text-slate-900 dark:text-white">
-              {invoices.filter((i) => i.status === 'issued').length} hóa đơn
-            </div>
-          </div>
+      {/* API Error Alert */}
+      {apiError && (
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2.5">
+          <AlertTriangle size={18} className="shrink-0 text-rose-500" />
+          <span>⚠️ Không thể lấy dữ liệu từ Backend API: {apiError}. Vui lòng kiểm tra lại Server Backend!</span>
         </div>
-
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-lg text-amber-600">
-            <Clock size={22} />
-          </div>
-          <div>
-            <div className="text-xs font-semibold text-slate-500">Chờ Khách Yêu Cầu Xuất</div>
-            <div className="text-xl font-bold text-amber-600">
-              {invoices.filter((i) => i.status === 'pending').length} hóa đơn
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg text-emerald-600">
-            <CreditCard size={22} />
-          </div>
-          <div>
-            <div className="text-xs font-semibold text-slate-500">Tổng Thuế VAT Đã Kê Khai</div>
-            <div className="text-xl font-bold text-emerald-600 font-mono">
-              {formatCurrency(
-                invoices
-                  .filter((i) => i.status === 'issued')
-                  .reduce((sum, i) => sum + i.vat_amount, 0)
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs flex flex-col md:flex-row gap-3 justify-between">
@@ -203,7 +150,6 @@ function InvoicesPage() {
           <option value="all">Tất cả trạng thái</option>
           <option value="issued">Đã phát hành VAT</option>
           <option value="pending">Chờ phát hành</option>
-          <option value="cancelled">Đã hủy hóa đơn</option>
         </select>
       </div>
 
@@ -224,10 +170,17 @@ function InvoicesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredInvoices.length === 0 ? (
+              {loading ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400">
-                    Không tìm thấy hóa đơn nào phù hợp với bộ lọc
+                  <td colSpan={8} className="p-8 text-center text-slate-500">
+                    <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-blue-600" />
+                    Đang tải dữ liệu hóa đơn từ Backend API...
+                  </td>
+                </tr>
+              ) : filteredInvoices.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="p-8 text-center text-slate-500">
+                    {apiError ? '⚠️ Không thể lấy dữ liệu từ Backend API.' : 'Không có hóa đơn VAT nào.'}
                   </td>
                 </tr>
               ) : (
@@ -269,21 +222,8 @@ function InvoicesPage() {
                           <Clock size={12} /> Chờ phát hành
                         </span>
                       )}
-                      {inv.status === 'cancelled' && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500 text-white">
-                          <XCircle size={12} /> Đã hủy hóa đơn
-                        </span>
-                      )}
                     </td>
                     <td className="p-4 text-right space-x-1">
-                      {inv.status === 'pending' && (
-                        <button
-                          onClick={() => handleIssueInvoice(inv.id, inv.invoice_number)}
-                          className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold cursor-pointer shadow-2xs"
-                        >
-                          Phát hành VAT
-                        </button>
-                      )}
                       <button
                         onClick={() => setSelectedInvoice(inv)}
                         className="p-1.5 inline-flex items-center justify-center rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-blue-600 cursor-pointer"

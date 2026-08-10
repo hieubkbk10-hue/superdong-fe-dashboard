@@ -1,124 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import {
-  Ticket,
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  CheckCircle2,
-  XCircle,
-  Tag,
-  Percent,
-  DollarSign,
-  Calendar,
-  Layers
-} from 'lucide-react';
+import { Ticket, Plus, Search, Edit, Trash2, CheckCircle2, XCircle, Percent, DollarSign, Calendar, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Coupon } from '@/types';
-import { getCoupons, createCoupon, updateCoupon } from '@/apis/pricing';
+import { getCoupons } from '@/apis/pricing';
 
 export const Route = createFileRoute('/_admin/coupons/')({
   component: CouponsPage,
 });
 
-const INITIAL_COUPONS: Coupon[] = [
-  {
-    id: '1',
-    code: 'SUMMER2026',
-    type: 'percentage',
-    value: 15,
-    min_booking_amount: 500000,
-    max_discount_amount: 100000,
-    usage_limit: 500,
-    usage_count: 142,
-    valid_from: '2026-06-01',
-    valid_until: '2026-08-31',
-    is_active: true,
-  },
-  {
-    id: '2',
-    code: 'HELLOSUPERDONG',
-    type: 'fixed_amount',
-    value: 50000,
-    min_booking_amount: 300000,
-    max_discount_amount: 50000,
-    usage_limit: 1000,
-    usage_count: 489,
-    valid_from: '2026-01-01',
-    valid_until: '2026-12-31',
-    is_active: true,
-  },
-  {
-    id: '3',
-    code: 'CONDAOVIP',
-    type: 'percentage',
-    value: 20,
-    min_booking_amount: 1000000,
-    max_discount_amount: 250000,
-    usage_limit: 200,
-    usage_count: 85,
-    valid_from: '2026-05-01',
-    valid_until: '2026-09-30',
-    is_active: true,
-  },
-  {
-    id: '4',
-    code: 'TRIAN2026',
-    type: 'percentage',
-    value: 10,
-    min_booking_amount: 0,
-    max_discount_amount: 50000,
-    usage_limit: 300,
-    usage_count: 300,
-    valid_from: '2026-03-01',
-    valid_until: '2026-04-30',
-    is_active: false,
-  },
-];
-
 function CouponsPage() {
-  const [coupons, setCoupons] = useState<Coupon[]>(INITIAL_COUPONS);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  useEffect(() => {
-    let isMounted = true;
-    async function loadData() {
-      try {
-        setLoading(true);
-        const res = await getCoupons();
-        if (isMounted && res && res.data && res.data.length > 0) {
-          setCoupons(res.data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch coupons:', err);
-      } finally {
-        if (isMounted) setLoading(false);
+  const fetchCoupons = async () => {
+    setLoading(true);
+    setApiError(null);
+    try {
+      const res = await getCoupons();
+      if (res && res.data && Array.isArray(res.data)) {
+        setCoupons(res.data);
+      } else {
+        setCoupons([]);
       }
+    } catch (err: any) {
+      console.error('Fetch coupons error:', err);
+      setCoupons([]);
+      setApiError(err?.response?.data?.message || err?.message || 'Không thể kết nối với Backend API');
+      toast.error('Không thể lấy dữ liệu mã khuyến mãi từ Backend API');
+    } finally {
+      setLoading(false);
     }
-    loadData();
-    return () => {
-      isMounted = false;
-    };
+  };
+
+  useEffect(() => {
+    fetchCoupons();
   }, []);
 
   const filteredCoupons = coupons.filter((c) => {
-    const matchesSearch = c.code.toLowerCase().includes(searchTerm.toLowerCase());
+    const code = c.code || '';
+    const matchesSearch = code.toLowerCase().includes(searchTerm.toLowerCase());
+    const isActive = c.status ? c.status === 'active' : c.is_active;
     const matchesStatus =
       statusFilter === 'all' ||
-      (statusFilter === 'active' && c.is_active) ||
-      (statusFilter === 'inactive' && !c.is_active);
+      (statusFilter === 'active' && isActive) ||
+      (statusFilter === 'inactive' && !isActive);
     return matchesSearch && matchesStatus;
   });
-
-  const handleDelete = (id: string, code: string) => {
-    if (confirm(`Bạn có chắc muốn xóa mã khuyến mãi ${code}?`)) {
-      setCoupons((prev) => prev.filter((c) => c.id !== id));
-      toast.success(`Đã xóa mã khuyến mãi ${code}`);
-    }
-  };
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
@@ -132,24 +63,43 @@ function CouponsPage() {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Ticket className="h-6 w-6 text-blue-600" />
-              Mã Khuyến Mãi &amp; Voucher
+              Mã Khuyến Mãi &amp; Voucher Live
             </h1>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Live API Backend
-            </span>
+            {!apiError && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <CheckCircle2 size={13} /> Live API Backend
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Quản lý mã giảm giá, voucher khuyến mãi đặt vé tàu cao tốc Superdong
+            Nối trực tiếp API endpoint `/v1/coupons` từ Server Backend Superdong
           </p>
         </div>
-        <Link
-          to={'/coupons/create' as any}
-          className="h-10 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm flex items-center gap-2 shadow-xs transition-all cursor-pointer"
-        >
-          <Plus size={16} /> Tạo Mã Mới
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchCoupons}
+            disabled={loading}
+            className="h-10 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            Làm mới
+          </button>
+          <Link
+            to={'/coupons/create' as any}
+            className="h-10 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm flex items-center gap-2 shadow-xs transition-all cursor-pointer"
+          >
+            <Plus size={16} /> Tạo Mã Mới
+          </Link>
+        </div>
       </div>
+
+      {/* API Error Alert */}
+      {apiError && (
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2.5">
+          <AlertTriangle size={18} className="shrink-0 text-rose-500" />
+          <span>⚠️ Không thể lấy dữ liệu từ Backend API: {apiError}. Vui lòng kiểm tra lại Server Backend!</span>
+        </div>
+      )}
 
       {/* Filter Bar */}
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs flex flex-col md:flex-row gap-3 justify-between">
@@ -159,7 +109,7 @@ function CouponsPage() {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm theo Mã voucher (VD: SUMMER2026)..."
+            placeholder="Tìm theo Mã voucher (VD: SUPERDONG2026)..."
             className="w-full h-10 pl-9 pr-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-blue-500 font-mono"
           />
         </div>
@@ -182,6 +132,7 @@ function CouponsPage() {
             <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="p-4">Mã Coupon</th>
+                <th className="p-4">Tên Chương Trình</th>
                 <th className="p-4">Loại &amp; Mức Giảm</th>
                 <th className="p-4">Điều Kiện Đơn</th>
                 <th className="p-4">Lượt Sử Dụng</th>
@@ -191,95 +142,92 @@ function CouponsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredCoupons.length === 0 ? (
+              {loading ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">
-                    Không tìm thấy mã khuyến mãi phù hợp.
+                  <td colSpan={8} className="p-8 text-center text-slate-500">
+                    <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-blue-600" />
+                    Đang tải dữ liệu từ Backend API...
+                  </td>
+                </tr>
+              ) : filteredCoupons.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="p-8 text-center text-slate-500">
+                    {apiError ? '⚠️ Không thể lấy dữ liệu từ Backend API.' : 'Không có mã khuyến mãi nào.'}
                   </td>
                 </tr>
               ) : (
-                filteredCoupons.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                    <td className="p-4 font-mono font-bold text-blue-600 text-base">
-                      <span className="bg-blue-50 dark:bg-blue-900/40 px-2.5 py-1 rounded-md border border-blue-200/60 dark:border-blue-800">
-                        {c.code}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      {c.type === 'percentage' ? (
-                        <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white">
-                          <Percent size={15} className="text-amber-500" /> Giảm {c.value}%
-                          {c.max_discount_amount ? (
-                            <span className="text-xs font-normal text-slate-500">
-                              (Tối đa {formatCurrency(c.max_discount_amount)})
-                            </span>
-                          ) : null}
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400">
-                          <DollarSign size={15} /> Giảm {formatCurrency(c.value)}
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-4 text-slate-600 dark:text-slate-300">
-                      {c.min_booking_amount && c.min_booking_amount > 0 ? (
-                        <span>Đơn từ {formatCurrency(c.min_booking_amount)}</span>
-                      ) : (
-                        <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500">
-                          Mọi đơn hàng
+                filteredCoupons.map((c: any) => {
+                  const isActive = c.status ? c.status === 'active' : c.is_active;
+                  const discountVal = c.discount_value || c.value || 0;
+                  const isPercent = c.discount_type === 'percentage' || c.type === 'percentage';
+                  const minBooking = c.min_booking_amount_vnd || c.min_booking_amount || 0;
+                  const validFrom = c.effective_from ? c.effective_from.substring(0, 10) : (c.valid_from || '');
+                  const validTo = c.effective_to ? c.effective_to.substring(0, 10) : (c.valid_until || '');
+
+                  return (
+                    <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                      <td className="p-4 font-mono font-bold text-blue-600 text-base">
+                        <span className="bg-blue-50 dark:bg-blue-900/40 px-2.5 py-1 rounded-md border border-blue-200/60 dark:border-blue-800">
+                          {c.code}
                         </span>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <div className="font-semibold text-slate-900 dark:text-slate-100">
-                        {c.usage_count} / {c.usage_limit || '∞'} lượt
-                      </div>
-                      {c.usage_limit ? (
-                        <div className="w-24 bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-1 overflow-hidden">
-                          <div
-                            className="bg-blue-600 h-full rounded-full"
-                            style={{
-                              width: `${Math.min(100, ((c.usage_count || 0) / c.usage_limit) * 100)}%`,
-                            }}
-                          />
+                      </td>
+                      <td className="p-4 font-medium text-slate-900 dark:text-white">
+                        {c.name || 'Mã ưu đãi'}
+                      </td>
+                      <td className="p-4">
+                        {isPercent ? (
+                          <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white">
+                            <Percent size={15} className="text-amber-500" /> Giảm {discountVal}%
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400">
+                            <DollarSign size={15} /> Giảm {formatCurrency(discountVal)}
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-4 text-slate-600 dark:text-slate-300">
+                        {minBooking > 0 ? (
+                          <span>Đơn từ {formatCurrency(minBooking)}</span>
+                        ) : (
+                          <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500">
+                            Mọi đơn hàng
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        <div className="font-semibold text-slate-900 dark:text-slate-100">
+                          {c.usage_count || 0} / {c.usage_limit || '∞'} lượt
                         </div>
-                      ) : null}
-                    </td>
-                    <td className="p-4 text-xs text-slate-500 font-medium">
-                      <div className="flex items-center gap-1">
-                        <Calendar size={12} /> {c.valid_from} ➔ {c.valid_until}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      {c.is_active ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                          <CheckCircle2 size={12} /> Đang kích hoạt
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
-                          <XCircle size={12} /> Tạm dừng / Hết hạn
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-4 text-right space-x-1">
-                      <Link
-                        to={'/coupons/$couponId/edit' as any}
-                        params={{ couponId: c.id } as any}
-                        className="p-1.5 inline-flex items-center justify-center rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-blue-600 cursor-pointer"
-                        title="Chỉnh sửa mã coupon"
-                      >
-                        <Edit size={16} />
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(String(c.id), c.code)}
-                        className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-rose-500 hover:text-rose-600 cursor-pointer"
-                        title="Xóa mã coupon"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="p-4 text-xs text-slate-500 font-medium font-mono">
+                        <div className="flex items-center gap-1">
+                          <Calendar size={12} /> {validFrom} ➔ {validTo}
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        {isActive ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            <CheckCircle2 size={12} /> Đang kích hoạt
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                            <XCircle size={12} /> Hết hạn / Khóa
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4 text-right space-x-1">
+                        <Link
+                          to={'/coupons/$couponId/edit' as any}
+                          params={{ couponId: c.id } as any}
+                          className="p-1.5 inline-flex items-center justify-center rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-blue-600 cursor-pointer"
+                          title="Chỉnh sửa mã"
+                        >
+                          <Edit size={16} />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

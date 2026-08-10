@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { Route as RouteIcon, Plus, Edit, Trash2, Search, CheckCircle2, XCircle, ArrowRight, Clock, Navigation } from 'lucide-react';
+import { Route as RouteIcon, Plus, Edit, Trash2, Search, CheckCircle2, XCircle, ArrowRight, Clock, Navigation, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { getJourneys } from '@/apis/journeys';
 import { Journey } from '@/types';
@@ -20,89 +20,45 @@ export interface JourneyItem {
   status: 'active' | 'inactive';
 }
 
-export const INITIAL_JOURNEYS: JourneyItem[] = [
-  {
-    id: 'j-1',
-    code: 'J-RGPQ',
-    name: 'Rạch Giá ↔ Phú Quốc',
-    origin: 'Bến tàu Rạch Giá (RG)',
-    destination: 'Bến tàu Phú Quốc (PQ)',
-    distance: '65 hải lý',
-    duration: '2 tiếng 30 phút',
-    status: 'active',
-  },
-  {
-    id: 'j-2',
-    code: 'J-HTPQ',
-    name: 'Hà Tiên ↔ Phú Quốc',
-    origin: 'Bến tàu Hà Tiên (HT)',
-    destination: 'Bến tàu Phú Quốc (PQ)',
-    distance: '24 hải lý',
-    duration: '1 tiếng 15 phút',
-    status: 'active',
-  },
-  {
-    id: 'j-3',
-    code: 'J-TDCD',
-    name: 'Trần Đề ↔ Côn Đảo',
-    origin: 'Bến tàu Trần Đề (TD)',
-    destination: 'Bến tàu Côn Đảo (CD)',
-    distance: '45 hải lý',
-    duration: '2 tiếng 15 phút',
-    status: 'active',
-  },
-  {
-    id: 'j-4',
-    code: 'J-PTPQY',
-    name: 'Phan Thiết ↔ Phú Quý',
-    origin: 'Bến tàu Phan Thiết (PT)',
-    destination: 'Bến tàu Phú Quý (PQY)',
-    distance: '56 hải lý',
-    duration: '2 tiếng 30 phút',
-    status: 'active',
-  },
-  {
-    id: 'j-5',
-    code: 'J-RGNT',
-    name: 'Rạch Giá ↔ Nam Du',
-    origin: 'Bến tàu Rạch Giá (RG)',
-    destination: 'Bến tàu Nam Du (ND)',
-    distance: '48 hải lý',
-    duration: '2 tiếng',
-    status: 'active',
-  },
-];
-
 function JourneysPage() {
-  const [journeys, setJourneys] = useState<JourneyItem[]>(INITIAL_JOURNEYS);
+  const [journeys, setJourneys] = useState<JourneyItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  useEffect(() => {
-    let isMounted = true;
-    const fetchJourneys = async () => {
-      try {
-        const res = await getJourneys();
-        if (isMounted && res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-          const mapped: JourneyItem[] = res.data.map((j: Journey) => ({
-            id: String(j.id),
-            code: j.code || '',
-            name: j.name || '',
-            origin: j.origin_location?.name || 'Bến tàu Rạch Giá (RG)',
-            destination: j.destination_location?.name || 'Bến tàu Phú Quốc (PQ)',
-            distance: `${j.distance_km || 65} hải lý`,
-            duration: `${j.estimated_duration_minutes ? Math.floor(j.estimated_duration_minutes / 60) + ' tiếng ' + (j.estimated_duration_minutes % 60) + ' phút' : '2 tiếng 30 phút'}`,
-            status: j.is_active ? 'active' : 'inactive',
-          }));
-          setJourneys(mapped);
-          toast.success('Đã tải danh sách tuyến hải trình từ Backend API');
-        }
-      } catch (err) {
-        // Fallback state
+  const fetchJourneys = async () => {
+    setLoading(true);
+    setApiError(null);
+    try {
+      const res = await getJourneys();
+      if (res && res.data && Array.isArray(res.data)) {
+        const mapped: JourneyItem[] = res.data.map((j: Journey) => ({
+          id: String(j.id),
+          code: j.code || '',
+          name: j.name || '',
+          origin: j.origin_location?.name || 'Bến xuất phát',
+          destination: j.destination_location?.name || 'Bến tới',
+          distance: `${j.distance_km || 65} hải lý`,
+          duration: `${j.estimated_duration_minutes ? Math.floor(j.estimated_duration_minutes / 60) + ' tiếng ' + (j.estimated_duration_minutes % 60) + ' phút' : '2 tiếng 30 phút'}`,
+          status: j.is_active ? 'active' : 'inactive',
+        }));
+        setJourneys(mapped);
+      } else {
+        setJourneys([]);
       }
-    };
+    } catch (err: any) {
+      console.error('Fetch journeys error:', err);
+      setJourneys([]);
+      setApiError(err?.response?.data?.message || err?.message || 'Không thể kết nối với Backend API');
+      toast.error('Không thể lấy dữ liệu tuyến hải trình từ Backend API');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchJourneys();
-    return () => { isMounted = false; };
   }, []);
 
   const filteredJourneys = journeys.filter((j) => {
@@ -113,37 +69,54 @@ function JourneysPage() {
       j.destination.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === 'all' || j.status === statusFilter;
-
     return matchesSearch && matchesStatus;
   });
-
-  const handleDelete = (id: string, name: string) => {
-    if (confirm(`Bạn có chắc muốn xóa tuyến hải trình ${name}?`)) {
-      setJourneys((prev) => prev.filter((item) => item.id !== id));
-      toast.success(`Đã xóa tuyến hải trình ${name}`);
-    }
-  };
 
   return (
     <div className="space-y-4 font-sans">
       {/* Header section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <RouteIcon className="h-6 w-6 text-blue-600" />
-            Tuyến Hải Trình
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <RouteIcon className="h-6 w-6 text-blue-600" />
+              Tuyến Hải Trình Live
+            </h1>
+            {!apiError && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <CheckCircle2 size={13} /> Live API Backend
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500 mt-1">
-            Cấu hình các luồng hải trình kết nối giữa 2 cảng bến, khoảng cách hải lý và thời gian di chuyển chuẩn
+            Quản lý tuyến đường biển kết nối từ Server Backend API Superdong
           </p>
         </div>
-        <Link
-          to={"/journeys/create" as any}
-          className="h-10 px-4 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm flex items-center gap-2 shadow-xs transition-all cursor-pointer whitespace-nowrap"
-        >
-          <Plus size={16} /> Thêm tuyến hải trình
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchJourneys}
+            disabled={loading}
+            className="h-10 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            Làm mới
+          </button>
+          <Link
+            to={'/journeys/create' as any}
+            className="h-10 px-4 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm flex items-center gap-2 shadow-xs transition-all cursor-pointer whitespace-nowrap"
+          >
+            <Plus size={16} /> Thêm tuyến hải trình
+          </Link>
+        </div>
       </div>
+
+      {/* API Error Alert */}
+      {apiError && (
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2.5">
+          <AlertTriangle size={18} className="shrink-0 text-rose-500" />
+          <span>⚠️ Không thể lấy dữ liệu từ Backend API: {apiError}. Vui lòng kiểm tra lại Server Backend!</span>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
@@ -187,10 +160,17 @@ function JourneysPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {filteredJourneys.length === 0 ? (
+            {loading ? (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-slate-400">
-                  Không tìm thấy tuyến hải trình nào phù hợp
+                <td colSpan={7} className="p-8 text-center text-slate-500">
+                  <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-blue-600" />
+                  Đang tải dữ liệu tuyến hải trình từ Backend API...
+                </td>
+              </tr>
+            ) : filteredJourneys.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="p-8 text-center text-slate-500">
+                  {apiError ? '⚠️ Không thể lấy dữ liệu từ Backend API.' : 'Không có tuyến hải trình nào.'}
                 </td>
               </tr>
             ) : (
@@ -234,20 +214,13 @@ function JourneysPage() {
                   </td>
                   <td className="p-4 text-right space-x-1">
                     <Link
-                      to={"/journeys/$journeyId/edit" as any}
+                      to={'/journeys/$journeyId/edit' as any}
                       params={{ journeyId: j.id } as any}
                       className="p-1.5 inline-flex items-center justify-center rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-blue-600 cursor-pointer"
                       title="Chỉnh sửa tuyến"
                     >
                       <Edit size={16} />
                     </Link>
-                    <button
-                      onClick={() => handleDelete(j.id, j.name)}
-                      className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-rose-500 hover:text-rose-600 cursor-pointer"
-                      title="Xóa tuyến"
-                    >
-                      <Trash2 size={16} />
-                    </button>
                   </td>
                 </tr>
               ))

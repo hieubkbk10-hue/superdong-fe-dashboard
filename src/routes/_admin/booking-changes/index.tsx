@@ -1,21 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
-import {
-  RefreshCw,
-  Search,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Filter,
-  Calendar,
-  AlertCircle,
-  Eye,
-  Check,
-  X,
-  User,
-  Phone,
-  FileText
-} from 'lucide-react';
+import { RefreshCw, Search, CheckCircle2, XCircle, Clock, Calendar, Eye, Check, X, User, RefreshCw as SpinIcon, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { BookingChange } from '@/types';
 import { getBookingChangeQueue, reviewBookingChange } from '@/apis/booking-changes';
@@ -24,90 +9,10 @@ export const Route = createFileRoute('/_admin/booking-changes/')({
   component: BookingChangesPage,
 });
 
-const INITIAL_CHANGES: BookingChange[] = [
-  {
-    id: 'CHG-8801',
-    booking_id: '1',
-    booking_code: 'BK-99201',
-    change_type: 'reschedule',
-    requested_by: 'Nguyễn Văn Hùng',
-    reason: 'Trễ chuyến xe khách đến cảng Rạch Giá, xin đổi sang chuyến chiều 13:00',
-    status: 'pending',
-    details: {
-      original_trip: '07:30 AM 15/08/2026 (Superdong IX)',
-      target_trip: '13:00 PM 15/08/2026 (Superdong VI)',
-      fee: 30000,
-    },
-    created_at: '2026-08-10 09:45',
-  },
-  {
-    id: 'CHG-8802',
-    booking_id: '4',
-    booking_code: 'BK-99204',
-    change_type: 'cancellation',
-    requested_by: 'Đặng Minh Đức',
-    reason: 'Gia đình có việc đột xuất không thể đi du lịch đúng ngày',
-    status: 'pending',
-    details: {
-      original_amount: 500000,
-      refund_estimated: 400000,
-      penalty_fee: 100000,
-    },
-    created_at: '2026-08-10 08:30',
-  },
-  {
-    id: 'CHG-8803',
-    booking_id: '3',
-    booking_code: 'BK-99203',
-    change_type: 'seat_change',
-    requested_by: 'Phạm Hoàng Nam',
-    reason: 'Muốn đổi từ ghế thường A12, A13 sang khu vực ghế VIP',
-    status: 'approved',
-    reviewed_by: 'Nguyễn Văn Thành (Quản lý bến)',
-    reviewed_at: '2026-08-09 16:00',
-    details: {
-      original_seats: 'A12, A13',
-      new_seats: 'VIP-01, VIP-02',
-      surcharge: 200000,
-    },
-    created_at: '2026-08-09 14:30',
-  },
-  {
-    id: 'CHG-8804',
-    booking_id: '2',
-    booking_code: 'BK-99202',
-    change_type: 'traveler_info',
-    requested_by: 'Trần Thị Thảo',
-    reason: 'Nhập sai 1 số cuối trên giấy CCCD của hành khách',
-    status: 'approved',
-    reviewed_by: 'Trần Thị Thu (Nhân viên quầy)',
-    reviewed_at: '2026-08-09 11:20',
-    details: {
-      old_id: '068092001121',
-      new_id: '068092001122',
-    },
-    created_at: '2026-08-09 10:15',
-  },
-  {
-    id: 'CHG-8805',
-    booking_id: '5',
-    booking_code: 'BK-99180',
-    change_type: 'cancellation',
-    requested_by: 'Võ Thị Ngọc',
-    reason: 'Yêu cầu hủy vé sau giờ tàu chạy',
-    status: 'rejected',
-    reviewed_by: 'Admin Master',
-    reviewed_at: '2026-08-08 17:00',
-    details: {
-      reject_reason: 'Tàu đã khởi hành quá 2 tiếng, không áp dụng chính sách hoàn trả vé',
-    },
-    created_at: '2026-08-08 15:00',
-  },
-];
-
 function BookingChangesPage() {
-  const [changes, setChanges] = useState<BookingChange[]>(INITIAL_CHANGES);
+  const [changes, setChanges] = useState<BookingChange[]>([]);
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -120,14 +25,20 @@ function BookingChangesPage() {
   const [adminNote, setAdminNote] = useState('');
 
   const fetchQueueData = async () => {
+    setLoading(true);
+    setApiError(null);
     try {
-      setLoading(true);
       const res = await getBookingChangeQueue();
-      if (res && res.data && res.data.length > 0) {
+      if (res && res.data && Array.isArray(res.data)) {
         setChanges(res.data);
+      } else {
+        setChanges([]);
       }
-    } catch (err) {
-      console.error('Failed to fetch booking change queue:', err);
+    } catch (err: any) {
+      console.error('Fetch booking change queue error:', err);
+      setChanges([]);
+      setApiError(err?.response?.data?.message || err?.message || 'Không thể kết nối với Backend API');
+      toast.error('Không thể lấy hàng đợi đổi vé từ Backend API');
     } finally {
       setLoading(false);
     }
@@ -149,45 +60,21 @@ function BookingChangesPage() {
     return matchesSearch && matchesStatus && matchesType;
   });
 
-  // Action handlers
   const handleConfirmAction = async () => {
     if (!activeModal) return;
-
     const { type, item } = activeModal;
 
     try {
       await reviewBookingChange(item.id, type === 'approve' ? 'approve' : 'reject', adminNote);
-    } catch (err) {
-      console.warn('Backend error during review, executing fallback update:', err);
-    }
-
-    setChanges((prev) =>
-      prev.map((c) => {
-        if (c.id === item.id) {
-          return {
-            ...c,
-            status: type === 'approve' ? 'approved' : 'rejected',
-            reviewed_by: 'Quản trị viên (Hiện tại)',
-            reviewed_at: new Date().toISOString().replace('T', ' ').substring(0, 16),
-          };
-        }
-        return c;
-      })
-    );
-
-    if (type === 'approve') {
-      toast.success(`Đã chấp thuận yêu cầu ${item.id} cho đơn ${item.booking_code}`);
-    } else {
-      toast.info(`Đã từ chối yêu cầu ${item.id}`);
+      toast.success(`Đã xử lý thành công yêu cầu ${item.id}`);
+      fetchQueueData();
+    } catch (err: any) {
+      toast.error(`Lỗi duyệt yêu cầu: ${err?.message || 'Không thể thực hiện'}`);
     }
 
     setActiveModal(null);
     setAdminNote('');
   };
-
-  const pendingCount = changes.filter((c) => c.status === 'pending').length;
-  const approvedCount = changes.filter((c) => c.status === 'approved').length;
-  const rejectedCount = changes.filter((c) => c.status === 'rejected').length;
 
   const renderTypeBadge = (type: string) => {
     switch (type) {
@@ -209,12 +96,6 @@ function BookingChangesPage() {
             <RefreshCw size={12} /> Đổi vị trí ghế
           </span>
         );
-      case 'traveler_info':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-            <User size={12} /> Đổi thông tin
-          </span>
-        );
       default:
         return <span className="text-xs text-slate-500">{type}</span>;
     }
@@ -228,51 +109,35 @@ function BookingChangesPage() {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <RefreshCw className="h-6 w-6 text-blue-600" />
-              Yêu Cầu Đổi / Hủy Vé Tàu
+              Yêu Cầu Đổi / Hủy Vé Live
             </h1>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Live API Backend
-            </span>
+            {!apiError && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <CheckCircle2 size={13} /> Live API Backend
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Hàng đợi tiếp nhận và phê duyệt yêu cầu thay đổi thông tin vé, đổi giờ chạy hoặc hủy vé hoàn tiền
+            Hàng đợi tiếp nhận phê duyệt đổi / hủy vé kết nối từ Server Backend Superdong
           </p>
         </div>
+        <button
+          onClick={fetchQueueData}
+          disabled={loading}
+          className="h-10 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+        >
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          Làm mới
+        </button>
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-lg text-amber-600">
-            <Clock size={22} />
-          </div>
-          <div>
-            <div className="text-xs font-semibold text-slate-500">Chờ Xử Lý &amp; Duyệt</div>
-            <div className="text-xl font-bold text-amber-600">{pendingCount} yêu cầu</div>
-          </div>
+      {/* API Error Alert */}
+      {apiError && (
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2.5">
+          <AlertTriangle size={18} className="shrink-0 text-rose-500" />
+          <span>⚠️ Không thể lấy dữ liệu từ Backend API: {apiError}. Vui lòng kiểm tra lại Server Backend!</span>
         </div>
-
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg text-emerald-600">
-            <CheckCircle2 size={22} />
-          </div>
-          <div>
-            <div className="text-xs font-semibold text-slate-500">Đã Chấp Thuận</div>
-            <div className="text-xl font-bold text-emerald-600">{approvedCount} yêu cầu</div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-rose-50 dark:bg-rose-900/30 rounded-lg text-rose-600">
-            <XCircle size={22} />
-          </div>
-          <div>
-            <div className="text-xs font-semibold text-slate-500">Đã Từ Chối</div>
-            <div className="text-xl font-bold text-rose-600">{rejectedCount} yêu cầu</div>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Filter bar */}
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs flex flex-col md:flex-row gap-3">
@@ -282,7 +147,7 @@ function BookingChangesPage() {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm theo Mã yêu cầu (CHG-...), Mã đơn vé, hoặc tên người gửi..."
+            placeholder="Tìm theo Mã yêu cầu (CHG-...), Mã đơn vé..."
             className="w-full h-10 pl-9 pr-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-blue-500"
           />
         </div>
@@ -297,7 +162,6 @@ function BookingChangesPage() {
             <option value="reschedule">Đổi lịch chuyến</option>
             <option value="cancellation">Hủy vé &amp; Hoàn tiền</option>
             <option value="seat_change">Đổi vị trí ghế</option>
-            <option value="traveler_info">Đổi thông tin</option>
           </select>
 
           <select
@@ -329,10 +193,17 @@ function BookingChangesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredChanges.length === 0 ? (
+              {loading ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-slate-500">
-                    Không có yêu cầu đổi/hủy vé nào phù hợp bộ lọc.
+                    <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-blue-600" />
+                    Đang tải dữ liệu từ Backend API...
+                  </td>
+                </tr>
+              ) : filteredChanges.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-slate-500">
+                    {apiError ? '⚠️ Không thể lấy dữ liệu từ Backend API.' : 'Không có yêu cầu đổi/hủy vé nào.'}
                   </td>
                 </tr>
               ) : (
@@ -342,7 +213,7 @@ function BookingChangesPage() {
                     <td className="p-4 font-mono font-bold text-blue-600">{item.booking_code}</td>
                     <td className="p-4">{renderTypeBadge(item.change_type)}</td>
                     <td className="p-4 max-w-xs">
-                      <div className="font-semibold text-slate-900 dark:text-slate-100">{item.requested_by}</div>
+                      <div className="font-semibold text-slate-900 dark:text-slate-100">{item.requested_by || 'Khách hàng'}</div>
                       <div className="text-xs text-slate-500 line-clamp-1 mt-0.5">{item.reason}</div>
                     </td>
                     <td className="p-4 text-xs text-slate-500 font-medium">{item.created_at}</td>
@@ -371,25 +242,6 @@ function BookingChangesPage() {
                       >
                         <Eye size={16} />
                       </button>
-
-                      {item.status === 'pending' && (
-                        <>
-                          <button
-                            onClick={() => setActiveModal({ type: 'approve', item })}
-                            className="p-1.5 inline-flex items-center justify-center rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-600 cursor-pointer"
-                            title="Duyệt chấp thuận"
-                          >
-                            <Check size={18} />
-                          </button>
-                          <button
-                            onClick={() => setActiveModal({ type: 'reject', item })}
-                            className="p-1.5 inline-flex items-center justify-center rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 cursor-pointer"
-                            title="Từ chối yêu cầu"
-                          >
-                            <X size={18} />
-                          </button>
-                        </>
-                      )}
                     </td>
                   </tr>
                 ))
@@ -398,94 +250,6 @@ function BookingChangesPage() {
           </table>
         </div>
       </div>
-
-      {/* Approval / Rejection / View Modal */}
-      {activeModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-              <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
-                <RefreshCw size={18} className="text-blue-600" />
-                {activeModal.type === 'approve' && 'Phê Duyệt Yêu Cầu Đổi/Hủy Vé'}
-                {activeModal.type === 'reject' && 'Từ Chối Yêu Cầu Đổi/Hủy Vé'}
-                {activeModal.type === 'view' && 'Chi Tiết Yêu Cầu Đổi/Hủy Vé'}
-              </h3>
-              <button
-                onClick={() => setActiveModal(null)}
-                className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4 font-sans text-sm">
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-xs text-slate-500">Mã yêu cầu:</span>
-                  <strong className="font-mono">{activeModal.item.id}</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-xs text-slate-500">Đơn vé liên quan:</span>
-                  <strong className="font-mono text-blue-600">{activeModal.item.booking_code}</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-xs text-slate-500">Người gửi yêu cầu:</span>
-                  <span>{activeModal.item.requested_by}</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">Lý do từ khách hàng:</label>
-                <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-lg border border-amber-200/50 text-slate-800 dark:text-slate-200 text-xs">
-                  {activeModal.item.reason}
-                </div>
-              </div>
-
-              {activeModal.type !== 'view' && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Ghi chú của người kiểm duyệt (tùy chọn):
-                  </label>
-                  <textarea
-                    value={adminNote}
-                    onChange={(e) => setAdminNote(e.target.value)}
-                    placeholder="Nhập ghi chú phản hồi..."
-                    rows={3}
-                    className="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs outline-none focus:border-blue-500"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
-              <button
-                onClick={() => setActiveModal(null)}
-                className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold cursor-pointer"
-              >
-                Đóng
-              </button>
-
-              {activeModal.type === 'approve' && (
-                <button
-                  onClick={handleConfirmAction}
-                  className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer flex items-center gap-1"
-                >
-                  <Check size={16} /> Xác Nhận Chấp Thuận
-                </button>
-              )}
-
-              {activeModal.type === 'reject' && (
-                <button
-                  onClick={handleConfirmAction}
-                  className="px-5 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs cursor-pointer flex items-center gap-1"
-                >
-                  <X size={16} /> Xác Nhận Từ Chối
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
