@@ -3,7 +3,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { Ticket, Plus, Search, Edit, Trash2, CheckCircle2, XCircle, Percent, DollarSign, Calendar, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Coupon } from '@/types';
-import { getCoupons } from '@/apis/pricing';
+import { getCoupons, deleteCoupon } from '@/apis/pricing';
 
 export const Route = createFileRoute('/_admin/coupons/')({
   component: CouponsPage,
@@ -15,6 +15,7 @@ function CouponsPage() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [deletingId, setDeletingId] = useState<string | number | null>(null);
 
   const fetchCoupons = async () => {
     setLoading(true);
@@ -33,6 +34,25 @@ function CouponsPage() {
       toast.error('Không thể lấy dữ liệu mã khuyến mãi từ Backend API');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteCoupon = async (id: string | number, code: string) => {
+    if (!window.confirm(`XÁC NHẬN XÓA CỨNG MÃ KHUYẾN MÃI: ${code}?\n\nHệ thống sẽ tự động lưu bản chụp Snapshot vào Nhật ký Kiểm toán (Audit Trail) trước khi xóa vĩnh viễn khỏi cơ sở dữ liệu.`)) {
+      return;
+    }
+
+    setDeletingId(id);
+    try {
+      await deleteCoupon(id);
+      toast.success(`Đã xóa vĩnh viễn mã khuyến mãi ${code} thành công (Đã lưu Audit Snapshot)!`, { id: 'coupon-delete-toast' });
+      await fetchCoupons();
+    } catch (err: any) {
+      console.error('Failed to delete coupon:', err);
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Có lỗi xảy ra khi xóa mã khuyến mãi trên Backend', { id: 'coupon-delete-toast' });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -224,6 +244,14 @@ function CouponsPage() {
                         >
                           <Edit size={16} />
                         </Link>
+                        <button
+                          onClick={() => handleDeleteCoupon(c.id, c.code || '')}
+                          disabled={deletingId === c.id}
+                          className="p-1.5 inline-flex items-center justify-center rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/50 text-rose-600 dark:text-rose-400 cursor-pointer disabled:opacity-50"
+                          title="Xóa vĩnh viễn (Lưu Snapshot Audit Log)"
+                        >
+                          {deletingId === c.id ? <RefreshCw size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                        </button>
                       </td>
                     </tr>
                   );

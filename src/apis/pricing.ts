@@ -85,6 +85,14 @@ export async function updateCoupon(id: string | number, data: Partial<Coupon>): 
 }
 
 /**
+ * LOGIC: Xóa mã giảm giá khỏi hệ thống (có lưu snapshot audit log)
+ */
+export async function deleteCoupon(id: string | number): Promise<any> {
+  const response = await api.delete(`/coupons/${id}`);
+  return response.data;
+}
+
+/**
  * LOGIC: Tạm tính giá đơn hàng trước khi đặt vé
  */
 export async function quoteBooking(params: QuoteBookingPayload): Promise<ApiResponse<BookingQuoteResult>> {
@@ -100,5 +108,6 @@ export default {
   findCouponById,
   createCoupon,
   updateCoupon,
+  deleteCoupon,
   quoteBooking,
 };
