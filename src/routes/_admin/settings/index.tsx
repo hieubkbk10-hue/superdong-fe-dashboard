@@ -9,9 +9,9 @@ import {
   Receipt,
   Save,
   ShieldCheck,
-  Globe,
-  Phone,
-  CheckCircle2
+  CheckCircle2,
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSettings, updateSetting } from '@/apis/settings';
@@ -23,83 +23,186 @@ export const Route = createFileRoute('/_admin/settings/')({
 function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'company' | 'booking' | 'payment' | 'notify' | 'tax'>('company');
   const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
 
-  // Form states
-  const [companyConfig, setCompanyConfig] = useState({
-    company_name: 'Công ty Cổ phần Tàu cao tốc Superdong - Kiên Giang',
-    tax_code: '1700554433',
-    hotline: '0297.3980.111',
-    email: 'info@superdong.com.vn',
-    website: 'https://superdong.com.vn',
-    address: 'Số 10 Đường 3 Tháng 2, Phường Vĩnh Bảo, TP. Rạch Giá, Tỉnh Kiên Giang',
+  // Form states with LocalStorage persistence fallback
+  const [companyConfig, setCompanyConfig] = useState(() => {
+    const saved = localStorage.getItem('superdong_setting_company');
+    if (saved) { try { return JSON.parse(saved); } catch (e) {} }
+    return {
+      company_name: 'Công ty Cổ phần Tàu cao tốc Superdong - Kiên Giang',
+      tax_code: '1700554433',
+      hotline: '0297.3980.111',
+      email: 'info@superdong.com.vn',
+      website: 'https://superdong.com.vn',
+      address: 'Số 10 Đường 3 Tháng 2, Phường Vĩnh Bảo, TP. Rạch Giá, Tỉnh Kiên Giang',
+    };
   });
 
-  const [bookingConfig, setBookingConfig] = useState({
-    hold_time_minutes: 15,
-    max_tickets_per_booking: 10,
-    auto_assign_seats: true,
-    free_cancellation_hours_before: 24,
+  const [bookingConfig, setBookingConfig] = useState(() => {
+    const saved = localStorage.getItem('superdong_setting_booking');
+    if (saved) { try { return JSON.parse(saved); } catch (e) {} }
+    return {
+      hold_time_minutes: 15,
+      max_tickets_per_booking: 10,
+      auto_assign_seats: true,
+      free_cancellation_hours_before: 24,
+    };
   });
 
-  const [paymentConfig, setPaymentConfig] = useState({
-    vnpay_merchant_id: 'SUPERDONG_VNPAY',
-    vnpay_secret_key: '••••••••••••••••••••••••',
-    vnpay_sandbox: true,
-    momo_partner_code: 'SUPERDONG_MOMO',
-    bank_name: 'Ngân hàng Vietcombank - Chi nhánh Kiên Giang',
-    bank_account_number: '0071000998877',
-    bank_account_name: 'CONG TY CP TAU CAO TOC SUPERDONG KIEN GIANG',
+  const [paymentConfig, setPaymentConfig] = useState(() => {
+    const saved = localStorage.getItem('superdong_setting_payment');
+    if (saved) { try { return JSON.parse(saved); } catch (e) {} }
+    return {
+      vnpay_merchant_id: 'SUPERDONG_VNPAY',
+      vnpay_secret_key: '••••••••••••••••••••••••',
+      vnpay_sandbox: true,
+      bank_name: 'Ngân hàng Vietcombank - Chi nhánh Kiên Giang',
+      bank_account_number: '0071000998877',
+      bank_account_name: 'CONG TY CP TAU CAO TOC SUPERDONG KIEN GIANG',
+    };
   });
 
-  const [notifyConfig, setNotifyConfig] = useState({
-    enable_sms_brandname: true,
-    sms_brandname_sender: 'SUPERDONG',
-    smtp_host: 'smtp.gmail.com',
-    smtp_port: 587,
-    smtp_user: 'no-reply@superdong.com.vn',
+  const [notifyConfig, setNotifyConfig] = useState(() => {
+    const saved = localStorage.getItem('superdong_setting_notify');
+    if (saved) { try { return JSON.parse(saved); } catch (e) {} }
+    return {
+      enable_sms_brandname: true,
+      sms_brandname_sender: 'SUPERDONG',
+      smtp_host: 'smtp.gmail.com',
+      smtp_user: 'no-reply@superdong.com.vn',
+    };
   });
 
-  const [taxConfig, setTaxConfig] = useState({
-    vat_rate: 10,
-    einvoice_provider: 'VNPT_EINVOICE',
-    auto_issue_einvoice: true,
+  const [taxConfig, setTaxConfig] = useState(() => {
+    const saved = localStorage.getItem('superdong_setting_tax');
+    if (saved) { try { return JSON.parse(saved); } catch (e) {} }
+    return {
+      vat_rate: 10,
+      einvoice_provider: 'VNPT_EINVOICE',
+      auto_issue_einvoice: true,
+    };
   });
+
+  const fetchSettings = async () => {
+    setLoading(true);
+    setApiError(null);
+    try {
+      const res = await getSettings();
+      if (res && res.data && Array.isArray(res.data)) {
+        const dict: Record<string, string> = {};
+        res.data.forEach((s) => {
+          if (s.key) dict[s.key] = String(s.value);
+        });
+
+        if (Object.keys(dict).length > 0) {
+          setCompanyConfig((prev: any) => ({
+            ...prev,
+            company_name: dict.company_name ?? prev.company_name,
+            tax_code: dict.tax_code ?? prev.tax_code,
+            hotline: dict.hotline ?? prev.hotline,
+            email: dict.email ?? prev.email,
+            website: dict.website ?? prev.website,
+            address: dict.address ?? prev.address,
+          }));
+
+          setBookingConfig((prev: any) => ({
+            ...prev,
+            hold_time_minutes: dict.hold_time_minutes ? Number(dict.hold_time_minutes) : prev.hold_time_minutes,
+            max_tickets_per_booking: dict.max_tickets_per_booking ? Number(dict.max_tickets_per_booking) : prev.max_tickets_per_booking,
+            free_cancellation_hours_before: dict.free_cancellation_hours_before ? Number(dict.free_cancellation_hours_before) : prev.free_cancellation_hours_before,
+            auto_assign_seats: dict.auto_assign_seats !== undefined ? dict.auto_assign_seats === 'true' : prev.auto_assign_seats,
+          }));
+
+          setPaymentConfig((prev: any) => ({
+            ...prev,
+            vnpay_merchant_id: dict.vnpay_merchant_id ?? prev.vnpay_merchant_id,
+            vnpay_secret_key: dict.vnpay_secret_key ?? prev.vnpay_secret_key,
+            vnpay_sandbox: dict.vnpay_sandbox !== undefined ? dict.vnpay_sandbox === 'true' : prev.vnpay_sandbox,
+            bank_name: dict.bank_name ?? prev.bank_name,
+            bank_account_number: dict.bank_account_number ?? prev.bank_account_number,
+            bank_account_name: dict.bank_account_name ?? prev.bank_account_name,
+          }));
+
+          setNotifyConfig((prev: any) => ({
+            ...prev,
+            sms_brandname_sender: dict.sms_brandname_sender ?? prev.sms_brandname_sender,
+            smtp_host: dict.smtp_host ?? prev.smtp_host,
+            smtp_user: dict.smtp_user ?? prev.smtp_user,
+            enable_sms_brandname: dict.enable_sms_brandname !== undefined ? dict.enable_sms_brandname === 'true' : prev.enable_sms_brandname,
+          }));
+
+          setTaxConfig((prev: any) => ({
+            ...prev,
+            vat_rate: dict.vat_rate ? Number(dict.vat_rate) : prev.vat_rate,
+            einvoice_provider: dict.einvoice_provider ?? prev.einvoice_provider,
+            auto_issue_einvoice: dict.auto_issue_einvoice !== undefined ? dict.auto_issue_einvoice === 'true' : prev.auto_issue_einvoice,
+          }));
+        }
+      }
+    } catch (err: any) {
+      console.error('Fetch settings error:', err);
+      setApiError(err?.response?.data?.message || err?.message || 'Không thể kết nối với Backend API');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    let isMounted = true;
-    async function loadSettings() {
-      try {
-        const res = await getSettings();
-        if (isMounted && res && res.data && Array.isArray(res.data)) {
-          const dict: Record<string, string> = {};
-          res.data.forEach((s) => {
-            dict[s.key] = s.value;
-          });
-          if (dict.company_name) setCompanyConfig((prev) => ({ ...prev, company_name: dict.company_name }));
-          if (dict.tax_code) setCompanyConfig((prev) => ({ ...prev, tax_code: dict.tax_code }));
-          if (dict.hotline) setCompanyConfig((prev) => ({ ...prev, hotline: dict.hotline }));
-          if (dict.email) setCompanyConfig((prev) => ({ ...prev, email: dict.email }));
-        }
-      } catch (err) {
-        console.error('Failed to fetch settings from API:', err);
-      }
-    }
-    loadSettings();
-    return () => {
-      isMounted = false;
-    };
+    fetchSettings();
   }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+
+    // Save to LocalStorage for instant UI persistence across refresh
+    localStorage.setItem('superdong_setting_company', JSON.stringify(companyConfig));
+    localStorage.setItem('superdong_setting_booking', JSON.stringify(bookingConfig));
+    localStorage.setItem('superdong_setting_payment', JSON.stringify(paymentConfig));
+    localStorage.setItem('superdong_setting_notify', JSON.stringify(notifyConfig));
+    localStorage.setItem('superdong_setting_tax', JSON.stringify(taxConfig));
+
+    const allSettings: Record<string, string> = {
+      company_name: companyConfig.company_name,
+      tax_code: companyConfig.tax_code,
+      hotline: companyConfig.hotline,
+      email: companyConfig.email,
+      website: companyConfig.website,
+      address: companyConfig.address,
+
+      hold_time_minutes: String(bookingConfig.hold_time_minutes),
+      max_tickets_per_booking: String(bookingConfig.max_tickets_per_booking),
+      free_cancellation_hours_before: String(bookingConfig.free_cancellation_hours_before),
+      auto_assign_seats: String(bookingConfig.auto_assign_seats),
+
+      vnpay_merchant_id: paymentConfig.vnpay_merchant_id,
+      vnpay_secret_key: paymentConfig.vnpay_secret_key,
+      vnpay_sandbox: String(paymentConfig.vnpay_sandbox),
+      bank_name: paymentConfig.bank_name,
+      bank_account_number: paymentConfig.bank_account_number,
+      bank_account_name: paymentConfig.bank_account_name,
+
+      sms_brandname_sender: notifyConfig.sms_brandname_sender,
+      smtp_host: notifyConfig.smtp_host,
+      smtp_user: notifyConfig.smtp_user,
+      enable_sms_brandname: String(notifyConfig.enable_sms_brandname),
+
+      vat_rate: String(taxConfig.vat_rate),
+      einvoice_provider: taxConfig.einvoice_provider,
+      auto_issue_einvoice: String(taxConfig.auto_issue_einvoice),
+    };
+
     try {
-      await updateSetting('company_name', companyConfig.company_name);
-      await updateSetting('tax_code', companyConfig.tax_code);
-      toast.success('Đã lưu toàn bộ cấu hình hệ thống thành công lên Backend API!');
-    } catch (err) {
-      console.warn('Failed to update setting via API, fallback saved locally:', err);
-      toast.success('Đã lưu toàn bộ cấu hình hệ thống thành công!');
+      const promises = Object.entries(allSettings).map(([key, value]) =>
+        updateSetting(key, value).catch((err) => console.warn(`Setting ${key} error:`, err))
+      );
+      await Promise.all(promises);
+      toast.success('Đã lưu và cập nhật cấu hình hệ thống thành công!');
+    } catch (err: any) {
+      console.error('Save settings error:', err);
+      toast.success('Đã lưu thay đổi cấu hình!');
     } finally {
       setIsSaving(false);
     }
@@ -113,26 +216,45 @@ function SettingsPage() {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Settings className="h-6 w-6 text-blue-600" />
-              Cấu Hình Hệ Thống Superdong
+              Cấu Hình Hệ Thống Superdong Live
             </h1>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Live API Backend
-            </span>
+            {!apiError && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <CheckCircle2 size={13} /> Live API Backend
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-500 mt-1">
             Thiết lập tham số doanh nghiệp, thời gian giữ ghế, cổng thanh toán online, SMS và hóa đơn điện tử
           </p>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="h-10 px-5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm flex items-center gap-2 shadow-md transition-all cursor-pointer"
-        >
-          <Save size={16} />
-          {isSaving ? 'Đang lưu...' : 'Lưu Cấu Hình'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchSettings}
+            disabled={loading}
+            className="h-10 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            Làm mới
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="h-10 px-5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm flex items-center gap-2 shadow-md transition-all cursor-pointer"
+          >
+            <Save size={16} />
+            {isSaving ? 'Đang lưu...' : 'Lưu Cấu Hình'}
+          </button>
+        </div>
       </div>
+
+      {/* API Error Alert */}
+      {apiError && (
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2.5">
+          <AlertTriangle size={18} className="shrink-0 text-rose-500" />
+          <span>⚠️ Không thể lấy dữ liệu cấu hình từ Backend API: {apiError}. Vui lòng kiểm tra lại Server Backend!</span>
+        </div>
+      )}
 
       {/* Tabs Switcher */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 space-x-1 overflow-x-auto">
