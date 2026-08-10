@@ -39,10 +39,8 @@ function LocationEditPage() {
       toast.success(`Đã cập nhật thông tin bến tàu ${formData.name}`);
       navigate({ to: '/locations' as any });
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật bến tàu');
-      setTimeout(() => {
-        navigate({ to: '/locations' as any });
-      }, 500);
+      console.error('Update location error:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật bến tàu trên Backend');
     } finally {
       setIsSubmitting(false);
     }

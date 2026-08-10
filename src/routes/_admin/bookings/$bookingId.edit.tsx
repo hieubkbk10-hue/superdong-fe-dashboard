@@ -81,8 +81,7 @@ function BookingEditPage() {
       navigate({ to: '/bookings' as any });
     } catch (err: any) {
       console.error('Failed to update booking:', err);
-      toast.success(`Đã cập nhật thông tin đơn vé ${formData.booking_code}`);
-      navigate({ to: '/bookings' as any });
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật đơn vé trên Backend Server');
     } finally {
       setIsSubmitting(false);
     }

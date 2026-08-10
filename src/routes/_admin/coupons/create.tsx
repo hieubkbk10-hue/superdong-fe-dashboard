@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { Ticket, ArrowLeft, Save, Tag, Percent, DollarSign } from 'lucide-react';
+import { Ticket, ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { createCoupon } from '@/apis/pricing';
 
@@ -12,7 +12,7 @@ function CouponCreatePage() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     code: '',
-    type: 'percentage', // percentage | fixed_amount
+    type: 'percentage',
     value: 15,
     min_booking_amount: 500000,
     max_discount_amount: 100000,
@@ -35,13 +35,23 @@ function CouponCreatePage() {
 
     setIsSubmitting(true);
     try {
-      await createCoupon(formData as any);
+      await createCoupon({
+        code: formData.code.toUpperCase(),
+        name: `Ưu đãi ${formData.code.toUpperCase()}`,
+        discount_type: formData.type === 'percentage' ? 'percentage' : 'fixed_amount',
+        discount_value: Number(formData.value),
+        min_booking_amount: Number(formData.min_booking_amount),
+        max_discount_amount: Number(formData.max_discount_amount),
+        usage_limit: Number(formData.usage_limit),
+        effective_from: formData.valid_from,
+        effective_to: formData.valid_until,
+        status: formData.is_active ? 'active' : 'inactive',
+      });
       toast.success(`Đã tạo thành công mã khuyến mãi ${formData.code.toUpperCase()}`);
       navigate({ to: '/coupons' as any });
     } catch (err: any) {
       console.error('Failed to create coupon:', err);
-      toast.success(`Đã tạo thành công mã khuyến mãi ${formData.code.toUpperCase()}`);
-      navigate({ to: '/coupons' as any });
+      toast.error(err?.response?.data?.message || err?.message || 'Không thể tạo mã khuyến mãi trên Backend API');
     } finally {
       setIsSubmitting(false);
     }

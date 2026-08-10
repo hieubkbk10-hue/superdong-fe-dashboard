@@ -26,13 +26,18 @@ function TravelerTypeEditPage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await updateTravelerType(typeId, formData as any);
+      await updateTravelerType(typeId, {
+        code: formData.code,
+        name: formData.name,
+        discount_percentage: Number(formData.discount_percentage),
+        description: formData.description,
+        is_active: formData.is_active,
+      });
       toast.success(`Đã cập nhật thay đổi cho phân loại ${formData.name}`);
       navigate({ to: '/traveler-types' as any });
     } catch (err: any) {
       console.error('Failed to update traveler type:', err);
-      toast.success(`Đã cập nhật thay đổi cho phân loại ${formData.name}`);
-      navigate({ to: '/traveler-types' as any });
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật phân loại hành khách trên Backend');
     } finally {
       setIsSubmitting(false);
     }

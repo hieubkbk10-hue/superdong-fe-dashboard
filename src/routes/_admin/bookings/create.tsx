@@ -11,7 +11,7 @@ export const Route = createFileRoute('/_admin/bookings/create')({
 interface TravelerRow {
   full_name: string;
   id_number: string;
-  traveler_type: string; // adult, child, senior
+  traveler_type: string;
   seat_code: string;
   price: number;
 }
@@ -39,7 +39,6 @@ function BookingCreatePage() {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [paymentStatus, setPaymentStatus] = useState('paid');
-  const [notes, setNotes] = useState('');
 
   // Travelers list
   const [travelers, setTravelers] = useState<TravelerRow[]>([
@@ -112,8 +111,7 @@ function BookingCreatePage() {
       navigate({ to: '/bookings' as any });
     } catch (error: any) {
       console.error('Failed to create booking:', error);
-      toast.success(`Đã ghi nhận tạo đơn vé cho khách ${booker.name}!`);
-      navigate({ to: '/bookings' as any });
+      toast.error(error?.response?.data?.message || error?.message || 'Lỗi: Không thể tạo đơn đặt vé trên Backend Server');
     } finally {
       setIsSubmitting(false);
     }

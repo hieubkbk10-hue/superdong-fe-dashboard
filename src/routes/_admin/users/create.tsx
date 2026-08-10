@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { UserCheck, ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { createUser } from '@/apis/users';
 
 export const Route = createFileRoute('/_admin/users/create')({
   component: UserCreatePage,
@@ -14,7 +15,7 @@ function UserCreatePage() {
     email: '',
     phone: '',
     password: '',
-    role_id: '3', // TICKET_AGENT default
+    role_id: '3',
     status: 'active',
     avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
     notes: '',
@@ -22,7 +23,7 @@ function UserCreatePage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name.trim() || !formData.email.trim()) {
@@ -32,11 +33,21 @@ function UserCreatePage() {
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
-      toast.success(`Đã khởi tạo tài khoản nhân viên ${formData.name}`);
+    try {
+      await createUser({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password || undefined,
+      } as any);
+      toast.success(`Đã tạo tài khoản nhân viên ${formData.name} trên Server Backend`);
       navigate({ to: '/users' as any });
-    }, 400);
+    } catch (err: any) {
+      console.error('Create user error:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'Không thể tạo nhân viên trên Backend API');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

@@ -30,13 +30,22 @@ function CouponEditPage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await updateCoupon(couponId, formData as any);
+      await updateCoupon(couponId, {
+        code: formData.code,
+        discount_type: formData.type === 'percentage' ? 'percentage' : 'fixed_amount',
+        discount_value: Number(formData.value),
+        min_booking_amount: Number(formData.min_booking_amount),
+        max_discount_amount: Number(formData.max_discount_amount),
+        usage_limit: Number(formData.usage_limit),
+        effective_from: formData.valid_from,
+        effective_to: formData.valid_until,
+        status: formData.is_active ? 'active' : 'inactive',
+      });
       toast.success(`Đã cập nhật thay đổi mã khuyến mãi ${formData.code}`);
       navigate({ to: '/coupons' as any });
     } catch (err: any) {
       console.error('Failed to update coupon:', err);
-      toast.success(`Đã cập nhật thay đổi mã khuyến mãi ${formData.code}`);
-      navigate({ to: '/coupons' as any });
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật mã khuyến mãi trên Backend Server');
     } finally {
       setIsSubmitting(false);
     }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { Ship, ArrowLeft, Save, Anchor } from 'lucide-react';
+import { Ship, ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { createBoat } from '@/apis/boats';
 
@@ -40,10 +40,8 @@ function BoatCreatePage() {
       toast.success(`Tạo thành công tàu mới: ${formData.name}`);
       navigate({ to: '/boats' as any });
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Lỗi gửi API. Đã cập nhật giao diện offline');
-      setTimeout(() => {
-        navigate({ to: '/boats' as any });
-      }, 500);
+      console.error('Create boat error:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'Lỗi: Không thể tạo tàu mới trên Server Backend');
     } finally {
       setIsSubmitting(false);
     }
@@ -157,7 +155,7 @@ function BoatCreatePage() {
           </div>
         </div>
 
-        {/* Form Action Buttons matching VietAdmin sticky footer style */}
+        {/* Form Action Buttons */}
         <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
           <Link
             to={"/boats" as any}

@@ -40,10 +40,8 @@ function SeatClassCreatePage() {
       toast.success(`Tạo thành công hạng ghế mới: ${formData.name}`);
       navigate({ to: '/seat-classes' as any });
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Lỗi gửi API. Đã cập nhật giao diện offline');
-      setTimeout(() => {
-        navigate({ to: '/seat-classes' as any });
-      }, 500);
+      console.error('Create seat class error:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'Lỗi: Không thể tạo hạng ghế mới trên Backend Server');
     } finally {
       setIsSubmitting(false);
     }

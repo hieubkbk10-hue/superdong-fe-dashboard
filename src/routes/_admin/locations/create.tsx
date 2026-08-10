@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { MapPin, ArrowLeft, Save, Building2, Phone, Compass } from 'lucide-react';
+import { MapPin, ArrowLeft, Save, Phone, Compass } from 'lucide-react';
 import { toast } from 'sonner';
 import { createLocation } from '@/apis/journeys';
 
@@ -41,10 +41,8 @@ function LocationCreatePage() {
       toast.success(`Tạo thành công bến tàu mới: ${formData.name}`);
       navigate({ to: '/locations' as any });
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Lỗi gửi API. Đã cập nhật giao diện offline');
-      setTimeout(() => {
-        navigate({ to: '/locations' as any });
-      }, 500);
+      console.error('Create location error:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'Lỗi: Không thể tạo bến tàu trên Server Backend');
     } finally {
       setIsSubmitting(false);
     }

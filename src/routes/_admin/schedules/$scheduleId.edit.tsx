@@ -50,10 +50,8 @@ function ScheduleEditPage() {
       toast.success(`Đã lưu thay đổi cho lịch chạy ${formData.code}`);
       navigate({ to: '/schedules' as any });
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật lịch chạy');
-      setTimeout(() => {
-        navigate({ to: '/schedules' as any });
-      }, 500);
+      console.error('Update schedule error:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật lịch chạy trên Backend');
     } finally {
       setIsSubmitting(false);
     }

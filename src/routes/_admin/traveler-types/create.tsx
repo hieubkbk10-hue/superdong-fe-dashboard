@@ -30,13 +30,18 @@ function TravelerTypeCreatePage() {
 
     setIsSubmitting(true);
     try {
-      await createTravelerType(formData as any);
+      await createTravelerType({
+        code: formData.code.toUpperCase(),
+        name: formData.name,
+        discount_percentage: Number(formData.discount_percentage),
+        description: formData.description,
+        is_active: formData.is_active,
+      });
       toast.success(`Đã tạo phân loại hành khách ${formData.name}`);
       navigate({ to: '/traveler-types' as any });
     } catch (err: any) {
       console.error('Failed to create traveler type:', err);
-      toast.success(`Đã tạo phân loại hành khách ${formData.name}`);
-      navigate({ to: '/traveler-types' as any });
+      toast.error(err?.response?.data?.message || err?.message || 'Không thể tạo phân loại hành khách trên Backend Server');
     } finally {
       setIsSubmitting(false);
     }

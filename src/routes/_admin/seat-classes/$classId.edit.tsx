@@ -38,10 +38,8 @@ function SeatClassEditPage() {
       toast.success(`Đã lưu thay đổi cho hạng ghế ${formData.name}`);
       navigate({ to: '/seat-classes' as any });
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật hạng ghế');
-      setTimeout(() => {
-        navigate({ to: '/seat-classes' as any });
-      }, 500);
+      console.error('Update seat class error:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật hạng ghế trên Backend');
     } finally {
       setIsSubmitting(false);
     }

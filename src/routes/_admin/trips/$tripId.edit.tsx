@@ -36,10 +36,8 @@ function TripEditPage() {
       toast.success(`Đã cập nhật thông tin chuyến ${formData.code || tripId}`);
       navigate({ to: '/trips' as any });
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật chuyến');
-      setTimeout(() => {
-        navigate({ to: '/trips' as any });
-      }, 500);
+      console.error('Update trip error:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật chuyến tàu trên Backend');
     } finally {
       setIsSubmitting(false);
     }

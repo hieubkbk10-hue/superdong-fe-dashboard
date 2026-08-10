@@ -43,10 +43,8 @@ function TripCreatePage() {
       toast.success('Đã mở chuyến tàu mới thành công!');
       navigate({ to: '/trips' as any });
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Lỗi gửi API. Đã cập nhật giao diện offline');
-      setTimeout(() => {
-        navigate({ to: '/trips' as any });
-      }, 500);
+      console.error('Create trip error:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'Lỗi: Không thể tạo chuyến tàu mới trên Backend Server');
     } finally {
       setIsSubmitting(false);
     }

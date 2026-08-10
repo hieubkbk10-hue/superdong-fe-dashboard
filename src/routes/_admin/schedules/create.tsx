@@ -52,10 +52,8 @@ function ScheduleCreatePage() {
       toast.success(`Tạo thành công lịch chạy định kỳ: ${formData.code}`);
       navigate({ to: '/schedules' as any });
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Lỗi gửi API. Đã cập nhật giao diện offline');
-      setTimeout(() => {
-        navigate({ to: '/schedules' as any });
-      }, 500);
+      console.error('Create schedule error:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'Lỗi: Không thể tạo lịch chạy trên Backend Server');
     } finally {
       setIsSubmitting(false);
     }

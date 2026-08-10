@@ -18,6 +18,14 @@ export async function findUserById(id: string | number): Promise<ApiResponse<Use
 }
 
 /**
+ * LOGIC: Tạo tài khoản người dùng / nhân viên mới
+ */
+export async function createUser(data: Partial<User>): Promise<ApiResponse<User>> {
+  const response = await api.post<ApiResponse<User>>('/users', data);
+  return response.data;
+}
+
+/**
  * LOGIC: Cập nhật thông tin tài khoản người dùng
  */
 export async function updateUser(id: string | number, data: Partial<User>): Promise<ApiResponse<User>> {
@@ -79,6 +87,7 @@ export async function updateRole(id: string | number, data: Partial<Role>): Prom
 export default {
   getUsers,
   findUserById,
+  createUser,
   updateUser,
   deleteUser,
   getRoles,

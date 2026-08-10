@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { UserCheck, ArrowLeft, Save, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
+import { updateUser, findUserById } from '@/apis/users';
 
 export const Route = createFileRoute('/_admin/users/$userId/edit')({
   component: UserEditPage,
@@ -22,16 +23,51 @@ function UserEditPage() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    let isMounted = true;
+    const fetchUserDetails = async () => {
+      setLoading(true);
+      try {
+        const res = await findUserById(userId);
+        if (isMounted && res && res.data) {
+          const user = res.data;
+          setFormData((prev) => ({
+            ...prev,
+            name: user.name || prev.name,
+            email: user.email || prev.email,
+            phone: user.phone || prev.phone,
+          }));
+        }
+      } catch (err: any) {
+        console.warn('Fetch user details error:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    if (userId) fetchUserDetails();
+    return () => { isMounted = false; };
+  }, [userId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await updateUser(userId, {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+      });
       toast.success(`Đã cập nhật thông tin tài khoản ${formData.name}`);
       navigate({ to: '/users' as any });
-    }, 400);
+    } catch (err: any) {
+      console.error('Update user error:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật nhân viên trên Backend');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleResetPassword = () => {
@@ -52,7 +88,7 @@ function UserEditPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <UserCheck className="h-6 w-6 text-blue-600" />
-            Chỉnh Sửa Tài Khoản Nhân Viên: {formData.name}
+            Chỉnh Sửa Tài Khoản Nhân Viên: {loading ? '...' : formData.name}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             ID nhân viên trong hệ thống: <span className="font-mono">{userId}</span>

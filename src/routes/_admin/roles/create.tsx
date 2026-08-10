@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { Shield, ArrowLeft, Save, Check } from 'lucide-react';
+import { Shield, ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
-import { createRole, getPermissions } from '@/apis/users';
+import { createRole } from '@/apis/users';
 
 export const Route = createFileRoute('/_admin/roles/create')({
   component: RoleCreatePage,
@@ -109,8 +109,7 @@ function RoleCreatePage() {
       navigate({ to: '/roles' as any });
     } catch (err: any) {
       console.error('Failed to create role:', err);
-      toast.success(`Đã tạo thành công vai trò ${formData.display_name}`);
-      navigate({ to: '/roles' as any });
+      toast.error(err?.response?.data?.message || err?.message || 'Không thể tạo vai trò mới trên Backend Server');
     } finally {
       setIsSubmitting(false);
     }

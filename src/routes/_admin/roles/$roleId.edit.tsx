@@ -105,8 +105,7 @@ function RoleEditPage() {
       navigate({ to: '/roles' as any });
     } catch (err: any) {
       console.error('Failed to update role:', err);
-      toast.success(`Đã cập nhật phân quyền vai trò ${formData.display_name}`);
-      navigate({ to: '/roles' as any });
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật vai trò trên Backend Server');
     } finally {
       setIsSubmitting(false);
     }

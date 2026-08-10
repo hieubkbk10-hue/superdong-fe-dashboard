@@ -39,10 +39,8 @@ function JourneyEditPage() {
       toast.success(`Đã lưu thay đổi cho tuyến ${formData.name}`);
       navigate({ to: '/journeys' as any });
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật tuyến');
-      setTimeout(() => {
-        navigate({ to: '/journeys' as any });
-      }, 500);
+      console.error('Update journey error:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật tuyến trên Backend');
     } finally {
       setIsSubmitting(false);
     }

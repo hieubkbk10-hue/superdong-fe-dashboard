@@ -41,10 +41,8 @@ function JourneyCreatePage() {
       toast.success(`Tạo thành công tuyến hải trình mới: ${formData.name}`);
       navigate({ to: '/journeys' as any });
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Lỗi gửi API. Đã cập nhật giao diện offline');
-      setTimeout(() => {
-        navigate({ to: '/journeys' as any });
-      }, 500);
+      console.error('Create journey error:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'Lỗi: Không thể tạo tuyến hải trình mới trên Backend');
     } finally {
       setIsSubmitting(false);
     }
