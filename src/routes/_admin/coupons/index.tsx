@@ -53,8 +53,9 @@ function CouponsPage() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(10);
 
-  // LOGIC: Quản lý Ẩn / Hiện Cột (Column Visibility Toggle)
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
+  // STORAGE KEY: Lưu cấu hình Ẩn/Hiện cột vào localStorage để F5 không bị mất
+  const STORAGE_KEY_COLUMNS = 'superdong_coupons_visible_columns';
+  const DEFAULT_COLUMNS: Record<string, boolean> = {
     code: true,
     name: true,
     value: true,
@@ -62,6 +63,19 @@ function CouponsPage() {
     usage: true,
     valid_to: true,
     status: true,
+  };
+
+  // LOGIC: Quản lý Ẩn / Hiện Cột (Column Visibility Toggle với localStorage Persistence)
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_COLUMNS);
+      if (saved) {
+        return { ...DEFAULT_COLUMNS, ...JSON.parse(saved) };
+      }
+    } catch (e) {
+      console.warn('Failed to load column visibility from localStorage:', e);
+    }
+    return DEFAULT_COLUMNS;
   });
   const [showColumnDropdown, setShowColumnDropdown] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -77,22 +91,20 @@ function CouponsPage() {
   ];
 
   const toggleColumn = (key: string) => {
-    setVisibleColumns((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+    setVisibleColumns((prev) => {
+      const updated = { ...prev, [key]: !prev[key] };
+      try {
+        localStorage.setItem(STORAGE_KEY_COLUMNS, JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
   };
 
   const resetColumns = () => {
-    setVisibleColumns({
-      code: true,
-      name: true,
-      value: true,
-      min_booking: true,
-      usage: true,
-      valid_to: true,
-      status: true,
-    });
+    setVisibleColumns(DEFAULT_COLUMNS);
+    try {
+      localStorage.setItem(STORAGE_KEY_COLUMNS, JSON.stringify(DEFAULT_COLUMNS));
+    } catch (e) {}
   };
 
   // Close dropdown on outside click
@@ -292,8 +304,8 @@ function CouponsPage() {
             <Percent size={13} className="text-amber-500" /> Giảm {discountVal}%
           </div>
         ) : (
-          <div className="flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400">
-            <DollarSign size={13} /> Giảm {formatCurrency(discountVal)}
+          <div className="font-bold text-emerald-600 dark:text-emerald-400">
+            Giảm {formatCurrency(discountVal)}
           </div>
         );
       },
