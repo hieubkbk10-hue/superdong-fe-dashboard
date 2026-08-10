@@ -3,25 +3,18 @@ import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosE
 // LOGIC: Token storage key for Superdong Admin Dashboard
 export const TOKEN_STORAGE_KEY = 'superdong_access_token';
 
-// LOGIC: Intelligent Base URL resolution for Production (Vercel) vs Local Dev
+// LOGIC: Retrieve base API URL strictly from Vite environment variable VITE_API
 const envApi = (import.meta as any).env?.VITE_API;
 
 const getBaseURL = () => {
-  if (envApi && envApi.startsWith('http')) {
+  if (envApi) {
     return envApi.endsWith('/') ? envApi : `${envApi}/`;
   }
-  
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return 'https://superdong-be.vitrasau.info.vn/v1/';
-  }
-
-  return envApi || '/v1/';
+  return '/v1/';
 };
 
-const baseURL = getBaseURL();
-
 export const api: AxiosInstance = axios.create({
-  baseURL,
+  baseURL: getBaseURL(),
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
