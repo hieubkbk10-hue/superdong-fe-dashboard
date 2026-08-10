@@ -327,7 +327,7 @@ function CouponsPage() {
             <option value="inactive">Đã ngừng / Hết hạn</option>
           </select>
 
-          {/* UI: Nút Ẩn / Hiện Cột (Column Toggle Dropdown) */}
+          {/* UI: Nút Cột (Column Toggle Dropdown) */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowColumnDropdown((prev) => !prev)}
@@ -335,15 +335,12 @@ function CouponsPage() {
               title="Ẩn / Hiện các cột trong bảng"
             >
               <SlidersHorizontal size={14} className="text-blue-600 dark:text-blue-400" />
-              <span>Ẩn / Hiện cột</span>
+              <span>Cột</span>
             </button>
 
             {showColumnDropdown && (
-              <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 p-3 space-y-2">
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <Eye size={13} className="text-blue-600" /> Hiển thị cột
-                  </span>
+              <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 p-3 space-y-1.5">
+                <div className="flex items-center justify-end border-b border-slate-100 dark:border-slate-800 pb-1.5">
                   <button
                     onClick={resetColumns}
                     className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-medium cursor-pointer"
@@ -352,13 +349,13 @@ function CouponsPage() {
                   </button>
                 </div>
 
-                <div className="space-y-1.5 max-h-56 overflow-y-auto pt-1">
+                <div className="space-y-1 max-h-56 overflow-y-auto pt-0.5">
                   {columnOptions.map((col) => (
                     <label
                       key={col.key}
-                      className="flex items-center justify-between text-xs px-2 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer select-none"
+                      className="flex items-center justify-between text-xs px-2 py-1 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer select-none"
                     >
-                      <span className="text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                      <span className="text-slate-700 dark:text-slate-300 flex items-center gap-2 font-medium">
                         <input
                           type="checkbox"
                           checked={!!visibleColumns[col.key]}
@@ -367,11 +364,6 @@ function CouponsPage() {
                         />
                         {col.label}
                       </span>
-                      {!col.essential && (
-                        <span className="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                          Phụ
-                        </span>
-                      )}
                     </label>
                   ))}
                 </div>
