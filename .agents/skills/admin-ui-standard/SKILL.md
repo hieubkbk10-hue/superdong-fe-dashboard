@@ -9,109 +9,151 @@ Bộ quy chuẩn thiết kế và lập trình Frontend Dashboard được tổn
 
 ---
 
-## 🎨 1. Quy Chuẩn Màu Sắc & Thương Hiệu (Brand Theme)
+## 🧠 1. Triết Lý Thiết Kế Cốt Lõi (Design Philosophy)
 
-* **Màu Chủ Đạo Thương Hiệu (Primary Brand Color)**: **Tông Xanh Dương (`blue-600` / `#2B7FFF`)**
-  * Nút bấm chính (Primary Action Buttons): `bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg`
-  * Khung mã code / Highlight badge: `bg-blue-50 text-blue-600 border-blue-200`
-  * Icon sắp xếp bảng & active state: `text-blue-600 dark:text-blue-400`
-  * Viền focus ring ô nhập liệu: `focus:border-blue-500`
+1. **Đúng Bản Chất Nghiệp Vụ (Domain Model Authenticity)**:
+   * Không máy móc đưa các phần tử thuộc tính của đối tượng này sang đối tượng khác (ví dụ: Nhân viên `Employee` có ảnh đại diện nên có khung upload Avatar, nhưng Mã khuyến mãi `Coupon` là chính sách giá nên KHÔNG CÓ khung upload ảnh Avatar).
+   * Mọi ô nhập liệu và trường thông tin phải phản ánh đúng dữ liệu nghiệp vụ thực tế.
 
-* **Màu Trạng Thái Chuẩn (Status Palette)**:
-  * **Success (Kích hoạt / Đã thanh toán / Hoàn thành)**: `bg-emerald-50 text-emerald-700 border-emerald-200`
-  * **Danger (Khóa / Xóa / Thất bại)**: `bg-rose-50 text-rose-700 border-rose-200`
-  * **Warning (Cảnh báo / Chờ duyệt)**: `bg-amber-50 text-amber-700 border-amber-200`
-  * **Blue / Primary (Mã mới / Đang xử lý)**: `bg-blue-50 text-blue-700 border-blue-200`
+2. **Nhất Quán Tông Màu Thương Hiệu (Unified Brand Color Palette)**:
+   * **Màu Chủ Đạo Thương Hiệu (Primary Brand Color)**: **Tông Xanh Dương (`blue-600` / `#2B7FFF`)**
+     * Nút chính (Primary Action Buttons): `bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg`
+     * Khung mã code / Highlight badge: `bg-blue-50 text-blue-600 border-blue-200`
+     * Icon sắp xếp bảng & active state: `text-blue-600 dark:text-blue-400`
+     * Viền focus ring ô nhập liệu: `focus:border-blue-500`
+
+3. **Bố Cục 1 Khung Liền Mạch (Single Unified Card Layout)**:
+   * Form Tạo mới và Chỉnh sửa không chia thành nhiều khối lơ lửng rời rạc mà được gom gọn trong **1 khung Card duy nhất** (`bg-white shadow-2xs`).
+   * Các phần thông tin được phân nhóm bằng **Thanh Banner màu Cyan nhạt chuẩn Newmoon-Admin (`bg-[#EBF7FA]`)** có dán Số La Mã (`I.`, `II.`, `III.`, `IV.`).
+
+4. **Trải Rộng Toàn Bộ Chiều Rộng & Nhất Quán Spacing**:
+   * Sử dụng `w-full` trải rộng toàn bộ khung hình, loại bỏ `max-w-4xl` gây thừa khoảng trắng.
+   * Kích thước chữ ô nhập liệu chuẩn `text-sm h-9`, khoảng cách dính sát gọn gàng (`space-y-3` / `gap-3.5`).
 
 ---
 
-## 🔽 2. Các Dropdown Bắt Buộc Trong Một Trang CRUD List
+## 🔽 2. Đầy Đủ Danh Sách Dropdown & Controls Trong Màn Hình CRUD
 
-Một màn hình danh sách CRUD tiêu chuẩn BẮT BUỘC có đầy đủ 4 loại Dropdown sau:
+Mọi màn hình CRUD tiêu chuẩn BẮT BUỘC có đầy đủ các bộ điều khiển Dropdown và Control sau:
 
-1. **Filter Dropdown (Lọc Trạng Thái / Danh Mục)**:
-   * Vị trí: Trên thanh Filter Bar, bên cạnh ô tìm kiếm `<SearchInput>`.
-   * Sử dụng: `<select className="h-9 px-3 text-[13px] border border-slate-200 rounded-md bg-white">`.
+### 2.1. Dropdown Trong Màn Hình Danh Sách (List Page - `index.tsx`)
+
+1. **SearchInput (Ô Tìm Kiếm Có Icon Kính Lúp)**:
+   * Vị trí: Đầu thanh Filter Bar.
+   * Tự động lọc dữ liệu theo từ khóa tìm kiếm (mã hoặc tên).
+
+2. **Filter Select Dropdown (Lọc Trạng Thái / Danh Mục)**:
+   * Vị trí: Bên cạnh ô tìm kiếm.
    * Tùy chọn tiêu chuẩn: `Tất cả trạng thái`, `Kích hoạt`, `Đã khóa`.
+   * Thể hiện: `<select className="h-9 px-3 text-[13px] border border-slate-200 rounded-md bg-white">`.
 
-2. **Column Visibility Toggle Dropdown (Ẩn / Hiện Cột)**:
+3. **Column Visibility Toggle Dropdown (Ẩn / Hiện Cột)**:
    * Vị trí: Góc phải thanh Filter Bar (`SlidersHorizontal` icon).
-   * Tính năng: Popup chứa danh sách checkbox bật/tắt hiển thị từng cột dữ liệu + Nút `Mặc định` reset cấu hình.
-   * **BẮT BUỘC Persistence `localStorage`**: Mọi cài đặt ẩn/hiện cột phải tự động lưu vào `localStorage` (`superdong_<entity>_visible_columns`) để khi bấm **F5 (Reload)** không bao giờ bị reset về mặc định!
+   * Tính năng: Popup danh sách checkbox bật/tắt hiển thị từng cột + Link `Mặc định` reset cấu hình.
+   * **BẮT BUỘC Persistence `localStorage`**: Mọi thay đổi ẩn/hiện cột phải lưu tự động vào `localStorage` (`superdong_<entity>_visible_columns`) để khi bấm **F5 (Reload)** không bị mất cài đặt.
 
-3. **Rows Per Page Dropdown (Số Dòng Trên Trang)**:
-   * Vị trí: Góc trái của thanh phân trang `<PaginationBar>`.
-   * Tùy chọn số dòng: `5`, `10`, `20`, `50` dòng/trang.
+4. **Pagination Rows Per Page Dropdown (Số Dòng / Trang)**:
+   * Vị trí: Thanh phân trang `<PaginationBar>`.
+   * Tùy chọn: `5`, `10`, `20`, `50` dòng/trang.
 
-4. **Row Actions (Hành Động Từng Dòng)**:
-   * Dùng bộ nút icon trực tiếp: `Pen` (Chỉnh sửa - hover màu xanh dương `text-blue-600 bg-blue-50`) & `Trash2` (Xóa - hover màu đỏ `text-rose-600 bg-rose-50`).
-   * Nếu có từ 3 hành động trở lên, bọc trong `<DropdownMenu>` dạng icon 3 dấu chấm (`MoreHorizontal`).
+5. **Row Actions (Dropdown / Button Hành Động Từng Dòng)**:
+   * Nút icon trực tiếp: `Pen` (Sửa - hover xanh `text-blue-600 bg-blue-50`) & `Trash2` (Xóa - hover đỏ `text-rose-600 bg-rose-50`).
+   * Nếu có từ 3 hành động trở lên, dùng `<DropdownMenu>` icon 3 dấu chấm (`MoreHorizontal`).
+
+### 2.2. Controls Trong Màn Hình Tạo Mới & Chỉnh Sửa (Edit / Create Forms)
+
+1. **Discount Type Select Dropdown (Loại Giảm Giá)**:
+   * Tùy chọn: `Theo Phần Trăm (%)` hoặc `Số Tiền Cố Định (VND)`.
+
+2. **DateBox Control (Ô Chọn Ngày Chuẩn Newmoon)**:
+   * Sử dụng `<DateBox>` ([DateBox.tsx](file:///E:/cty/superdong-fe-dashboard/src/components/common/DateBox.tsx)).
+   * Hiển thị văn bản ngày Việt Nam `DD/MM/YYYY` (ví dụ: `01/06/2026`).
+   * Chứa đúng **1 Icon Lịch duy nhất (`CalendarIcon`)** bên góc phải, kích hoạt chọn ngày mượt mà khi nhấp vào.
+
+3. **Status Checkbox / Toggle (Trạng Thái Kích Hoạt)**:
+   * Checkbox `Kích hoạt sử dụng mã coupon ngay lập tức`.
 
 ---
 
 ## 📊 3. Quy Chuẩn Cấu Trúc Bảng Dữ Liệu (`<DataTable>`)
 
-Bảng dữ liệu trong màn hình CRUD BẮT BUỘC tuân thủ các quy tắc hiển thị sau:
-
-1. **Header Bảng (TableHeader)**:
+1. **Header Bảng (`TableHeader`)**:
    * Chữ in hoa, font bold (`text-slate-600 uppercase text-[12px] font-bold`), nền xám nhạt `#F9FAFB`.
    * Các cột phân tách bằng đường kẻ dọc mỏng (`border-r border-slate-200/80`).
 
 2. **Sắp Xếp 3 Trạng Thái (3-State Sorting)**:
-   * Hỗ trợ sắp xếp cho các cột tiêu chuẩn (Mã, Tên, Giá trị, Hạn dùng, Trạng thái).
-   * **Quy trình 3 phát click**: Click 1 $\rightarrow$ Tăng dần (`asc` icon mũi tên lên sáng xanh), Click 2 $\rightarrow$ Giảm dần (`desc` icon mũi tên xuống sáng xanh), Click 3 $\rightarrow$ Trở về ban đầu (`none`).
+   * Click 1 $\rightarrow$ Tăng dần (`asc`), Click 2 $\rightarrow$ Giảm dần (`desc`), Click 3 $\rightarrow$ Trở về ban đầu (`none`).
 
-3. **Quy Chuẩn Định Dạng Dữ Liệu Trong Cột (Cell Formatting)**:
-   * **Mã ID / Code**: Dùng `font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200`.
-   * **Giá Trị Tiền / Phần Trăm**: Tiền tệ VND dùng `formatCurrency` sạch sẽ không dùng icon $ (`Giảm 100.000 đ`), phần trăm dùng `Percent` icon (`Giảm 15%`).
+3. **Định Dạng Ô Dữ Liệu (Cell Formatting)**:
+   * **Mã Code**: Font mono `text-blue-600 bg-blue-50 border-blue-200 px-2 py-0.5 rounded`.
+   * **Tiền Tệ / phần trăm**: Tiền tệ VND dùng `formatCurrency` sạch không dùng icon $ (`Giảm 100.000 đ`), phần trăm dùng `Percent` icon (`Giảm 15%`).
    * **Hạn Dùng**: Icon `Calendar` kèm định dạng `YYYY-MM-DD ➔ YYYY-MM-DD`.
-   * **Trạng Thái**: Dùng `<Badge variant="success">` kèm icon `CheckCircle2` cho Kích hoạt, `<Badge variant="danger">` kèm icon `XCircle` cho Đã khóa.
+   * **Trạng Thái**: Badge `<Badge variant="success">` (`CheckCircle2`) cho Kích hoạt, `<Badge variant="danger">` (`XCircle`) cho Đã khóa.
 
-4. **Trạng Thái Tải & Rỗng (Loading & Empty States)**:
-   * Đang tải: Hiển thị 5 dòng Skeleton loading animation (`<Skeleton className="h-5 w-full">`).
-   * Không có dữ liệu: Hiển thị icon `Inbox` kèm thông báo rỗng ngắn gọn.
+4. **Trạng Thái Loading & Empty**:
+   * Tải dữ liệu: 5 dòng Skeleton loading animation (`<Skeleton className="h-5 w-full">`).
+   * Không có dữ liệu: Icon `Inbox` kèm thông báo rỗng.
 
 ---
 
-## 📝 4. Quy Chuẩn Màn Hình Tạo Mới & Chỉnh Sửa (Create & Edit Form Architecture)
+## 📝 4. Cấu Trúc Form Mẫu Chuẩn Mực (Standard Form Structure)
 
-Mọi màn hình Form (ví dụ: `coupons/create.tsx` và `coupons/$couponId.edit.tsx`) BẮT BUỘC tuân thủ:
+```tsx
+<form className="bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5">
+  
+  {/* SECTION 1 */}
+  <div className="space-y-3">
+    <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
+      I. Thông tin cơ bản
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+      {/* Inputs */}
+    </div>
+  </div>
 
-### 4.1. Khung Tràn Chiều Rộng Full-Width (`w-full`)
-* Không dùng `max-w-4xl` gây hẹp khung. Sử dụng `w-full` kết hợp `space-y-4` để form mở rộng toàn bộ màn hình.
+  {/* SECTION 2 */}
+  <div className="space-y-3">
+    <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
+      II. Mức giảm giá & Điều kiện áp dụng
+    </div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
+      {/* Inputs */}
+    </div>
+  </div>
 
-### 4.2. Cấu Trúc Form 1 Khung Card Liền Mạch (Single Unified Card Container)
-* Toàn bộ form nằm trong 1 khung duy nhất: `bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5`.
-* Các phần thông tin được phân nhóm bằng **Thanh Banner màu Cyan nhạt chuẩn Newmoon-Admin (`bg-[#EBF7FA]`)**:
-  * `I. THÔNG TIN CƠ BẢN`
-  * `II. MỨC GIẢM GIÁ & ĐIỀU KIỆN ÁP DỤNG`
-  * `III. THỜI HẠN & GIỚI HẠN SỬ DỤNG`
-  * `IV. TRẠNG THÁI & LÝ DO ĐIỀU CHỈNH`
+  {/* SECTION 3 */}
+  <div className="space-y-3">
+    <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
+      III. Thời hạn & Giới hạn sử dụng
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+      {/* Usage limit, Valid from DateBox, Valid until DateBox */}
+    </div>
+  </div>
 
-### 4.3. Quy Chuẩn Cụm Ô Nhập Liệu (Form Controls)
-* **Kích thước chữ**: Nhãn `text-xs font-semibold text-slate-700`, giá trị nhập `text-sm h-9 rounded-lg bg-white border-slate-200`.
-* **Dấu sao đỏ bắt buộc**: Các trường bắt buộc phải có `<span className="text-rose-500 font-bold">*</span>`.
-* **Lưới ô nhập liệu (Grid System)**:
-  * Thông tin cơ bản: Lưới 2 cột (`grid grid-cols-2`).
-  * Điều kiện áp dụng: Lưới 4 cột (`grid grid-cols-4`).
-  * Thời hạn & Giới hạn: Lưới 3 cột (`grid grid-cols-3`).
+  {/* SECTION 4 */}
+  <div className="space-y-3">
+    <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
+      IV. Trạng thái & Lý do điều chỉnh
+    </div>
+    <div className="space-y-3">
+      {/* Reason & Is Active Checkbox */}
+    </div>
+  </div>
 
-### 4.4. Component Ô Chọn Ngày (`<DateBox>`)
-* Tuyệt đối KHÔNG dùng ô date gốc thô xấu của trình duyệt gây trùng icon.
-* Sử dụng `<DateBox>` ([DateBox.tsx](file:///E:/cty/superdong-fe-dashboard/src/components/common/DateBox.tsx)):
-  * Hiển thị chữ định dạng ngày Việt Nam chuẩn `DD/MM/YYYY` (ví dụ: `01/06/2026`).
-  * Chứa đúng **1 Icon Lịch duy nhất (`CalendarIcon`)** bên góc phải.
-  * Tự động kích hoạt bộ chọn ngày mượt mà khi nhấp vào.
-
-### 4.5. Thanh Nút Bấm Hành Động Dưới Cùng (Bottom Floating Action Bar)
-* Nút `Hủy Bỏ` (`Button variant="outline" className="px-5 h-9 text-xs"`) ở bên trái nút lưu.
-* Nút `Lưu thay đổi` / `Tạo mới` (`Button variant="primary" className="px-6 h-9 text-xs bg-blue-600 hover:bg-blue-700"`) ở ngoài cùng bên phải, có hiệu ứng spinner khi đang `isSubmitting`.
+  {/* BOTTOM ACTION BAR */}
+  <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-200 dark:border-slate-800">
+    <Button variant="outline" type="button" className="px-5 h-9 text-xs">Hủy Bỏ</Button>
+    <Button type="submit" variant="primary" className="px-6 h-9 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg">
+      Lưu thay đổi
+    </Button>
+  </div>
+</form>
+```
 
 ---
 
 ## 🛠️ 5. Danh Sách Common Components Chuẩn (Golden Component Registry)
-
-Tất cả các màn hình mới khi phát triển BẮT BUỘC tái sử dụng các component chuẩn tại `src/components/common/`:
 
 | Component | Đường dẫn File | Mục đích sử dụng |
 | :--- | :--- | :--- |
