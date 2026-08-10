@@ -95,11 +95,11 @@ function LoginComponent() {
             </div>
 
             <div className="space-y-4 py-4">
-              <h1 className="text-3xl font-bold leading-tight text-white">
+              <h1 className="text-3xl font-bold leading-snug text-white">
                 Chào mừng trở lại!
                 <br />
-                <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent font-extrabold">
-                  Hệ thống Quản trị Vận hành &amp; Vé Tàu
+                <span className="text-blue-400 font-bold">
+                  Hệ thống Quản trị Vận hành Tàu Superdong
                 </span>
               </h1>
               <p className="text-xs text-slate-400 leading-relaxed">
@@ -204,25 +204,12 @@ function LoginComponent() {
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Đang xác thực OAuth2...
+                  Đang xác thực...
                 </>
               ) : (
-                'Đăng nhập Hệ thống (Live Backend API)'
+                'Đăng nhập'
               )}
             </Button>
-
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleQuickDemoLogin}
-                disabled={loading}
-                className="w-full h-10 rounded-xl text-xs font-bold gap-2 cursor-pointer"
-              >
-                <ShieldCheck size={16} className="text-emerald-500" />
-                Đăng nhập bằng tài khoản Admin mặc định
-              </Button>
-            </div>
           </form>
         </div>
       </div>
