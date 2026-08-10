@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { Ticket, ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
-import { findCouponById, updateCoupon } from '@/apis/pricing';
+import { findCouponById, getCoupons, updateCoupon } from '@/apis/pricing';
 
 export const Route = createFileRoute('/_admin/coupons/$couponId/edit')({
   component: CouponEditPage,
@@ -26,7 +26,7 @@ function CouponEditPage() {
     reason: 'Cập nhật thông tin mã khuyến mãi',
   });
 
-  const [expectedVersion, setExpectedVersion] = useState<number | string>(1);
+  const [expectedVersion, setExpectedVersion] = useState<any>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -35,26 +35,52 @@ function CouponEditPage() {
     const fetchCoupon = async () => {
       setLoading(true);
       try {
-        const res = await findCouponById(couponId);
-        if (isMounted && res && res.data) {
-          const c = res.data;
-          setExpectedVersion((c as any).version || (c as any).expected_version || 1);
+        let c: any = null;
+
+        // Try fetching coupon by direct ID
+        try {
+          const res = await findCouponById(couponId);
+          if (res && res.data) {
+            c = res.data;
+          }
+        } catch (err) {
+          console.warn('findCouponById direct call failed, falling back to getCoupons list:', err);
+        }
+
+        // If direct fetch failed or didn't return data, search in list
+        if (!c) {
+          try {
+            const listRes = await getCoupons();
+            const items = listRes.data || (listRes as any);
+            if (Array.isArray(items)) {
+              c = items.find((item: any) => String(item.id) === String(couponId) || item.code === couponId);
+            }
+          } catch (err) {
+            console.warn('getCoupons list search failed:', err);
+          }
+        }
+
+        if (isMounted && c) {
+          // LOGIC FIX: Do NOT use `|| 1` because version can be 0 (0 is falsy in JS!)
+          const ver = c.version !== undefined ? c.version : (c.expected_version !== undefined ? c.expected_version : 0);
+          setExpectedVersion(ver);
+
           setFormData({
             code: c.code || 'SUMMER2026',
             name: c.name || `Ưu đãi ${c.code}`,
             type: c.discount_type === 'fixed_amount' || c.type === 'fixed_amount' ? 'fixed_amount' : 'percentage',
-            value: c.discount_value || c.value || 15,
-            min_booking_amount: c.min_booking_amount || c.min_booking_amount_vnd || 0,
-            max_discount_amount: c.max_discount_amount || 0,
-            usage_limit: c.usage_limit || 0,
+            value: c.discount_value !== undefined ? c.discount_value : (c.value !== undefined ? c.value : 15),
+            min_booking_amount: c.min_booking_amount !== undefined ? c.min_booking_amount : (c.min_booking_amount_vnd || 0),
+            max_discount_amount: c.max_discount_amount !== undefined ? c.max_discount_amount : 0,
+            usage_limit: c.usage_limit !== undefined ? c.usage_limit : 0,
             valid_from: c.effective_from || c.valid_from || '2026-06-01',
             valid_until: c.effective_to || c.valid_until || '2026-08-31',
             is_active: c.status === 'active' || c.is_active !== false,
-            reason: (c as any).reason || 'Cập nhật thông tin mã khuyến mãi',
+            reason: c.reason || 'Cập nhật thông tin mã khuyến mãi',
           });
         }
       } catch (err: any) {
-        console.warn('Could not fetch coupon details by ID, using default state:', err);
+        console.warn('Fetch coupon error:', err);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -70,7 +96,7 @@ function CouponEditPage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await updateCoupon(couponId, {
+      const payload: Record<string, any> = {
         code: formData.code.toUpperCase(),
         name: formData.name || `Ưu đãi ${formData.code.toUpperCase()}`,
         discount_type: formData.type === 'percentage' ? 'percentage' : 'fixed_amount',
@@ -81,10 +107,16 @@ function CouponEditPage() {
         effective_from: formData.valid_from,
         effective_to: formData.valid_until,
         status: formData.is_active ? 'active' : 'inactive',
-        expected_version: Number(expectedVersion) || 1,
-        version: Number(expectedVersion) || 1,
         reason: formData.reason || 'Cập nhật thông tin mã khuyến mãi',
-      } as any);
+      };
+
+      // LOGIC FIX: Send expected_version accurately without falsy fallback
+      if (expectedVersion !== undefined && expectedVersion !== null) {
+        payload.expected_version = expectedVersion;
+        payload.version = expectedVersion;
+      }
+
+      await updateCoupon(couponId, payload as any);
       toast.success(`Đã cập nhật thay đổi mã khuyến mãi ${formData.code}`);
       navigate({ to: '/coupons' as any });
     } catch (err: any) {
@@ -112,7 +144,7 @@ function CouponEditPage() {
             Chỉnh Sửa Mã Khuyến Mãi: {loading ? '...' : formData.code}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            ID mã trong hệ thống: <span className="font-mono">{couponId}</span>
+            ID mã trong hệ thống: <span className="font-mono">{couponId}</span> (Phiên bản: <span className="font-mono">{String(expectedVersion)}</span>)
           </p>
         </div>
       </div>
