@@ -116,7 +116,12 @@ function CouponEditPage() {
         payload.version = expectedVersion;
       }
 
-      await updateCoupon(couponId, payload as any);
+      const res: any = await updateCoupon(couponId, payload as any);
+      if (res && res.data && res.data.version !== undefined) {
+        setExpectedVersion(res.data.version);
+      } else {
+        setExpectedVersion((prev: number) => Number(prev) + 1);
+      }
       toast.success(`Đã cập nhật thay đổi mã khuyến mãi ${formData.code}`);
       navigate({ to: '/coupons' as any });
     } catch (err: any) {
@@ -255,7 +260,7 @@ function CouponEditPage() {
 
           <div className="md:col-span-2">
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Lý Do Điều Chỉnh (Reason) <span className="text-rose-500">*</span>
+              Lý Do Điều Chỉnh (Reason) <span className="text-slate-400 font-normal">(Tùy chọn)</span>
             </label>
             <input
               type="text"
@@ -263,7 +268,6 @@ function CouponEditPage() {
               onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
               placeholder="VD: Cập nhật tỷ lệ giảm giá theo chính sách bán hàng mới..."
               className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-blue-500"
-              required
             />
           </div>
         </div>
