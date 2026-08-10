@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { LayoutGrid, Loader2, Lock, Mail, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Headset, Loader2, ShieldCheck, Ship, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+
 import { login } from '@/apis/auth';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export const Route = createFileRoute('/login')({
   component: LoginComponent,
@@ -12,6 +16,7 @@ function LoginComponent() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('admin@admin.com');
   const [password, setPassword] = useState('admin');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -23,7 +28,7 @@ function LoginComponent() {
     setError('');
 
     if (!email || !password) {
-      setError('Vui lòng nhập đầy đủ Email và Mật khẩu');
+      setError('Vui lòng nhập đầy đủ Email và Mật khẩu.');
       return;
     }
 
@@ -33,15 +38,15 @@ function LoginComponent() {
       const res: any = await login({ email, password });
       const token = res?.access_token || res?.data?.access_token;
       if (token) {
-        toast.success('Đăng nhập OAuth2 thành công!');
+        toast.success('Đăng nhập hệ thống thành công!');
         navigate({ to: (returnTo.startsWith('/login') ? '/' : returnTo) as any });
       } else {
-        setError('Đăng nhập thất bại. Không nhận được token từ Backend.');
+        setError('Đăng nhập thất bại. Không nhận được token xác thực từ Server Backend.');
         toast.error('Đăng nhập thất bại!');
       }
     } catch (err: any) {
       console.error('Login error:', err);
-      const msg = err?.response?.data?.message || err?.message || 'Tài khoản hoặc mật khẩu không chính xác!';
+      const msg = err?.response?.data?.message || err?.message || 'Email hoặc mật khẩu không chính xác!';
       setError(`⚠️ Lỗi xác thực: ${msg}`);
       toast.error('Đăng nhập thất bại: Kiểm tra lại Email/Mật khẩu');
     } finally {
@@ -76,91 +81,150 @@ function LoginComponent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 font-sans">
-      <div className="w-full max-w-md">
-        {/* Logo Container */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 mb-4">
-            <LayoutGrid className="w-8 h-8 text-blue-500" />
+    <div className="min-h-screen w-full flex items-center justify-center p-4 md:p-6 bg-slate-100 dark:bg-slate-950 font-sans">
+      <div className="m-0 flex w-full max-w-5xl flex-col items-stretch overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl md:flex-row">
+        
+        {/* Left Side: Dark Brand Hero (Newmoon-Admin Style) */}
+        <div className="hidden w-full max-w-md flex-col justify-between bg-slate-950 p-10 text-white md:flex">
+          <div>
+            <div className="flex items-center gap-3 mb-8">
+              <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                <Ship className="h-6 w-6 text-white" />
+              </div>
+              <span className="text-xl font-bold tracking-tight text-white">SUPERDONG</span>
+            </div>
+
+            <div className="space-y-4 py-4">
+              <h1 className="text-3xl font-bold leading-tight text-white">
+                Chào mừng trở lại!
+                <br />
+                <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent font-extrabold">
+                  Hệ thống Quản trị Vận hành &amp; Vé Tàu
+                </span>
+              </h1>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Nền tảng quản lý tập trung toàn diện cho công ty tàu Superdong: Quản lý đội tàu, hải trình, chuyến tàu thực tế, mã khuyến mãi và kiểm soát vé.
+              </p>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">Superdong Admin Panel</h1>
-          <p className="text-sm text-slate-500 mt-1">Đăng nhập tài khoản quản trị hệ thống qua OAuth2</p>
+
+          <div className="flex w-full items-center gap-3.5 rounded-2xl border border-slate-800 bg-slate-900/80 p-4 shadow-xl">
+            <div className="flex items-center justify-center rounded-xl bg-blue-500/10 p-2.5 text-blue-400">
+              <Headset className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-white">Cần hỗ trợ kỹ thuật?</p>
+              <p className="text-[11px] text-slate-400">Liên hệ bộ phận IT Superdong</p>
+            </div>
+          </div>
         </div>
 
-        {/* Login Form Card */}
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-4"
-        >
+        {/* Right Side: Login Form (Newmoon-Admin Style) */}
+        <div className="flex w-full flex-col justify-center p-6 md:p-12">
+          {/* Mobile Logo */}
+          <div className="flex items-center gap-2 mb-6 md:hidden">
+            <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
+              <Ship className="h-5 w-5" />
+            </div>
+            <span className="text-lg font-bold text-slate-900 dark:text-white">SUPERDONG</span>
+          </div>
+
+          <div className="space-y-2 mb-6">
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Đăng nhập hệ thống
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Vui lòng sử dụng tài khoản quản trị được cấp để đăng nhập.
+            </p>
+          </div>
+
           {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg text-sm text-red-600 dark:text-red-400 font-medium">
-              {error}
+            <div className="mb-6 p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2">
+              <AlertCircle size={16} className="shrink-0 text-rose-500" />
+              <span>{error}</span>
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              Email Quản Trị
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-3 text-slate-800 dark:text-white placeholder:text-slate-400 focus:border-blue-500 focus:outline-none transition-colors text-sm font-mono"
-                placeholder="admin@admin.com"
-                required
-                autoComplete="username"
-              />
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-1.5">
+              <Label htmlFor="login-email" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Email Quản Trị
+              </Label>
+              <div className="relative flex items-center">
+                <Mail className="absolute left-3.5 h-4 w-4 text-slate-400" />
+                <Input
+                  id="login-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@admin.com"
+                  className="pl-10 font-mono text-xs h-11 rounded-xl bg-slate-50 dark:bg-slate-950"
+                  required
+                  autoComplete="username"
+                />
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              Mật khẩu
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-3 text-slate-800 dark:text-white placeholder:text-slate-400 focus:border-blue-500 focus:outline-none transition-colors text-sm"
-                placeholder="admin"
-                required
-                autoComplete="current-password"
-              />
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="login-password" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Mật khẩu
+                </Label>
+                <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
+                  Quên mật khẩu?
+                </span>
+              </div>
+              <div className="relative flex items-center">
+                <Lock className="absolute left-3.5 h-4 w-4 text-slate-400" />
+                <Input
+                  id="login-password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="pl-10 pr-10 text-xs h-11 rounded-xl bg-slate-50 dark:bg-slate-950"
+                  required
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm shadow-xs cursor-pointer"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Đang xác thực OAuth2...
-              </>
-            ) : (
-              'Đăng nhập Hệ thống (Live Backend API)'
-            )}
-          </button>
-
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-            <button
-              type="button"
-              onClick={handleQuickDemoLogin}
+            <Button
+              type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition-all cursor-pointer mt-2"
             >
-              <ShieldCheck size={16} className="text-emerald-500" />
-              Đăng nhập bằng tài khoản Admin mặc định
-            </button>
-          </div>
-        </form>
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Đang xác thực OAuth2...
+                </>
+              ) : (
+                'Đăng nhập Hệ thống (Live Backend API)'
+              )}
+            </Button>
+
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleQuickDemoLogin}
+                disabled={loading}
+                className="w-full h-10 rounded-xl text-xs font-bold gap-2 cursor-pointer"
+              >
+                <ShieldCheck size={16} className="text-emerald-500" />
+                Đăng nhập bằng tài khoản Admin mặc định
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
