@@ -61,6 +61,14 @@ export async function getCoupons(params?: Record<string, any>): Promise<Paginate
 }
 
 /**
+ * LOGIC: Lấy thông tin chi tiết một coupon theo ID
+ */
+export async function findCouponById(id: string | number): Promise<ApiResponse<Coupon>> {
+  const response = await api.get<ApiResponse<Coupon>>(`/coupons/${id}`);
+  return response.data;
+}
+
+/**
  * LOGIC: Tạo mã giảm giá / coupon mới
  */
 export async function createCoupon(data: Partial<Coupon>): Promise<ApiResponse<Coupon>> {
@@ -89,6 +97,7 @@ export default {
   createTravelerType,
   updateTravelerType,
   getCoupons,
+  findCouponById,
   createCoupon,
   updateCoupon,
   quoteBooking,
