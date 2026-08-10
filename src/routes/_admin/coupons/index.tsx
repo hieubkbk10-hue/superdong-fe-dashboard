@@ -29,8 +29,8 @@ export const Route = createFileRoute('/_admin/coupons/')({
   component: CouponsPage,
 });
 
-type SortField = 'code' | 'name' | 'value' | 'min_booking' | 'valid_to' | 'status';
-type SortOrder = 'asc' | 'desc';
+type SortField = 'code' | 'name' | 'value' | 'min_booking' | 'valid_to' | 'status' | null;
+type SortOrder = 'asc' | 'desc' | 'none';
 
 function CouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -42,9 +42,9 @@ function CouponsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [deletingId, setDeletingId] = useState<string | number | null>(null);
 
-  // Sorting
-  const [sortField, setSortField] = useState<SortField>('code');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  // LOGIC: Sắp xếp 3 trạng thái (Phát 1: Tăng dần, Phát 2: Giảm dần, Phát 3: Trở về ban đầu)
+  const [sortField, setSortField] = useState<SortField>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>('none');
 
   // Pagination
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -123,8 +123,12 @@ function CouponsPage() {
     });
   }, [coupons, searchTerm, statusFilter]);
 
-  // LOGIC: Sắp xếp theo cột (Sorting)
+  // LOGIC: Sắp xếp theo cột (3-State Sorting: Asc -> Desc -> None)
   const sortedCoupons = useMemo(() => {
+    if (!sortField || sortOrder === 'none') {
+      return filteredCoupons;
+    }
+
     return [...filteredCoupons].sort((a: any, b: any) => {
       let aVal: any = '';
       let bVal: any = '';
@@ -171,17 +175,25 @@ function CouponsPage() {
   const startIndex = (currentPage - 1) * pageSize;
   const paginatedCoupons = sortedCoupons.slice(startIndex, startIndex + pageSize);
 
+  // LOGIC: Click phát 1 -> tăng dần, phát 2 -> giảm dần, phát 3 -> trở về như cũ
   const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
+    if (sortField !== field) {
       setSortField(field);
       setSortOrder('asc');
+    } else {
+      if (sortOrder === 'asc') {
+        setSortOrder('desc');
+      } else if (sortOrder === 'desc') {
+        setSortField(null);
+        setSortOrder('none');
+      } else {
+        setSortOrder('asc');
+      }
     }
   };
 
   const renderSortIcon = (field: SortField) => {
-    if (sortField !== field) {
+    if (sortField !== field || sortOrder === 'none') {
       return <ArrowUpDown size={13} className="text-slate-400 opacity-60 group-hover:opacity-100 transition-opacity" />;
     }
     return sortOrder === 'asc' ? (
