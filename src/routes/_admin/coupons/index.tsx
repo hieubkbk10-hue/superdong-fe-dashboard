@@ -13,13 +13,6 @@ import {
   Calendar,
   RefreshCw,
   AlertTriangle,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   SlidersHorizontal,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -29,15 +22,10 @@ import { getCoupons, deleteCoupon } from '@/apis/pricing';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/components/ui/table';
+import { Card } from '@/components/ui/card';
+import { DataTable, Column } from '@/components/common/DataTable';
+import { PaginationBar } from '@/components/common/PaginationBar';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
 
 export const Route = createFileRoute('/_admin/coupons/')({
   component: CouponsPage,
@@ -54,7 +42,10 @@ function CouponsPage() {
   // Search & Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [deletingId, setDeletingId] = useState<string | number | null>(null);
+
+  // Confirmation Modal state
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string | number; code: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // LOGIC: Sắp xếp 3 trạng thái (Phát 1: Tăng dần, Phát 2: Giảm dần, Phát 3: Trở về ban đầu)
   const [sortField, setSortField] = useState<SortField>(null);
@@ -78,13 +69,13 @@ function CouponsPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const columnOptions = [
-    { key: 'code', label: 'Mã Coupon', essential: true },
-    { key: 'name', label: 'Tên Chương Trình', essential: true },
-    { key: 'value', label: 'Loại & Mức Giảm', essential: true },
-    { key: 'min_booking', label: 'Điều Kiện Đơn', essential: false },
-    { key: 'usage', label: 'Lượt Sử Dụng', essential: false },
-    { key: 'valid_to', label: 'Hạn Hiệu Lực', essential: false },
-    { key: 'status', label: 'Trạng Thái', essential: true },
+    { key: 'code', label: 'Mã Coupon' },
+    { key: 'name', label: 'Tên Chương Trình' },
+    { key: 'value', label: 'Loại & Mức Giảm' },
+    { key: 'min_booking', label: 'Điều Kiện Đơn' },
+    { key: 'usage', label: 'Lượt Sử Dụng' },
+    { key: 'valid_to', label: 'Hạn Hiệu Lực' },
+    { key: 'status', label: 'Trạng Thái' },
   ];
 
   const toggleColumn = (key: string) => {
@@ -138,28 +129,23 @@ function CouponsPage() {
     }
   };
 
-  const handleDeleteCoupon = async (id: string | number, code: string) => {
-    if (
-      !window.confirm(
-        `XÁC NHẬN XÓA CỨNG MÃ KHUYẾN MÃI: ${code}?\n\nHệ thống sẽ tự động lưu bản chụp Snapshot vào Nhật ký Kiểm toán (Audit Trail) trước khi xóa vĩnh viễn khỏi cơ sở dữ liệu.`
-      )
-    ) {
-      return;
-    }
+  const executeDeleteCoupon = async () => {
+    if (!deleteTarget) return;
 
-    setDeletingId(id);
+    setDeleting(true);
     try {
-      await deleteCoupon(id);
-      toast.success(`Đã xóa vĩnh viễn mã khuyến mãi ${code} thành công (Đã lưu Audit Snapshot)!`, {
+      await deleteCoupon(deleteTarget.id);
+      toast.success(`Đã xóa vĩnh viễn mã khuyến mãi ${deleteTarget.code} thành công (Đã lưu Audit Snapshot)!`, {
         id: 'coupon-delete-toast',
       });
+      setDeleteTarget(null);
       await fetchCoupons();
     } catch (err: any) {
       console.error('Failed to delete coupon:', err);
       const serverMsg = err?.response?.data?.message || err?.message || '';
       toast.error(serverMsg || 'Có lỗi xảy ra khi xóa mã khuyến mãi trên Backend', { id: 'coupon-delete-toast' });
     } finally {
-      setDeletingId(null);
+      setDeleting(false);
     }
   };
 
@@ -180,7 +166,7 @@ function CouponsPage() {
       const search = searchTerm.toLowerCase().trim();
       const matchesSearch = code.toLowerCase().includes(search) || name.toLowerCase().includes(search);
 
-      const isActive = c.status ? c.status === 'active' : c.is_active;
+      const isActive = c.status ? c.status === 'active' : Boolean(c.is_active);
       const matchesStatus =
         statusFilter === 'all' ||
         (statusFilter === 'active' && isActive) ||
@@ -238,14 +224,14 @@ function CouponsPage() {
 
   // LOGIC: Phân trang dữ liệu (Pagination)
   const totalItems = sortedCoupons.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const startIndex = (currentPage - 1) * pageSize;
   const paginatedCoupons = sortedCoupons.slice(startIndex, startIndex + pageSize);
 
   // LOGIC: Click phát 1 -> tăng dần, phát 2 -> giảm dần, phát 3 -> trở về như cũ
-  const handleSort = (field: SortField) => {
-    if (sortField !== field) {
-      setSortField(field);
+  const handleSort = (field: string) => {
+    const sField = field as SortField;
+    if (sortField !== sField) {
+      setSortField(sField);
       setSortOrder('asc');
     } else {
       if (sortOrder === 'asc') {
@@ -259,23 +245,162 @@ function CouponsPage() {
     }
   };
 
-  const renderSortIcon = (field: SortField) => {
-    if (sortField !== field || sortOrder === 'none') {
-      return <ArrowUpDown size={13} className="text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity" />;
-    }
-    return sortOrder === 'asc' ? (
-      <ArrowUp size={13} className="text-primary font-bold" />
-    ) : (
-      <ArrowDown size={13} className="text-primary font-bold" />
-    );
-  };
-
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
   };
 
-  // Compute total visible columns for colSpan
-  const visibleColCount = Object.values(visibleColumns).filter(Boolean).length + 1;
+  // Reusable Columns Definition following Company Vibe
+  const columns: Column<Coupon>[] = [
+    {
+      id: 'code',
+      header: 'Mã Coupon',
+      accessor: 'code',
+      width: 'w-[160px]',
+      sortable: true,
+      visible: visibleColumns.code,
+      cell: ({ row }) => (
+        <span className="font-mono font-bold text-primary text-sm">
+          <span className="bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
+            {row.code}
+          </span>
+        </span>
+      ),
+    },
+    {
+      id: 'name',
+      header: 'Tên Chương Trình',
+      accessor: 'name',
+      width: 'w-[220px]',
+      sortable: true,
+      visible: visibleColumns.name,
+      cell: ({ row }) => (
+        <span className="font-medium text-foreground truncate block" title={row.name || 'Mã ưu đãi'}>
+          {row.name || 'Mã ưu đãi'}
+        </span>
+      ),
+    },
+    {
+      id: 'value',
+      header: 'Loại & Mức Giảm',
+      accessor: 'discount_value',
+      width: 'w-[150px]',
+      sortable: true,
+      visible: visibleColumns.value,
+      cell: ({ row }: { row: any }) => {
+        const discountVal = row.discount_value || row.value || 0;
+        const isPercent = row.discount_type === 'percentage' || row.type === 'percentage';
+        return isPercent ? (
+          <div className="flex items-center gap-1 font-bold text-foreground">
+            <Percent size={14} className="text-amber-500" /> Giảm {discountVal}%
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400">
+            <DollarSign size={14} /> Giảm {formatCurrency(discountVal)}
+          </div>
+        );
+      },
+    },
+    {
+      id: 'min_booking',
+      header: 'Điều Kiện Đơn',
+      accessor: 'min_booking_amount',
+      width: 'w-[150px]',
+      sortable: true,
+      visible: visibleColumns.min_booking,
+      cell: ({ row }: { row: any }) => {
+        const minBooking = row.min_booking_amount_vnd || row.min_booking_amount || 0;
+        return minBooking > 0 ? (
+          <span className="text-muted-foreground">Đơn từ {formatCurrency(minBooking)}</span>
+        ) : (
+          <Badge variant="secondary" className="text-[11px] font-normal">
+            Mọi đơn hàng
+          </Badge>
+        );
+      },
+    },
+    {
+      id: 'usage',
+      header: 'Lượt Sử Dụng',
+      width: 'w-[120px]',
+      visible: visibleColumns.usage,
+      cell: ({ row }: { row: any }) => (
+        <div className="font-semibold text-foreground">
+          {row.usage_count || 0} / {row.usage_limit || '∞'} lượt
+        </div>
+      ),
+    },
+    {
+      id: 'valid_to',
+      header: 'Hạn Hiệu Lực',
+      accessor: 'effective_to',
+      width: 'w-[180px]',
+      sortable: true,
+      visible: visibleColumns.valid_to,
+      cell: ({ row }: { row: any }) => {
+        const validFrom = row.effective_from ? row.effective_from.substring(0, 10) : row.valid_from || '';
+        const validTo = row.effective_to ? row.effective_to.substring(0, 10) : row.valid_until || '';
+        return (
+          <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium font-mono truncate">
+            <Calendar size={12} /> {validFrom || 'Tự do'} ➔ {validTo || 'Vĩnh viễn'}
+          </div>
+        );
+      },
+    },
+    {
+      id: 'status',
+      header: 'Trạng Thái',
+      accessor: 'status',
+      width: 'w-[140px]',
+      sortable: true,
+      visible: visibleColumns.status,
+      cell: ({ row }: { row: any }) => {
+        const isActive = row.status ? row.status === 'active' : Boolean(row.is_active);
+        return isActive ? (
+          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 whitespace-nowrap gap-1">
+            <CheckCircle2 size={12} className="shrink-0" /> Kích hoạt
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 whitespace-nowrap gap-1">
+            <XCircle size={12} className="shrink-0" /> Đã khóa
+          </Badge>
+        );
+      },
+    },
+    {
+      id: 'actions',
+      header: 'Hành Động',
+      width: 'w-[100px]',
+      headClass: 'text-right',
+      cellClass: 'text-right',
+      cell: ({ row }: { row: any }) => (
+        <div className="space-x-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+            asChild
+          >
+            <Link
+              to={'/coupons/$couponId/edit' as any}
+              params={{ couponId: row.id } as any}
+              title="Chỉnh sửa mã"
+            >
+              <Edit size={15} />
+            </Link>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={() => setDeleteTarget({ id: row.id, code: row.code || '' })}
+            title="Xóa vĩnh viễn (Lưu Snapshot Audit Log)"
+          >
+            <Trash2 size={15} />
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6 font-sans">
@@ -314,7 +439,7 @@ function CouponsPage() {
         </div>
       )}
 
-      {/* Filter & Column Toggle Bar using Shadcn Card */}
+      {/* Filter & Column Toggle Bar */}
       <Card className="p-4 border shadow-xs">
         <div className="flex flex-col md:flex-row gap-3 justify-between items-stretch md:items-center">
           <div className="relative max-w-md w-full">
@@ -388,291 +513,39 @@ function CouponsPage() {
         </div>
       </Card>
 
-      {/* UI: Cấu hình colgroup và table-layout: fixed cho bảng mật độ dữ liệu cao theo quy chuẩn công ty */}
-      <Card className="overflow-hidden border shadow-xs">
-        <Table className="table-fixed">
-          <colgroup>
-            {visibleColumns.code && <col className="w-[160px]" />}
-            {visibleColumns.name && <col className="w-[220px]" />}
-            {visibleColumns.value && <col className="w-[150px]" />}
-            {visibleColumns.min_booking && <col className="w-[150px]" />}
-            {visibleColumns.usage && <col className="w-[120px]" />}
-            {visibleColumns.valid_to && <col className="w-[180px]" />}
-            {visibleColumns.status && <col className="w-[140px]" />}
-            <col className="w-[100px]" />
-          </colgroup>
-          <TableHeader className="bg-muted/50 text-muted-foreground font-semibold border-b text-xs">
-            <TableRow>
-              {visibleColumns.code && (
-                <TableHead
-                  onClick={() => handleSort('code')}
-                  className="p-3.5 cursor-pointer select-none hover:bg-muted transition-colors group"
-                >
-                  <div className="flex items-center gap-1.5">
-                    Mã Coupon {renderSortIcon('code')}
-                  </div>
-                </TableHead>
-              )}
+      {/* Reusable Company Vibe DataTable Component */}
+      <DataTable
+        columns={columns}
+        data={paginatedCoupons}
+        loading={loading}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={handleSort}
+        emptyText={apiError ? '⚠️ Không thể lấy dữ liệu từ Backend API.' : 'Không có mã khuyến mãi nào phù hợp.'}
+      />
 
-              {visibleColumns.name && (
-                <TableHead
-                  onClick={() => handleSort('name')}
-                  className="p-3.5 cursor-pointer select-none hover:bg-muted transition-colors group"
-                >
-                  <div className="flex items-center gap-1.5">
-                    Tên Chương Trình {renderSortIcon('name')}
-                  </div>
-                </TableHead>
-              )}
+      {/* Reusable PaginationBar Component */}
+      {!loading && (
+        <PaginationBar
+          currentPage={currentPage}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+        />
+      )}
 
-              {visibleColumns.value && (
-                <TableHead
-                  onClick={() => handleSort('value')}
-                  className="p-3.5 cursor-pointer select-none hover:bg-muted transition-colors group"
-                >
-                  <div className="flex items-center gap-1.5">
-                    Loại &amp; Mức Giảm {renderSortIcon('value')}
-                  </div>
-                </TableHead>
-              )}
-
-              {visibleColumns.min_booking && (
-                <TableHead
-                  onClick={() => handleSort('min_booking')}
-                  className="p-3.5 cursor-pointer select-none hover:bg-muted transition-colors group"
-                >
-                  <div className="flex items-center gap-1.5">
-                    Điều Kiện Đơn {renderSortIcon('min_booking')}
-                  </div>
-                </TableHead>
-              )}
-
-              {visibleColumns.usage && <TableHead className="p-3.5">Lượt Sử Dụng</TableHead>}
-
-              {visibleColumns.valid_to && (
-                <TableHead
-                  onClick={() => handleSort('valid_to')}
-                  className="p-3.5 cursor-pointer select-none hover:bg-muted transition-colors group"
-                >
-                  <div className="flex items-center gap-1.5">
-                    Hạn Hiệu Lực {renderSortIcon('valid_to')}
-                  </div>
-                </TableHead>
-              )}
-
-              {visibleColumns.status && (
-                <TableHead
-                  onClick={() => handleSort('status')}
-                  className="p-3.5 cursor-pointer select-none hover:bg-muted transition-colors group"
-                >
-                  <div className="flex items-center gap-1.5">
-                    Trạng Thái {renderSortIcon('status')}
-                  </div>
-                </TableHead>
-              )}
-
-              <TableHead className="p-3.5 text-right">Hành Động</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody className="text-xs">
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={visibleColCount} className="p-8 text-center text-muted-foreground">
-                  <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-primary" />
-                  Đang tải dữ liệu từ Backend API...
-                </TableCell>
-              </TableRow>
-            ) : paginatedCoupons.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={visibleColCount} className="p-8 text-center text-muted-foreground">
-                  {apiError ? '⚠️ Không thể lấy dữ liệu từ Backend API.' : 'Không có mã khuyến mãi nào phù hợp.'}
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedCoupons.map((c: any) => {
-                const isActive = c.status ? c.status === 'active' : Boolean(c.is_active);
-                const discountVal = c.discount_value || c.value || 0;
-                const isPercent = c.discount_type === 'percentage' || c.type === 'percentage';
-                const minBooking = c.min_booking_amount_vnd || c.min_booking_amount || 0;
-                const validFrom = c.effective_from ? c.effective_from.substring(0, 10) : c.valid_from || '';
-                const validTo = c.effective_to ? c.effective_to.substring(0, 10) : c.valid_until || '';
-
-                return (
-                  <TableRow key={c.id} className="hover:bg-muted/40 transition-colors">
-                    {visibleColumns.code && (
-                      <TableCell className="p-3.5 font-mono font-bold text-primary text-sm truncate">
-                        <span className="bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
-                          {c.code}
-                        </span>
-                      </TableCell>
-                    )}
-
-                    {visibleColumns.name && (
-                      <TableCell className="p-3.5 font-medium text-foreground truncate" title={c.name || 'Mã ưu đãi'}>
-                        {c.name || 'Mã ưu đãi'}
-                      </TableCell>
-                    )}
-
-                    {visibleColumns.value && (
-                      <TableCell className="p-3.5">
-                        {isPercent ? (
-                          <div className="flex items-center gap-1 font-bold text-foreground">
-                            <Percent size={14} className="text-amber-500" /> Giảm {discountVal}%
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400">
-                            <DollarSign size={14} /> Giảm {formatCurrency(discountVal)}
-                          </div>
-                        )}
-                      </TableCell>
-                    )}
-
-                    {visibleColumns.min_booking && (
-                      <TableCell className="p-3.5 text-muted-foreground truncate">
-                        {minBooking > 0 ? (
-                          <span>Đơn từ {formatCurrency(minBooking)}</span>
-                        ) : (
-                          <Badge variant="secondary" className="text-[11px] font-normal">
-                            Mọi đơn hàng
-                          </Badge>
-                        )}
-                      </TableCell>
-                    )}
-
-                    {visibleColumns.usage && (
-                      <TableCell className="p-3.5">
-                        <div className="font-semibold text-foreground">
-                          {c.usage_count || 0} / {c.usage_limit || '∞'} lượt
-                        </div>
-                      </TableCell>
-                    )}
-
-                    {visibleColumns.valid_to && (
-                      <TableCell className="p-3.5 text-[11px] text-muted-foreground font-medium font-mono truncate">
-                        <div className="flex items-center gap-1">
-                          <Calendar size={12} /> {validFrom || 'Tự do'} ➔ {validTo || 'Vĩnh viễn'}
-                        </div>
-                      </TableCell>
-                    )}
-
-                    {visibleColumns.status && (
-                      <TableCell className="p-3.5">
-                        {isActive ? (
-                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 whitespace-nowrap gap-1">
-                            <CheckCircle2 size={12} className="shrink-0" /> Kích hoạt
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 whitespace-nowrap gap-1">
-                            <XCircle size={12} className="shrink-0" /> Đã khóa
-                          </Badge>
-                        )}
-                      </TableCell>
-                    )}
-
-                    <TableCell className="p-3.5 text-right space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
-                        asChild
-                      >
-                        <Link
-                          to={'/coupons/$couponId/edit' as any}
-                          params={{ couponId: c.id } as any}
-                          title="Chỉnh sửa mã"
-                        >
-                          <Edit size={15} />
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDeleteCoupon(c.id, c.code || '')}
-                        disabled={deletingId === c.id}
-                        title="Xóa vĩnh viễn (Lưu Snapshot Audit Log)"
-                      >
-                        {deletingId === c.id ? <RefreshCw size={15} className="animate-spin" /> : <Trash2 size={15} />}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-
-        {/* Pagination Bar */}
-        {!loading && totalItems > 0 && (
-          <div className="px-4 py-3 border-t bg-muted/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <span>Hiển thị <strong>{startIndex + 1}</strong> - <strong>{Math.min(startIndex + pageSize, totalItems)}</strong> trong tổng số <strong>{totalItems}</strong> mã</span>
-              <span className="text-border">|</span>
-              <div className="flex items-center gap-1.5">
-                <span>Số dòng/trang:</span>
-                <select
-                  value={pageSize}
-                  onChange={(e) => setPageSize(Number(e.target.value))}
-                  className="h-7 px-2 bg-background border border-input rounded text-xs outline-none cursor-pointer"
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => setCurrentPage(1)}
-                disabled={currentPage === 1}
-                title="Trang đầu"
-              >
-                <ChevronsLeft size={16} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                title="Trang trước"
-              >
-                <ChevronLeft size={16} />
-              </Button>
-              
-              <span className="px-3 font-semibold text-foreground">
-                Trang {currentPage} / {totalPages}
-              </span>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                title="Trang sau"
-              >
-                <ChevronRight size={16} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => setCurrentPage(totalPages)}
-                disabled={currentPage === totalPages}
-                title="Trang cuối"
-              >
-                <ChevronsRight size={16} />
-              </Button>
-            </div>
-          </div>
-        )}
-      </Card>
+      {/* Reusable ConfirmModal for Hard Deletion */}
+      <ConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title={`Xóa vĩnh viễn mã ${deleteTarget?.code}?`}
+        description="Hệ thống sẽ tự động chụp bản snapshot lưu vào Audit Trail trước khi xóa cứng khỏi cơ sở dữ liệu."
+        confirmLabel="Xác nhận xóa"
+        cancelLabel="Bỏ qua"
+        loading={deleting}
+        onConfirm={executeDeleteCoupon}
+      />
     </div>
   );
 }
