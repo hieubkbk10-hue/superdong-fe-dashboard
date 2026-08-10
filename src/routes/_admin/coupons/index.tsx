@@ -3,8 +3,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import {
   Ticket,
   Plus,
-  Search,
-  Edit,
+  Pen,
   Trash2,
   CheckCircle2,
   XCircle,
@@ -19,10 +18,9 @@ import { toast } from 'sonner';
 
 import { Coupon } from '@/types';
 import { getCoupons, deleteCoupon } from '@/apis/pricing';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
+import { Button } from '@/components/common/Button';
+import { Badge } from '@/components/common/Badge';
+import { SearchInput } from '@/components/common/SearchInput';
 import { DataTable, Column } from '@/components/common/DataTable';
 import { PaginationBar } from '@/components/common/PaginationBar';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
@@ -249,7 +247,7 @@ function CouponsPage() {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
   };
 
-  // Reusable Columns Definition following Company Vibe
+  // Reusable Columns Definition following Newmoon-Admin Employee Table Style
   const columns: Column<Coupon>[] = [
     {
       id: 'code',
@@ -259,8 +257,8 @@ function CouponsPage() {
       sortable: true,
       visible: visibleColumns.code,
       cell: ({ row }) => (
-        <span className="font-mono font-bold text-primary text-sm">
-          <span className="bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
+        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+          <span className="bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800/80">
             {row.code}
           </span>
         </span>
@@ -274,7 +272,7 @@ function CouponsPage() {
       sortable: true,
       visible: visibleColumns.name,
       cell: ({ row }) => (
-        <span className="font-medium text-foreground truncate block" title={row.name || 'Mã ưu đãi'}>
+        <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block text-[13px]" title={row.name || 'Mã ưu đãi'}>
           {row.name || 'Mã ưu đãi'}
         </span>
       ),
@@ -290,12 +288,12 @@ function CouponsPage() {
         const discountVal = row.discount_value || row.value || 0;
         const isPercent = row.discount_type === 'percentage' || row.type === 'percentage';
         return isPercent ? (
-          <div className="flex items-center gap-1 font-bold text-foreground">
-            <Percent size={14} className="text-amber-500" /> Giảm {discountVal}%
+          <div className="flex items-center gap-1 font-bold text-slate-800 dark:text-slate-200">
+            <Percent size={13} className="text-amber-500" /> Giảm {discountVal}%
           </div>
         ) : (
           <div className="flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400">
-            <DollarSign size={14} /> Giảm {formatCurrency(discountVal)}
+            <DollarSign size={13} /> Giảm {formatCurrency(discountVal)}
           </div>
         );
       },
@@ -310,9 +308,9 @@ function CouponsPage() {
       cell: ({ row }: { row: any }) => {
         const minBooking = row.min_booking_amount_vnd || row.min_booking_amount || 0;
         return minBooking > 0 ? (
-          <span className="text-muted-foreground">Đơn từ {formatCurrency(minBooking)}</span>
+          <span className="text-slate-600 dark:text-slate-400 font-medium">Đơn từ {formatCurrency(minBooking)}</span>
         ) : (
-          <Badge variant="secondary" className="text-[11px] font-normal">
+          <Badge variant="secondary">
             Mọi đơn hàng
           </Badge>
         );
@@ -321,10 +319,10 @@ function CouponsPage() {
     {
       id: 'usage',
       header: 'Lượt Sử Dụng',
-      width: 'w-[120px]',
+      width: 'w-[130px]',
       visible: visibleColumns.usage,
       cell: ({ row }: { row: any }) => (
-        <div className="font-semibold text-foreground">
+        <div className="font-semibold text-slate-800 dark:text-slate-200 text-[13px]">
           {row.usage_count || 0} / {row.usage_limit || '∞'} lượt
         </div>
       ),
@@ -340,8 +338,8 @@ function CouponsPage() {
         const validFrom = row.effective_from ? row.effective_from.substring(0, 10) : row.valid_from || '';
         const validTo = row.effective_to ? row.effective_to.substring(0, 10) : row.valid_until || '';
         return (
-          <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium font-mono truncate">
-            <Calendar size={12} /> {validFrom || 'Tự do'} ➔ {validTo || 'Vĩnh viễn'}
+          <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 font-medium font-mono truncate">
+            <Calendar size={12} className="text-slate-400" /> {validFrom || 'Tự do'} ➔ {validTo || 'Vĩnh viễn'}
           </div>
         );
       },
@@ -356,12 +354,12 @@ function CouponsPage() {
       cell: ({ row }: { row: any }) => {
         const isActive = row.status ? row.status === 'active' : Boolean(row.is_active);
         return isActive ? (
-          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 whitespace-nowrap gap-1">
-            <CheckCircle2 size={12} className="shrink-0" /> Kích hoạt
+          <Badge variant="success">
+            <CheckCircle2 size={12} className="shrink-0 text-emerald-600 dark:text-emerald-400" /> Kích hoạt
           </Badge>
         ) : (
-          <Badge variant="outline" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 whitespace-nowrap gap-1">
-            <XCircle size={12} className="shrink-0" /> Đã khóa
+          <Badge variant="danger">
+            <XCircle size={12} className="shrink-0 text-rose-600 dark:text-rose-400" /> Đã khóa
           </Badge>
         );
       },
@@ -373,11 +371,11 @@ function CouponsPage() {
       headClass: 'text-right',
       cellClass: 'text-right',
       cell: ({ row }: { row: any }) => (
-        <div className="space-x-1">
+        <div className="flex items-center justify-end gap-1">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+            className="h-7 w-7 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
             asChild
           >
             <Link
@@ -385,17 +383,17 @@ function CouponsPage() {
               params={{ couponId: row.id } as any}
               title="Chỉnh sửa mã"
             >
-              <Edit size={15} />
+              <Pen size={14} />
             </Link>
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+            className="h-7 w-7 text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50"
             onClick={() => setDeleteTarget({ id: row.id, code: row.code || '' })}
             title="Xóa vĩnh viễn (Lưu Snapshot Audit Log)"
           >
-            <Trash2 size={15} />
+            <Trash2 size={14} />
           </Button>
         </div>
       ),
@@ -403,29 +401,35 @@ function CouponsPage() {
   ];
 
   return (
-    <div className="space-y-6 font-sans">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Ticket className="h-6 w-6 text-primary" />
-            Mã Khuyến Mãi
-          </h1>
-        </div>
+    <div className="flex flex-col bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs font-sans text-slate-800 dark:text-slate-200 space-y-4">
+      {/* Top Header Row (Newmoon-Admin Employee List Header Style) */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-1 border-b border-slate-100 dark:border-slate-800/80">
+        <h1 className="text-lg font-bold capitalize flex items-center gap-2 text-slate-900 dark:text-white">
+          <Ticket className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          Danh sách mã khuyến mãi
+        </h1>
+        
         <div className="flex items-center gap-2">
           <Button
-            variant="outline"
+            variant="light"
             size="sm"
             onClick={fetchCoupons}
             disabled={loading}
-            className="gap-1.5"
+            className="h-8 gap-1.5 text-[13px]"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             Làm mới
           </Button>
-          <Button asChild size="sm" className="gap-1.5">
+          
+          <Button
+            variant="success"
+            size="sm"
+            asChild
+            className="h-8 gap-1.5 text-[13px]"
+          >
             <Link to={'/coupons/create' as any}>
-              <Plus size={16} /> Tạo Mã Mới
+              <Plus className="h-4 w-4" />
+              Tạo mã khuyến mãi
             </Link>
           </Button>
         </div>
@@ -433,87 +437,82 @@ function CouponsPage() {
 
       {/* API Error Alert */}
       {apiError && (
-        <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-xs text-destructive font-medium flex items-center gap-2.5">
-          <AlertTriangle size={18} className="shrink-0 text-destructive" />
+        <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-lg text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2">
+          <AlertTriangle size={16} className="shrink-0 text-rose-500" />
           <span>⚠️ Không thể lấy dữ liệu từ Backend API: {apiError}. Vui lòng kiểm tra lại Server Backend!</span>
         </div>
       )}
 
-      {/* Filter & Column Toggle Bar */}
-      <Card className="p-4 border shadow-xs">
-        <div className="flex flex-col md:flex-row gap-3 justify-between items-stretch md:items-center">
-          <div className="relative max-w-md w-full">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Tìm theo Mã voucher hoặc tên chương trình..."
-              className="pl-9 font-mono"
-            />
-          </div>
+      {/* Filter Bar (Newmoon-Admin Employee Filters Bar Style) */}
+      <div className="flex w-full flex-wrap items-center gap-2">
+        {/* Search Box Component */}
+        <SearchInput
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Tìm mã hoặc tên khuyến mãi..."
+        />
 
-          <div className="flex items-center gap-3">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-9 px-3 text-xs bg-background border border-input rounded-md text-foreground outline-none cursor-pointer focus:ring-1 focus:ring-ring"
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="active">Kích hoạt</option>
-              <option value="inactive">Đã khóa</option>
-            </select>
-
-            {/* UI: Nút Cột (Column Toggle Dropdown) */}
-            <div className="relative" ref={dropdownRef}>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowColumnDropdown((prev) => !prev)}
-                className="gap-1.5 text-xs font-semibold"
-                title="Ẩn / Hiện các cột trong bảng"
-              >
-                <SlidersHorizontal size={14} className="text-primary" />
-                <span>Cột</span>
-              </Button>
-
-              {showColumnDropdown && (
-                <div className="absolute right-0 mt-2 w-52 bg-popover border border-border rounded-xl shadow-xl z-50 p-3 space-y-1.5">
-                  <div className="flex items-center justify-end border-b border-border pb-1.5">
-                    <button
-                      onClick={resetColumns}
-                      className="text-[11px] text-primary hover:underline font-medium cursor-pointer"
-                    >
-                      Mặc định
-                    </button>
-                  </div>
-
-                  <div className="space-y-1 max-h-56 overflow-y-auto pt-0.5">
-                    {columnOptions.map((col) => (
-                      <label
-                        key={col.key}
-                        className="flex items-center justify-between text-xs px-2 py-1 rounded-lg hover:bg-muted/60 cursor-pointer select-none"
-                      >
-                        <span className="text-foreground flex items-center gap-2 font-medium">
-                          <input
-                            type="checkbox"
-                            checked={!!visibleColumns[col.key]}
-                            onChange={() => toggleColumn(col.key)}
-                            className="rounded border-input text-primary focus:ring-ring h-3.5 w-3.5"
-                          />
-                          {col.label}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+        {/* Status Filter Select */}
+        <div className="flex items-center gap-1.5 text-[13px]">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-9 px-3 text-[13px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-md text-slate-800 dark:text-slate-200 outline-none cursor-pointer hover:border-slate-300 dark:hover:border-slate-700"
+          >
+            <option value="all">Tất cả trạng thái</option>
+            <option value="active">Kích hoạt</option>
+            <option value="inactive">Đã khóa</option>
+          </select>
         </div>
-      </Card>
 
-      {/* Reusable Company Vibe DataTable Component */}
+        {/* Column Toggle Dropdown */}
+        <div className="relative ml-auto" ref={dropdownRef}>
+          <Button
+            variant="light"
+            size="sm"
+            onClick={() => setShowColumnDropdown((prev) => !prev)}
+            className="h-9 gap-1.5 text-[13px]"
+            title="Ẩn / Hiện các cột trong bảng"
+          >
+            <SlidersHorizontal size={14} className="text-emerald-600 dark:text-emerald-400" />
+            <span>Cột</span>
+          </Button>
+
+          {showColumnDropdown && (
+            <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 p-3 space-y-1.5">
+              <div className="flex items-center justify-end border-b border-slate-100 dark:border-slate-800 pb-1.5">
+                <button
+                  onClick={resetColumns}
+                  className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline font-medium cursor-pointer"
+                >
+                  Mặc định
+                </button>
+              </div>
+
+              <div className="space-y-1 max-h-56 overflow-y-auto pt-0.5">
+                {columnOptions.map((col) => (
+                  <label
+                    key={col.key}
+                    className="flex items-center justify-between text-xs px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer select-none"
+                  >
+                    <span className="text-slate-700 dark:text-slate-300 flex items-center gap-2 font-medium">
+                      <input
+                        type="checkbox"
+                        checked={!!visibleColumns[col.key]}
+                        onChange={() => toggleColumn(col.key)}
+                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5"
+                      />
+                      {col.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Reusable Newmoon-Admin Styled DataTable Component */}
       <DataTable
         columns={columns}
         data={paginatedCoupons}
@@ -524,7 +523,7 @@ function CouponsPage() {
         emptyText={apiError ? '⚠️ Không thể lấy dữ liệu từ Backend API.' : 'Không có mã khuyến mãi nào phù hợp.'}
       />
 
-      {/* Reusable PaginationBar Component */}
+      {/* Reusable Newmoon-Admin Styled PaginationBar Component */}
       {!loading && (
         <PaginationBar
           currentPage={currentPage}

@@ -24,22 +24,24 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
   if (totalItems <= 0) return null;
 
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  const startIndex = (currentPage - 1) * pageSize + 1;
+  const endIndex = Math.min(currentPage * pageSize, totalItems);
 
   return (
-    <div className={`px-4 py-3 border-t border-border bg-muted/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground ${className}`}>
+    <div className={`mt-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400 font-sans ${className}`}>
       <div className="flex items-center gap-2">
         <span>
-          Hiển thị <strong>{startIndex + 1}</strong> - <strong>{endIndex}</strong> trong tổng số <strong>{totalItems}</strong> mục
+          Hiển thị từ <span className="font-semibold text-slate-800 dark:text-slate-200">{startIndex}</span> đến{' '}
+          <span className="font-semibold text-slate-800 dark:text-slate-200">{endIndex}</span> trong tổng số{' '}
+          <span className="font-semibold text-slate-800 dark:text-slate-200">{totalItems}</span> mục
         </span>
-        <span className="text-border">|</span>
+        <span className="text-slate-300 dark:text-slate-700">|</span>
         <div className="flex items-center gap-1.5">
           <span>Số dòng/trang:</span>
           <select
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            className="h-7 px-2 bg-background border border-input rounded text-xs outline-none cursor-pointer focus:ring-1 focus:ring-ring"
+            className="h-7 px-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded text-xs text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
           >
             {pageSizeOptions.map((opt) => (
               <option key={opt} value={opt}>
@@ -52,49 +54,49 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
 
       <div className="flex items-center gap-1">
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
-          className="h-7 w-7"
+          className="h-7 w-7 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
           title="Trang đầu"
         >
-          <ChevronsLeft size={16} />
+          <ChevronsLeft size={14} />
         </Button>
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
-          className="h-7 w-7"
+          className="h-7 w-7 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"
           onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
           disabled={currentPage === 1}
           title="Trang trước"
         >
-          <ChevronLeft size={16} />
+          <ChevronLeft size={14} />
         </Button>
 
-        <span className="px-3 font-semibold text-foreground">
+        <span className="px-3 font-semibold text-slate-800 dark:text-slate-200">
           Trang {currentPage} / {totalPages}
         </span>
 
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
-          className="h-7 w-7"
+          className="h-7 w-7 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"
           onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
           disabled={currentPage === totalPages}
           title="Trang sau"
         >
-          <ChevronRight size={16} />
+          <ChevronRight size={14} />
         </Button>
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
-          className="h-7 w-7"
+          className="h-7 w-7 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage === totalPages}
           title="Trang cuối"
         >
-          <ChevronsRight size={16} />
+          <ChevronsRight size={14} />
         </Button>
       </div>
     </div>
