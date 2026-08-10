@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { findCouponById, updateCoupon, getCoupons } from '@/apis/pricing';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
+import { DateBox } from '@/components/common/DateBox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -65,7 +66,6 @@ function CouponEditPage() {
         }
 
         if (isMounted && c) {
-          // LOGIC FIX: Do NOT use `|| 1` because version can be 0 (0 is falsy in JS!)
           const ver = c.version !== undefined ? c.version : (c.expected_version !== undefined ? c.expected_version : 0);
           setExpectedVersion(ver);
 
@@ -79,7 +79,6 @@ function CouponEditPage() {
             usage_limit: c.usage_limit !== undefined ? c.usage_limit : 0,
             valid_from: c.effective_from ? c.effective_from.split('T')[0] : (c.valid_from ? c.valid_from.split('T')[0] : '2026-06-01'),
             valid_until: c.effective_to ? c.effective_to.split('T')[0] : (c.valid_until ? c.valid_until.split('T')[0] : '2026-08-31'),
-            // LOGIC FIX: Sửa lỗi c.status !== active bị biến thành true khi c.is_active is undefined
             is_active: c.status ? c.status === 'active' : Boolean(c.is_active),
             reason: c.reason || '',
           });
@@ -145,7 +144,7 @@ function CouponEditPage() {
 
       toast.success(`Đã lưu thay đổi mã khuyến mãi ${formData.code} thành công!`, { id: 'coupon-edit-toast' });
 
-      // Refetch fresh coupon data to keep form state in sync without leaving the edit page
+      // Refetch fresh coupon data
       if (couponId) {
         try {
           const fresh = await findCouponById(couponId);
@@ -193,21 +192,21 @@ function CouponEditPage() {
   };
 
   return (
-    <div className="space-y-6 w-full font-sans pb-12 text-slate-800 dark:text-slate-200">
+    <div className="space-y-4 w-full font-sans pb-12 text-slate-800 dark:text-slate-200">
       {/* Top Header Navigation */}
-      <div className="flex items-center justify-between gap-4 bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+      <div className="flex items-center justify-between gap-4 bg-white dark:bg-slate-950 p-4 px-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
         <div className="flex items-center gap-3">
-          <Button variant="light" size="icon" className="h-9 w-9" asChild>
+          <Button variant="light" size="icon" className="h-8 w-8" asChild>
             <Link to={'/coupons' as any} title="Quay lại danh sách">
               <ArrowLeft size={16} />
             </Link>
           </Button>
           <div>
-            <h1 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Ticket className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <h1 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Ticket className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               Chỉnh sửa mã khuyến mãi: {loading ? '...' : formData.code}
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
               ID mã hệ thống: <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{couponId}</span>
             </p>
           </div>
@@ -215,26 +214,28 @@ function CouponEditPage() {
 
         <div>
           {formData.is_active ? (
-            <Badge variant="success" className="px-3 py-1 text-xs">
-              <CheckCircle2 size={13} /> Đang kích hoạt
+            <Badge variant="success" className="px-2.5 py-0.5 text-xs">
+              <CheckCircle2 size={12} /> Kích hoạt
             </Badge>
           ) : (
-            <Badge variant="danger" className="px-3 py-1 text-xs">
+            <Badge variant="danger" className="px-2.5 py-0.5 text-xs">
               Đã khóa
             </Badge>
           )}
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      {/* SINGLE UNIFIED FORM CONTAINER */}
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-6">
+        
         {/* SECTION 1: THÔNG TIN CƠ BẢN */}
-        <div className="bg-white dark:bg-slate-950 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-4">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="space-y-4 pb-5 border-b border-slate-100 dark:border-slate-800/80">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
             <Ticket className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             1. Thông Tin Cơ Bản
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="coupon-code" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                 Mã Khuyến Mãi (Coupon Code) <span className="text-rose-500 font-bold">*</span>
@@ -266,13 +267,13 @@ function CouponEditPage() {
         </div>
 
         {/* SECTION 2: MỨC GIẢM & ĐIỀU KIỆN ÁP DỤNG */}
-        <div className="bg-white dark:bg-slate-950 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-4">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="space-y-4 pb-5 border-b border-slate-100 dark:border-slate-800/80">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
             <Percent className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             2. Mức Giảm Giá &amp; Điều Kiện Áp Dụng
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="discount-type" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Loại Giảm Giá
@@ -333,14 +334,14 @@ function CouponEditPage() {
           </div>
         </div>
 
-        {/* SECTION 3: THỜI HẠN & GIỚI HẠN */}
-        <div className="bg-white dark:bg-slate-950 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-4">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+        {/* SECTION 3: THỜI HẠN & GIỚI HẠN (USING NEWMOON-ADMIN DATEBOX) */}
+        <div className="space-y-4 pb-5 border-b border-slate-100 dark:border-slate-800/80">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
             <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             3. Hạn Hiệu Lực &amp; Giới Hạn Sử Dụng
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-1">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="usage-limit" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Giới Hạn Lượt Sử Dụng
@@ -359,12 +360,10 @@ function CouponEditPage() {
               <Label htmlFor="valid-from" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Ngày Bắt Đầu Hiệu Lực
               </Label>
-              <Input
+              <DateBox
                 id="valid-from"
-                type="date"
                 value={formData.valid_from}
                 onChange={(e) => setFormData({ ...formData, valid_from: e.target.value })}
-                className="text-xs h-10 rounded-lg bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800"
               />
             </div>
 
@@ -372,25 +371,23 @@ function CouponEditPage() {
               <Label htmlFor="valid-until" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Ngày Kết Thúc / Hết Hạn
               </Label>
-              <Input
+              <DateBox
                 id="valid-until"
-                type="date"
                 value={formData.valid_until}
                 onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
-                className="text-xs h-10 rounded-lg bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800"
               />
             </div>
           </div>
         </div>
 
-        {/* SECTION 4: TRẠNG THÁI & LÝ DO ĐIỀU CHỈNH */}
-        <div className="bg-white dark:bg-slate-950 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-4">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+        {/* SECTION 4: LÝ DO ĐIỀU CHỈNH & TRẠNG THÁI */}
+        <div className="space-y-4">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
             <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            4. Trạng Thái &amp; Lý Do Điều Chỉnh
+            4. Lịch Sử &amp; Trạng Thái Kích Hoạt
           </h2>
 
-          <div className="space-y-4 pt-1">
+          <div className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="reason" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Lý do điều chỉnh <span className="text-slate-400 font-normal">(tùy chọn)</span>
@@ -405,7 +402,7 @@ function CouponEditPage() {
               />
             </div>
 
-            <div className="flex items-center gap-3 pt-2">
+            <div className="flex items-center gap-3 pt-1">
               <input
                 id="is-active-toggle"
                 type="checkbox"
@@ -421,7 +418,7 @@ function CouponEditPage() {
         </div>
 
         {/* BOTTOM ACTION BAR */}
-        <div className="bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex justify-end gap-3">
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 flex justify-end gap-2.5">
           <Button variant="light" type="button" asChild>
             <Link to={'/coupons' as any}>Hủy Bỏ</Link>
           </Button>

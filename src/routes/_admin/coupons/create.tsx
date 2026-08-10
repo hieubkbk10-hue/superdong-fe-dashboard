@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { Ticket, ArrowLeft, Save, RefreshCw, Percent, Calendar, CheckCircle2 } from 'lucide-react';
+import { Ticket, ArrowLeft, Save, RefreshCw, Percent, Calendar, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { createCoupon } from '@/apis/pricing';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
+import { DateBox } from '@/components/common/DateBox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -78,42 +79,44 @@ function CouponCreatePage() {
   };
 
   return (
-    <div className="space-y-6 w-full font-sans pb-12 text-slate-800 dark:text-slate-200">
+    <div className="space-y-4 w-full font-sans pb-12 text-slate-800 dark:text-slate-200">
       {/* Top Header Navigation */}
-      <div className="flex items-center justify-between gap-4 bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+      <div className="flex items-center justify-between gap-4 bg-white dark:bg-slate-950 p-4 px-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
         <div className="flex items-center gap-3">
-          <Button variant="light" size="icon" className="h-9 w-9" asChild>
+          <Button variant="light" size="icon" className="h-8 w-8" asChild>
             <Link to={'/coupons' as any} title="Quay lại danh sách">
               <ArrowLeft size={16} />
             </Link>
           </Button>
           <div>
-            <h1 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Ticket className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <h1 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Ticket className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               Tạo mã khuyến mãi mới
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
               Tạo chương trình ưu đãi và voucher cho khách đặt vé Superdong
             </p>
           </div>
         </div>
 
         <div>
-          <Badge variant="blue" className="px-3 py-1 text-xs">
+          <Badge variant="blue" className="px-2.5 py-0.5 text-xs">
             Mã mới
           </Badge>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      {/* SINGLE UNIFIED FORM CONTAINER */}
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-6">
+        
         {/* SECTION 1: THÔNG TIN CƠ BẢN */}
-        <div className="bg-white dark:bg-slate-950 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-4">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="space-y-4 pb-5 border-b border-slate-100 dark:border-slate-800/80">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
             <Ticket className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             1. Thông Tin Cơ Bản
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="coupon-code" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                 Mã Khuyến Mãi (Coupon Code) <span className="text-rose-500 font-bold">*</span>
@@ -146,13 +149,13 @@ function CouponCreatePage() {
         </div>
 
         {/* SECTION 2: MỨC GIẢM & ĐIỀU KIỆN ÁP DỤNG */}
-        <div className="bg-white dark:bg-slate-950 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-4">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="space-y-4 pb-5 border-b border-slate-100 dark:border-slate-800/80">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
             <Percent className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             2. Mức Giảm Giá &amp; Điều Kiện Áp Dụng
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="discount-type" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Loại Giảm Giá
@@ -213,14 +216,14 @@ function CouponCreatePage() {
           </div>
         </div>
 
-        {/* SECTION 3: THỜI HẠN & GIỚI HẠN */}
-        <div className="bg-white dark:bg-slate-950 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-4">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+        {/* SECTION 3: THỜI HẠN & GIỚI HẠN (USING NEWMOON-ADMIN DATEBOX) */}
+        <div className="space-y-4 pb-5 border-b border-slate-100 dark:border-slate-800/80">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
             <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             3. Hạn Hiệu Lực &amp; Giới Hạn Sử Dụng
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-1">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="usage-limit" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Giới Hạn Lượt Sử Dụng
@@ -239,12 +242,10 @@ function CouponCreatePage() {
               <Label htmlFor="valid-from" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Ngày Bắt Đầu Hiệu Lực
               </Label>
-              <Input
+              <DateBox
                 id="valid-from"
-                type="date"
                 value={formData.valid_from}
                 onChange={(e) => setFormData({ ...formData, valid_from: e.target.value })}
-                className="text-xs h-10 rounded-lg bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800"
               />
             </div>
 
@@ -252,17 +253,23 @@ function CouponCreatePage() {
               <Label htmlFor="valid-until" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Ngày Kết Thúc / Hết Hạn
               </Label>
-              <Input
+              <DateBox
                 id="valid-until"
-                type="date"
                 value={formData.valid_until}
                 onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
-                className="text-xs h-10 rounded-lg bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800"
               />
             </div>
           </div>
+        </div>
 
-          <div className="flex items-center gap-3 pt-4">
+        {/* SECTION 4: TRẠNG THÁI KÍCH HOẠT */}
+        <div className="space-y-4">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+            <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            4. Trạng Thái Kích Hoạt
+          </h2>
+
+          <div className="flex items-center gap-3 pt-1">
             <input
               id="is-active-toggle"
               type="checkbox"
@@ -277,7 +284,7 @@ function CouponCreatePage() {
         </div>
 
         {/* BOTTOM ACTION BAR */}
-        <div className="bg-white dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex justify-end gap-3">
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 flex justify-end gap-2.5">
           <Button variant="light" type="button" asChild>
             <Link to={'/coupons' as any}>Hủy Bỏ</Link>
           </Button>
