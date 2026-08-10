@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { Ticket, ArrowLeft, Save } from 'lucide-react';
+import { Ticket, ArrowLeft, Save, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-import { findCouponById, getCoupons, updateCoupon } from '@/apis/pricing';
+
+import { findCouponById, updateCoupon, getCoupons } from '@/apis/pricing';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
 
 export const Route = createFileRoute('/_admin/coupons/$couponId/edit')({
   component: CouponEditPage,
@@ -12,23 +17,24 @@ function CouponEditPage() {
   const { couponId } = Route.useParams();
   const navigate = useNavigate();
 
+  const [expectedVersion, setExpectedVersion] = useState<number>(1);
+
   const [formData, setFormData] = useState({
-    code: 'SUMMER2026',
-    name: 'Ưu đãi hè 2026',
+    name: '',
+    code: '',
     type: 'percentage',
     value: 15,
-    min_booking_amount: 500000,
-    max_discount_amount: 100000,
-    usage_limit: 500,
-    valid_from: '2026-06-01',
-    valid_until: '2026-08-31',
+    min_booking_amount: 0,
+    max_discount_amount: 0,
+    usage_limit: 0,
+    valid_from: '',
+    valid_until: '',
     is_active: true,
-    reason: 'Cập nhật thông tin mã khuyến mãi',
+    reason: '',
   });
 
-  const [expectedVersion, setExpectedVersion] = useState<any>(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -36,15 +42,13 @@ function CouponEditPage() {
       setLoading(true);
       try {
         let c: any = null;
-
-        // Try fetching coupon by direct ID
         try {
           const res = await findCouponById(couponId);
           if (res && res.data) {
             c = res.data;
           }
-        } catch (err) {
-          console.warn('findCouponById direct call failed, falling back to getCoupons list:', err);
+        } catch (e) {
+          console.warn('findCouponById error:', e);
         }
 
         // If direct fetch failed or didn't return data, search in list
@@ -73,10 +77,11 @@ function CouponEditPage() {
             min_booking_amount: c.min_booking_amount !== undefined ? c.min_booking_amount : (c.min_booking_amount_vnd || 0),
             max_discount_amount: c.max_discount_amount !== undefined ? c.max_discount_amount : 0,
             usage_limit: c.usage_limit !== undefined ? c.usage_limit : 0,
-            valid_from: c.effective_from || c.valid_from || '2026-06-01',
-            valid_until: c.effective_to || c.valid_until || '2026-08-31',
+            valid_from: c.effective_from ? c.effective_from.split('T')[0] : (c.valid_from ? c.valid_from.split('T')[0] : '2026-06-01'),
+            valid_until: c.effective_to ? c.effective_to.split('T')[0] : (c.valid_until ? c.valid_until.split('T')[0] : '2026-08-31'),
+            // LOGIC FIX: Sửa lỗi c.status !== active bị biến thành true khi c.is_active is undefined
             is_active: c.status ? c.status === 'active' : Boolean(c.is_active),
-            reason: c.reason || 'Cập nhật thông tin mã khuyến mãi',
+            reason: c.reason || '',
           });
         }
       } catch (err: any) {
@@ -156,7 +161,7 @@ function CouponEditPage() {
               usage_limit: coupon.usage_limit || 0,
               valid_from: coupon.effective_from ? coupon.effective_from.split('T')[0] : '',
               valid_until: coupon.effective_to ? coupon.effective_to.split('T')[0] : '',
-              is_active: coupon.status === 'active',
+              is_active: coupon.status ? coupon.status === 'active' : Boolean(coupon.is_active),
               reason: '',
             });
             if ((coupon as any).version !== undefined) {
@@ -191,172 +196,192 @@ function CouponEditPage() {
     <div className="space-y-6 max-w-4xl font-sans pb-12">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link
-          to={'/coupons' as any}
-          className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-          title="Quay lại danh sách"
-        >
-          <ArrowLeft size={18} />
-        </Link>
+        <Button variant="outline" size="icon" className="h-9 w-9" asChild>
+          <Link to={'/coupons' as any} title="Quay lại danh sách">
+            <ArrowLeft size={18} />
+          </Link>
+        </Button>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Ticket className="h-6 w-6 text-blue-600" />
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Ticket className="h-6 w-6 text-primary" />
             Chỉnh Sửa Mã Khuyến Mãi: {loading ? '...' : formData.code}
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             ID mã trong hệ thống: <span className="font-mono">{couponId}</span>
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Mã Khuyến Mãi (Coupon Code) <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.code}
-              onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase().replace(/\s+/g, '') })}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-blue-600 font-mono font-bold text-sm outline-none focus:border-blue-500 uppercase"
-              required
-            />
-          </div>
+      <form onSubmit={handleSubmit}>
+        <Card className="border shadow-xs">
+          <CardContent className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="coupon-code" className="text-xs font-bold text-foreground">
+                  Mã Khuyến Mãi (Coupon Code) <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="coupon-code"
+                  type="text"
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase().replace(/\s+/g, '') })}
+                  className="text-primary font-mono font-bold text-sm uppercase"
+                  required
+                />
+              </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Loại Giảm Giá
-            </label>
-            <select
-              value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none cursor-pointer"
-            >
-              <option value="percentage">Theo Phần Trăm (%)</option>
-              <option value="fixed_amount">Số Tiền Cố Định (VND)</option>
-            </select>
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="discount-type" className="text-xs font-bold text-foreground">
+                  Loại Giảm Giá
+                </Label>
+                <select
+                  id="discount-type"
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  className="w-full h-9 px-3 border border-input rounded-md bg-background text-foreground text-sm outline-none cursor-pointer focus:ring-1 focus:ring-ring"
+                >
+                  <option value="percentage">Theo Phần Trăm (%)</option>
+                  <option value="fixed_amount">Số Tiền Cố Định (VND)</option>
+                </select>
+              </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Giá Trị Giảm Giá {formData.type === 'percentage' ? '(%)' : '(VND)'} <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="number"
-              value={formData.value}
-              onChange={(e) => setFormData({ ...formData, value: Number(e.target.value) })}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-blue-500 font-bold"
-              required
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="coupon-name" className="text-xs font-bold text-foreground">
+                  Tên Chương Trình
+                </Label>
+                <Input
+                  id="coupon-name"
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="VD: Ưu Đãi Mùa Hè 2026"
+                />
+              </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Đơn Giá Tối Thiểu Được Áp Dụng (VND)
-            </label>
-            <input
-              type="number"
-              value={formData.min_booking_amount}
-              onChange={(e) => setFormData({ ...formData, min_booking_amount: Number(e.target.value) })}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-blue-500"
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="discount-value" className="text-xs font-bold text-foreground">
+                  Giá Trị Giảm Giá {formData.type === 'percentage' ? '(%)' : '(VND)'} <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="discount-value"
+                  type="number"
+                  value={formData.value}
+                  onChange={(e) => setFormData({ ...formData, value: Number(e.target.value) })}
+                  min={1}
+                  required
+                />
+              </div>
 
-          {formData.type === 'percentage' && (
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Mức Giảm Tối Đa (VND)
-              </label>
-              <input
-                type="number"
-                value={formData.max_discount_amount}
-                onChange={(e) => setFormData({ ...formData, max_discount_amount: Number(e.target.value) })}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-blue-500"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="min-booking" className="text-xs font-bold text-foreground">
+                  Đơn Giá Tối Thiểu Được Áp Dụng (VND)
+                </Label>
+                <Input
+                  id="min-booking"
+                  type="number"
+                  value={formData.min_booking_amount}
+                  onChange={(e) => setFormData({ ...formData, min_booking_amount: Number(e.target.value) })}
+                  min={0}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="max-discount" className="text-xs font-bold text-foreground">
+                  Mức Giảm Tối Đa (VND)
+                </Label>
+                <Input
+                  id="max-discount"
+                  type="number"
+                  value={formData.max_discount_amount}
+                  onChange={(e) => setFormData({ ...formData, max_discount_amount: Number(e.target.value) })}
+                  min={0}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="usage-limit" className="text-xs font-bold text-foreground">
+                  Giới Hạn Lượt Sử Dụng
+                </Label>
+                <Input
+                  id="usage-limit"
+                  type="number"
+                  value={formData.usage_limit}
+                  onChange={(e) => setFormData({ ...formData, usage_limit: Number(e.target.value) })}
+                  min={0}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="valid-from" className="text-xs font-bold text-foreground">
+                  Ngày Bắt Đầu Hiệu Lực
+                </Label>
+                <Input
+                  id="valid-from"
+                  type="date"
+                  value={formData.valid_from}
+                  onChange={(e) => setFormData({ ...formData, valid_from: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="valid-until" className="text-xs font-bold text-foreground">
+                  Ngày Kết Thúc / Hết Hạn
+                </Label>
+                <Input
+                  id="valid-until"
+                  type="date"
+                  value={formData.valid_until}
+                  onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="reason" className="text-xs font-bold text-foreground">
+                  Lý do điều chỉnh <span className="text-muted-foreground font-normal">(nếu có)</span>
+                </Label>
+                <Input
+                  id="reason"
+                  type="text"
+                  value={formData.reason}
+                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                  placeholder="VD: Cập nhật tỷ lệ giảm giá theo chính sách bán hàng mới..."
+                />
+              </div>
             </div>
-          )}
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Giới Hạn Lượt Sử Dụng
-            </label>
-            <input
-              type="number"
-              value={formData.usage_limit}
-              onChange={(e) => setFormData({ ...formData, usage_limit: Number(e.target.value) })}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-blue-500"
-            />
-          </div>
+            <div className="flex items-center gap-3 pt-2">
+              <input
+                id="is-active-toggle"
+                type="checkbox"
+                checked={formData.is_active}
+                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                className="h-4 w-4 rounded border-input text-primary focus:ring-ring cursor-pointer"
+              />
+              <Label htmlFor="is-active-toggle" className="text-sm font-semibold cursor-pointer">
+                Kích hoạt sử dụng mã coupon
+              </Label>
+            </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Ngày Bắt Đầu Hiệu Lực
-            </label>
-            <input
-              type="date"
-              value={formData.valid_from}
-              onChange={(e) => setFormData({ ...formData, valid_from: e.target.value })}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Ngày Kết Thúc / Hết Hạn
-            </label>
-            <input
-              type="date"
-              value={formData.valid_until}
-              onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Lý do điều chỉnh <span className="text-slate-400 font-normal">(nếu có)</span>
-            </label>
-            <input
-              type="text"
-              value={formData.reason}
-              onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-              placeholder="VD: Cập nhật tỷ lệ giảm giá theo chính sách bán hàng mới..."
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-blue-500"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 pt-2">
-          <input
-            type="checkbox"
-            id="is_active_coupon_edit"
-            checked={formData.is_active}
-            onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-            className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-          />
-          <label htmlFor="is_active_coupon_edit" className="text-sm font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
-            Kích hoạt sử dụng mã coupon
-          </label>
-        </div>
-
-        {/* Action buttons */}
-        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
-          <Link
-            to={'/coupons' as any}
-            className="px-5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-          >
-            Hủy Bỏ
-          </Link>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <Save size={16} />
-            {isSubmitting ? 'Đang lưu...' : 'Lưu Thay Đổi'}
-          </button>
-        </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-border">
+              <Button variant="outline" type="button" asChild>
+                <Link to={'/coupons' as any}>Hủy Bỏ</Link>
+              </Button>
+              <Button type="submit" disabled={isSubmitting} className="gap-2">
+                {isSubmitting ? (
+                  <>
+                    <RefreshCw size={16} className="animate-spin" />
+                    Đang Lưu...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    Lưu Thay Đổi
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </form>
     </div>
   );
