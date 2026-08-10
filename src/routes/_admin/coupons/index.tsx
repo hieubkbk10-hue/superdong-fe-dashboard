@@ -212,20 +212,10 @@ function CouponsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Ticket className="h-6 w-6 text-blue-600" />
-              Mã Khuyến Mãi &amp; Voucher Live
-            </h1>
-            {!apiError && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                <CheckCircle2 size={13} /> Live API Backend
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Nối trực tiếp API endpoint `/v1/coupons` từ Server Backend Superdong
-          </p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <Ticket className="h-6 w-6 text-blue-600" />
+            Mã Khuyến Mãi
+          </h1>
         </div>
         <div className="flex items-center gap-2">
           <button
