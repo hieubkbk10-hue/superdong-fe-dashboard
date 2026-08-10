@@ -28,9 +28,11 @@ export interface ResetPasswordPayload {
  * LOGIC: Đăng nhập tài khoản admin và lưu token vào LocalStorage
  */
 export async function login(payload: LoginPayload): Promise<ApiResponse<LoginResponseData>> {
-  const response = await api.post<ApiResponse<LoginResponseData>>('/auth/login', payload);
-  if (response.data?.data?.access_token) {
-    localStorage.setItem(TOKEN_STORAGE_KEY, response.data.data.access_token);
+  const response = await api.post<ApiResponse<LoginResponseData>>('/clients/web/login', payload);
+  if (response.data?.data?.access_token || (response.data as any)?.access_token) {
+    const token = response.data?.data?.access_token || (response.data as any)?.access_token;
+    localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    localStorage.setItem('superdong_token', token);
   }
   return response.data;
 }
