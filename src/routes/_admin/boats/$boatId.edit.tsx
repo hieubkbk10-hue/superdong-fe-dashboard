@@ -13,18 +13,20 @@ function BoatEditPage() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    code: 'SD-09',
-    name: 'Superdong IX',
-    capacity: 306,
-    speed: '30 hải lý/giờ',
+    code: '',
+    name: '',
+    capacity: 0,
+    speed: '',
     is_express: true,
     status: 'active' as 'active' | 'maintenance' | 'inactive',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
     const fetchBoatDetails = async () => {
+      setLoading(true);
       try {
         const res = await findBoatById(boatId);
         if (isMounted && res && res.data) {
@@ -32,14 +34,16 @@ function BoatEditPage() {
           setFormData({
             code: boat.code || '',
             name: boat.name || '',
-            capacity: boat.capacity || 306,
-            speed: typeof boat.speed === 'number' ? `${boat.speed} hải lý/giờ` : (boat.speed || '30 hải lý/giờ'),
+            capacity: boat.capacity || 0,
+            speed: typeof boat.speed === 'number' ? `${boat.speed} hải lý/giờ` : (boat.speed || ''),
             is_express: boat.is_express ?? true,
             status: boat.status || 'active',
           });
         }
-      } catch (err) {
-        // Mock prefilled state intact on offline fallback
+      } catch (err: any) {
+        toast.error('Không thể tải thông tin tàu từ Backend API');
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
     if (boatId) fetchBoatDetails();
@@ -63,9 +67,6 @@ function BoatEditPage() {
       navigate({ to: '/boats' as any });
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi cập nhật tàu');
-      setTimeout(() => {
-        navigate({ to: '/boats' as any });
-      }, 500);
     } finally {
       setIsSubmitting(false);
     }
@@ -86,7 +87,7 @@ function BoatEditPage() {
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Ship className="h-6 w-6 text-blue-600" />
-              Chỉnh Sửa Tàu: {formData.name} ({formData.code})
+              Chỉnh Sửa Tàu: {loading ? '...' : (formData.name || formData.code)}
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">ID Tàu trong cơ sở dữ liệu: <span className="font-mono">{boatId}</span></p>
           </div>

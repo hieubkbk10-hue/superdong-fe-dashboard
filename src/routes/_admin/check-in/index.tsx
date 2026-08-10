@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
-import { QrCode, CheckCircle2, Search, RotateCcw, AlertCircle, RefreshCw } from 'lucide-react';
+import { QrCode, CheckCircle2, Search, RotateCcw, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { resolveQr, checkInTravelers, reverseCheckIn } from '@/apis/ticketing';
 import { CheckIn } from '@/types';
@@ -12,7 +12,6 @@ export const Route = createFileRoute('/_admin/check-in/')({
 function CheckInPage() {
   const [ticketCode, setTicketCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [lastCheckIn, setLastCheckIn] = useState<CheckIn | null>(null);
   const [recentCheckIns, setRecentCheckIns] = useState<Array<{ code: string; time: string; id?: string | number }>>([]);
 
   const handleCheckIn = async (e: React.FormEvent) => {
@@ -21,13 +20,10 @@ function CheckInPage() {
 
     setIsSubmitting(true);
     try {
-      // Step 1: Resolve QR or direct code
       await resolveQr(ticketCode);
-      // Step 2: Perform check in
       const res = await checkInTravelers([ticketCode]);
-      
       const checkInRecord = res.data?.[0] || { id: Date.now(), ticket_code: ticketCode, status: 'checked_in' };
-      setLastCheckIn(checkInRecord as any);
+
       setRecentCheckIns((prev) => [
         { code: ticketCode, time: new Date().toLocaleTimeString('vi-VN'), id: checkInRecord.id },
         ...prev.slice(0, 4),
@@ -36,13 +32,7 @@ function CheckInPage() {
       setTicketCode('');
     } catch (err: any) {
       console.error('Check-in error:', err);
-      // Fallback: local confirmation with notification if offline/mock
-      setRecentCheckIns((prev) => [
-        { code: ticketCode, time: new Date().toLocaleTimeString('vi-VN'), id: Date.now() },
-        ...prev.slice(0, 4),
-      ]);
-      toast.success(`Xác nhận Check-in thành công cho vé: ${ticketCode}`);
-      setTicketCode('');
+      toast.error(err?.response?.data?.message || err?.message || 'Lỗi soát vé: Không thể xác thực từ Backend API');
     } finally {
       setIsSubmitting(false);
     }
@@ -55,10 +45,9 @@ function CheckInPage() {
       }
       toast.info(`Đã đảo ngược / Hủy lượt check-in cho vé ${code || ''}`);
       setRecentCheckIns((prev) => prev.filter((item) => item.code !== code));
-    } catch (err) {
+    } catch (err: any) {
       console.error('Reverse check-in error:', err);
-      toast.info(`Đã đảo ngược / Hủy lượt check-in cho vé ${code || ''}`);
-      setRecentCheckIns((prev) => prev.filter((item) => item.code !== code));
+      toast.error(`Lỗi hủy check-in: ${err?.message || 'Không thể hủy'}`);
     }
   };
 

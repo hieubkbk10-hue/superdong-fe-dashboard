@@ -1,17 +1,6 @@
 import React, { useState } from 'react';
-import { createFileRoute, Link } from '@tanstack/react-router';
-import {
-  Search,
-  Plus,
-  Edit,
-  Trash2,
-  ExternalLink,
-  Copy,
-  GripVertical,
-  SlidersHorizontal,
-  ChevronDown,
-  FileText,
-} from 'lucide-react';
+import { createFileRoute } from '@tanstack/react-router';
+import { Search, Plus, Edit, Trash2, ExternalLink, Copy, GripVertical, SlidersHorizontal, ChevronDown, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const Route = createFileRoute('/_admin/posts/')({
@@ -26,63 +15,11 @@ interface PostItem {
   status: 'Published' | 'Draft' | 'Archived';
 }
 
-const MOCK_POSTS: PostItem[] = [
-  {
-    id: 'post-1',
-    title: 'Spa tại nhà - xu hướng làm đẹp cho người bận rộn',
-    category: 'Tin tức',
-    views: 4210,
-    status: 'Published',
-  },
-  {
-    id: 'post-2',
-    title: 'Bí quyết chăm sóc da mặt để luôn rạng rỡ mỗi ngày',
-    category: 'Tin tức',
-    views: 3180,
-    status: 'Published',
-  },
-  {
-    id: 'post-3',
-    title: 'Massage thư giãn - giải pháp phục hồi năng lượng',
-    category: 'Tin tức',
-    views: 1890,
-    status: 'Published',
-  },
-  {
-    id: 'post-4',
-    title: 'Gội đầu dưỡng sinh - phương pháp thư giãn kết hợp',
-    category: 'Tin tức',
-    views: 2540,
-    status: 'Published',
-  },
-  {
-    id: 'post-5',
-    title: 'Về chúng tôi',
-    category: 'Chính sách',
-    views: 1200,
-    status: 'Published',
-  },
-  {
-    id: 'post-6',
-    title: 'Điều khoản sử dụng',
-    category: 'Chính sách',
-    views: 950,
-    status: 'Published',
-  },
-  {
-    id: 'post-7',
-    title: 'Chính sách bảo mật',
-    category: 'Chính sách',
-    views: 820,
-    status: 'Published',
-  },
-];
-
 function PostsListPageComponent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [posts, setPosts] = useState<PostItem[]>(MOCK_POSTS);
+  const [posts, setPosts] = useState<PostItem[]>([]);
 
   const filteredPosts = posts.filter((post) => {
     const matchSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -115,22 +52,22 @@ function PostsListPageComponent() {
 
   return (
     <div className="space-y-4 font-sans">
-      {/* Top Title & Add Button matching photo 3 */}
+      {/* Top Title & Add Button */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-          Quản lý bài viết
+          Quản lý bài viết Tin Tức &amp; Thông Báo
         </h1>
         <button
           type="button"
-          onClick={() => toast.info('Mở modal thêm mới bài viết')}
-          className="h-10 px-4 rounded-md bg-slate-900 dark:bg-slate-50 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 text-sm font-semibold flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
+          onClick={() => toast.info('Chức năng thêm bài viết tin tức')}
+          className="h-10 px-4 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm font-semibold flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
         >
           <Plus size={16} />
-          <span>Thêm mới</span>
+          <span>Thêm bài viết mới</span>
         </button>
       </div>
 
-      {/* Filter Card matching photo 3 */}
+      {/* Filter Card */}
       <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
         <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
           <div className="relative max-w-sm flex-1">
@@ -165,19 +102,10 @@ function PostsListPageComponent() {
             >
               Xóa lọc
             </button>
-
-            <button
-              type="button"
-              className="h-10 px-3 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <SlidersHorizontal size={15} />
-              <span>Cột hiển thị</span>
-              <ChevronDown size={14} />
-            </button>
           </div>
         </div>
 
-        {/* Data Table matching photo 3 */}
+        {/* Data Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 font-medium border-b border-slate-200 dark:border-slate-800">
@@ -199,77 +127,76 @@ function PostsListPageComponent() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-normal">
-              {filteredPosts.map((post) => (
-                <tr
-                  key={post.id}
-                  className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors"
-                >
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(post.id)}
-                      onChange={() => toggleSelectItem(post.id)}
-                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                    />
-                  </td>
-                  <td className="py-3 px-2 text-slate-400 cursor-grab">
-                    <GripVertical size={16} />
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="h-9 w-14 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-[10px] text-slate-400">
-                      <FileText size={16} className="text-slate-400" />
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 font-medium text-slate-900 dark:text-slate-100 max-w-xs truncate">
-                    {post.title}
-                  </td>
-                  <td className="py-3 px-4 text-slate-600 dark:text-slate-400">{post.category}</td>
-                  <td className="py-3 px-4">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500 text-white">
-                      Hiện
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        type="button"
-                        onClick={() => toast.info(`Xem bài viết: ${post.title}`)}
-                        className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-blue-600 cursor-pointer"
-                        title="Xem bài viết"
-                      >
-                        <ExternalLink size={16} />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleDuplicate(post.title)}
-                        className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 cursor-pointer"
-                        title="Copy bài viết"
-                      >
-                        <Copy size={16} />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => toast.info(`Chỉnh sửa: ${post.title}`)}
-                        className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 cursor-pointer"
-                        title="Chỉnh sửa"
-                      >
-                        <Edit size={16} />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(post.id)}
-                        className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-rose-500 hover:text-rose-600 cursor-pointer"
-                        title="Xóa"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+              {filteredPosts.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-slate-400">
+                    Chưa có bài viết tin tức nào.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredPosts.map((post) => (
+                  <tr
+                    key={post.id}
+                    className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors"
+                  >
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(post.id)}
+                        onChange={() => toggleSelectItem(post.id)}
+                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </td>
+                    <td className="py-3 px-2 text-slate-400 cursor-grab">
+                      <GripVertical size={16} />
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="h-9 w-14 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-[10px] text-slate-400">
+                        <FileText size={16} className="text-slate-400" />
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 font-medium text-slate-900 dark:text-slate-100 max-w-xs truncate">
+                      {post.title}
+                    </td>
+                    <td className="py-3 px-4 text-slate-600 dark:text-slate-400">{post.category}</td>
+                    <td className="py-3 px-4">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500 text-white">
+                        Hiện
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => toast.info(`Xem bài viết: ${post.title}`)}
+                          className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-blue-600 cursor-pointer"
+                          title="Xem bài viết"
+                        >
+                          <ExternalLink size={16} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDuplicate(post.title)}
+                          className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 cursor-pointer"
+                          title="Copy bài viết"
+                        >
+                          <Copy size={16} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(post.id)}
+                          className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-rose-500 hover:text-rose-600 cursor-pointer"
+                          title="Xóa"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
