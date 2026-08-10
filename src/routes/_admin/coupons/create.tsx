@@ -42,6 +42,7 @@ function CouponCreatePage() {
         name: `Ưu đãi ${formData.code.toUpperCase()}`,
         discount_type: formData.type === 'percentage' ? 'percentage' : 'fixed_amount',
         discount_value: Number(formData.value),
+        scope: 'booking',
         min_booking_amount: Number(formData.min_booking_amount),
         max_discount_amount: Number(formData.max_discount_amount),
         usage_limit: Number(formData.usage_limit),
