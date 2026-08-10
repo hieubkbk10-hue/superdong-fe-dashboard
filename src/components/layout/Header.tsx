@@ -42,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchTerm.trim()) {
-      navigate({ to: '/posts' as any });
+      navigate({ to: '/trips' as any });
     }
   };
 

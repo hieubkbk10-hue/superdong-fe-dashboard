@@ -27,7 +27,6 @@ import { Route as AdminJourneysCreateRouteImport } from './routes/_admin/journey
 import { Route as AdminLocationsIndexRouteImport } from './routes/_admin/locations/index'
 import { Route as AdminLocationsCreateRouteImport } from './routes/_admin/locations/create'
 import { Route as AdminPaymentsIndexRouteImport } from './routes/_admin/payments/index'
-import { Route as AdminPostsIndexRouteImport } from './routes/_admin/posts/index'
 import { Route as AdminRolesIndexRouteImport } from './routes/_admin/roles/index'
 import { Route as AdminRolesCreateRouteImport } from './routes/_admin/roles/create'
 import { Route as AdminSchedulesIndexRouteImport } from './routes/_admin/schedules/index'
@@ -142,11 +141,6 @@ const AdminLocationsCreateRoute = AdminLocationsCreateRouteImport.update({
 const AdminPaymentsIndexRoute = AdminPaymentsIndexRouteImport.update({
   id: '/payments/',
   path: '/payments/',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPostsIndexRoute = AdminPostsIndexRouteImport.update({
-  id: '/posts/',
-  path: '/posts/',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminRolesIndexRoute = AdminRolesIndexRouteImport.update({
@@ -307,7 +301,6 @@ export interface FileRoutesByFullPath {
   '/journeys/': typeof AdminJourneysIndexRoute
   '/locations/': typeof AdminLocationsIndexRoute
   '/payments/': typeof AdminPaymentsIndexRoute
-  '/posts/': typeof AdminPostsIndexRoute
   '/roles/': typeof AdminRolesIndexRoute
   '/schedules/': typeof AdminSchedulesIndexRoute
   '/seat-classes/': typeof AdminSeatClassesIndexRoute
@@ -352,7 +345,6 @@ export interface FileRoutesByTo {
   '/journeys': typeof AdminJourneysIndexRoute
   '/locations': typeof AdminLocationsIndexRoute
   '/payments': typeof AdminPaymentsIndexRoute
-  '/posts': typeof AdminPostsIndexRoute
   '/roles': typeof AdminRolesIndexRoute
   '/schedules': typeof AdminSchedulesIndexRoute
   '/seat-classes': typeof AdminSeatClassesIndexRoute
@@ -399,7 +391,6 @@ export interface FileRoutesById {
   '/_admin/journeys/': typeof AdminJourneysIndexRoute
   '/_admin/locations/': typeof AdminLocationsIndexRoute
   '/_admin/payments/': typeof AdminPaymentsIndexRoute
-  '/_admin/posts/': typeof AdminPostsIndexRoute
   '/_admin/roles/': typeof AdminRolesIndexRoute
   '/_admin/schedules/': typeof AdminSchedulesIndexRoute
   '/_admin/seat-classes/': typeof AdminSeatClassesIndexRoute
@@ -446,7 +437,6 @@ export interface FileRouteTypes {
     | '/journeys/'
     | '/locations/'
     | '/payments/'
-    | '/posts/'
     | '/roles/'
     | '/schedules/'
     | '/seat-classes/'
@@ -491,7 +481,6 @@ export interface FileRouteTypes {
     | '/journeys'
     | '/locations'
     | '/payments'
-    | '/posts'
     | '/roles'
     | '/schedules'
     | '/seat-classes'
@@ -537,7 +526,6 @@ export interface FileRouteTypes {
     | '/_admin/journeys/'
     | '/_admin/locations/'
     | '/_admin/payments/'
-    | '/_admin/posts/'
     | '/_admin/roles/'
     | '/_admin/schedules/'
     | '/_admin/seat-classes/'
@@ -690,13 +678,6 @@ declare module '@tanstack/react-router' {
       path: '/payments'
       fullPath: '/payments/'
       preLoaderRoute: typeof AdminPaymentsIndexRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/_admin/posts/': {
-      id: '/_admin/posts/'
-      path: '/posts'
-      fullPath: '/posts/'
-      preLoaderRoute: typeof AdminPostsIndexRouteImport
       parentRoute: typeof AdminRoute
     }
     '/_admin/roles/': {
@@ -900,7 +881,6 @@ interface AdminRouteChildren {
   AdminJourneysIndexRoute: typeof AdminJourneysIndexRoute
   AdminLocationsIndexRoute: typeof AdminLocationsIndexRoute
   AdminPaymentsIndexRoute: typeof AdminPaymentsIndexRoute
-  AdminPostsIndexRoute: typeof AdminPostsIndexRoute
   AdminRolesIndexRoute: typeof AdminRolesIndexRoute
   AdminSchedulesIndexRoute: typeof AdminSchedulesIndexRoute
   AdminSeatClassesIndexRoute: typeof AdminSeatClassesIndexRoute
@@ -945,7 +925,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminJourneysIndexRoute: AdminJourneysIndexRoute,
   AdminLocationsIndexRoute: AdminLocationsIndexRoute,
   AdminPaymentsIndexRoute: AdminPaymentsIndexRoute,
-  AdminPostsIndexRoute: AdminPostsIndexRoute,
   AdminRolesIndexRoute: AdminRolesIndexRoute,
   AdminSchedulesIndexRoute: AdminSchedulesIndexRoute,
   AdminSeatClassesIndexRoute: AdminSeatClassesIndexRoute,

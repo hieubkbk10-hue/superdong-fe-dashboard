@@ -96,6 +96,16 @@ function CouponEditPage() {
     e.preventDefault();
     if (isSubmitting) return;
 
+    if (!formData.code.trim()) {
+      toast.error('Vui lòng nhập Mã khuyến mãi!', { id: 'coupon-edit-toast' });
+      return;
+    }
+
+    if (/[^A-Z0-9_-]/.test(formData.code)) {
+      toast.error('Mã khuyến mãi chỉ được chứa chữ cái, chữ số, dấu gạch ngang (-) và gạch dưới (_), không chứa khoảng trắng!', { id: 'coupon-edit-toast' });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const payload: Record<string, any> = {
@@ -208,7 +218,7 @@ function CouponEditPage() {
             <input
               type="text"
               value={formData.code}
-              onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+              onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase().replace(/\s+/g, '') })}
               className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-blue-600 font-mono font-bold text-sm outline-none focus:border-blue-500 uppercase"
               required
             />
