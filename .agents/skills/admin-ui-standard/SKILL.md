@@ -25,46 +25,62 @@ Bộ quy chuẩn thiết kế và lập trình Frontend Dashboard được tổn
 
 ---
 
-## 📋 2. Quy Chuẩn Màn Hình Danh Sách (List Screen Architecture - `index.tsx`)
+## 🔽 2. Các Dropdown Bắt Buộc Trong Một Trang CRUD List
 
-Mọi màn hình danh sách (ví dụ: `src/routes/_admin/coupons/index.tsx`) phải áp dụng bộ khung chuẩn sau:
+Một màn hình danh sách CRUD tiêu chuẩn BẮT BUỘC có đầy đủ 4 loại Dropdown sau:
 
-### 2.1. Thanh Tiêu Đề Top Bar
-* Tiêu đề trang in đậm kèm icon đại diện (`Ticket`, `Ship`, `User`, ...).
-* Bộ nút bấm hành động góc phải:
-  * Nút `Làm mới` (`Button variant="light" size="sm"`) kèm hiệu ứng xoay spinner khi re-fetch.
-  * Nút `+ Tạo mới` (`Button variant="primary" size="sm"`).
+1. **Filter Dropdown (Lọc Trạng Thái / Danh Mục)**:
+   * Vị trí: Trên thanh Filter Bar, bên cạnh ô tìm kiếm `<SearchInput>`.
+   * Sử dụng: `<select className="h-9 px-3 text-[13px] border border-slate-200 rounded-md bg-white">`.
+   * Tùy chọn tiêu chuẩn: `Tất cả trạng thái`, `Kích hoạt`, `Đã khóa`.
 
-### 2.2. Thanh Lọc & Tìm Kiếm (Filter Bar)
-* `<SearchInput>`: Ô tìm kiếm dùng icon kính lúp, tự động tìm theo mã hoặc tên.
-* `<select>` Lọc trạng thái: dropdown lọc theo tất cả / kích hoạt / đã khóa.
-* **Column Visibility Toggle (Ẩn / Hiện Cột)**:
-  * Nút `Cột` (`Button variant="light" size="sm"`) mở dropdown ẩn/hiện cột.
-  * **Lưu trạng thái vào `localStorage`**: Mọi cài đặt ẩn/hiện cột BẮT BUỘC lưu vào `localStorage` (`superdong_<entity>_visible_columns`) để khi bấm **F5 (Reload)** không bị mất cấu hình người dùng đã chọn.
+2. **Column Visibility Toggle Dropdown (Ẩn / Hiện Cột)**:
+   * Vị trí: Góc phải thanh Filter Bar (`SlidersHorizontal` icon).
+   * Tính năng: Popup chứa danh sách checkbox bật/tắt hiển thị từng cột dữ liệu + Nút `Mặc định` reset cấu hình.
+   * **BẮT BUỘC Persistence `localStorage`**: Mọi cài đặt ẩn/hiện cột phải tự động lưu vào `localStorage` (`superdong_<entity>_visible_columns`) để khi bấm **F5 (Reload)** không bao giờ bị reset về mặc định!
 
-### 2.3. Bảng Dữ Liệu Chuyên Nghiệp (`<DataTable>`)
-* Tiêu đề cột in hoa, font bold (`text-slate-600 uppercase text-[12px]`), nền `#F9FAFB`.
-* **Sắp xếp 3 Trạng Thái (3-State Sorting)**: Click phát 1 $\rightarrow$ Tăng dần (Asc), Click phát 2 $\rightarrow$ Giảm dần (Desc), Click phát 3 $\rightarrow$ Trở về ban đầu (None).
-* Hiển thị Skeleton loading khi tải dữ liệu, hiển thị empty state minh họa khi không có dòng nào.
+3. **Rows Per Page Dropdown (Số Dòng Trên Trang)**:
+   * Vị trí: Góc trái của thanh phân trang `<PaginationBar>`.
+   * Tùy chọn số dòng: `5`, `10`, `20`, `50` dòng/trang.
 
-### 2.4. Thanh Phân Trang (`<PaginationBar>`)
-* Hiển thị dòng chỉ số: `Hiển thị từ X đến Y trong tổng số Z mục`.
-* Lựa chọn số dòng trên trang (`5`, `10`, `20`, `50`).
-* Bộ nút điều hướng: `Trang đầu`, `Trang trước`, `Trang hiện tại / Tổng trang`, `Trang sau`, `Trang cuối`.
-
-### 2.5. Modal Phê Duyệt Xóa (`<ConfirmModal>`)
-* Không tự ý xóa cứng dữ liệu mà không có cảnh báo. Mọi hành động xóa đều phải thông qua `<ConfirmModal>` thông báo chụp bản Audit Log Snapshot trước khi thực thi.
+4. **Row Actions (Hành Động Từng Dòng)**:
+   * Dùng bộ nút icon trực tiếp: `Pen` (Chỉnh sửa - hover màu xanh dương `text-blue-600 bg-blue-50`) & `Trash2` (Xóa - hover màu đỏ `text-rose-600 bg-rose-50`).
+   * Nếu có từ 3 hành động trở lên, bọc trong `<DropdownMenu>` dạng icon 3 dấu chấm (`MoreHorizontal`).
 
 ---
 
-## 📝 3. Quy Chuẩn Màn Hình Tạo Mới & Chỉnh Sửa (Create & Edit Form Architecture)
+## 📊 3. Quy Chuẩn Cấu Trúc Bảng Dữ Liệu (`<DataTable>`)
+
+Bảng dữ liệu trong màn hình CRUD BẮT BUỘC tuân thủ các quy tắc hiển thị sau:
+
+1. **Header Bảng (TableHeader)**:
+   * Chữ in hoa, font bold (`text-slate-600 uppercase text-[12px] font-bold`), nền xám nhạt `#F9FAFB`.
+   * Các cột phân tách bằng đường kẻ dọc mỏng (`border-r border-slate-200/80`).
+
+2. **Sắp Xếp 3 Trạng Thái (3-State Sorting)**:
+   * Hỗ trợ sắp xếp cho các cột tiêu chuẩn (Mã, Tên, Giá trị, Hạn dùng, Trạng thái).
+   * **Quy trình 3 phát click**: Click 1 $\rightarrow$ Tăng dần (`asc` icon mũi tên lên sáng xanh), Click 2 $\rightarrow$ Giảm dần (`desc` icon mũi tên xuống sáng xanh), Click 3 $\rightarrow$ Trở về ban đầu (`none`).
+
+3. **Quy Chuẩn Định Dạng Dữ Liệu Trong Cột (Cell Formatting)**:
+   * **Mã ID / Code**: Dùng `font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200`.
+   * **Giá Trị Tiền / Phần Trăm**: Tiền tệ VND dùng `formatCurrency` sạch sẽ không dùng icon $ (`Giảm 100.000 đ`), phần trăm dùng `Percent` icon (`Giảm 15%`).
+   * **Hạn Dùng**: Icon `Calendar` kèm định dạng `YYYY-MM-DD ➔ YYYY-MM-DD`.
+   * **Trạng Thái**: Dùng `<Badge variant="success">` kèm icon `CheckCircle2` cho Kích hoạt, `<Badge variant="danger">` kèm icon `XCircle` cho Đã khóa.
+
+4. **Trạng Thái Tải & Rỗng (Loading & Empty States)**:
+   * Đang tải: Hiển thị 5 dòng Skeleton loading animation (`<Skeleton className="h-5 w-full">`).
+   * Không có dữ liệu: Hiển thị icon `Inbox` kèm thông báo rỗng ngắn gọn.
+
+---
+
+## 📝 4. Quy Chuẩn Màn Hình Tạo Mới & Chỉnh Sửa (Create & Edit Form Architecture)
 
 Mọi màn hình Form (ví dụ: `coupons/create.tsx` và `coupons/$couponId.edit.tsx`) BẮT BUỘC tuân thủ:
 
-### 3.1. Khung Tràn Chiều Rộng Full-Width (`w-full`)
+### 4.1. Khung Tràn Chiều Rộng Full-Width (`w-full`)
 * Không dùng `max-w-4xl` gây hẹp khung. Sử dụng `w-full` kết hợp `space-y-4` để form mở rộng toàn bộ màn hình.
 
-### 3.2. Cấu Trúc Form 1 Khung Card Liền Mạch (Single Unified Card Container)
+### 4.2. Cấu Trúc Form 1 Khung Card Liền Mạch (Single Unified Card Container)
 * Toàn bộ form nằm trong 1 khung duy nhất: `bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5`.
 * Các phần thông tin được phân nhóm bằng **Thanh Banner màu Cyan nhạt chuẩn Newmoon-Admin (`bg-[#EBF7FA]`)**:
   * `I. THÔNG TIN CƠ BẢN`
@@ -72,7 +88,7 @@ Mọi màn hình Form (ví dụ: `coupons/create.tsx` và `coupons/$couponId.edi
   * `III. THỜI HẠN & GIỚI HẠN SỬ DỤNG`
   * `IV. TRẠNG THÁI & LÝ DO ĐIỀU CHỈNH`
 
-### 3.3. Quy Chuẩn Cụm Ô Nhập Liệu (Form Controls)
+### 4.3. Quy Chuẩn Cụm Ô Nhập Liệu (Form Controls)
 * **Kích thước chữ**: Nhãn `text-xs font-semibold text-slate-700`, giá trị nhập `text-sm h-9 rounded-lg bg-white border-slate-200`.
 * **Dấu sao đỏ bắt buộc**: Các trường bắt buộc phải có `<span className="text-rose-500 font-bold">*</span>`.
 * **Lưới ô nhập liệu (Grid System)**:
@@ -80,20 +96,20 @@ Mọi màn hình Form (ví dụ: `coupons/create.tsx` và `coupons/$couponId.edi
   * Điều kiện áp dụng: Lưới 4 cột (`grid grid-cols-4`).
   * Thời hạn & Giới hạn: Lưới 3 cột (`grid grid-cols-3`).
 
-### 3.4. Component Ô Chọn Ngày (`<DateBox>`)
+### 4.4. Component Ô Chọn Ngày (`<DateBox>`)
 * Tuyệt đối KHÔNG dùng ô date gốc thô xấu của trình duyệt gây trùng icon.
 * Sử dụng `<DateBox>` ([DateBox.tsx](file:///E:/cty/superdong-fe-dashboard/src/components/common/DateBox.tsx)):
   * Hiển thị chữ định dạng ngày Việt Nam chuẩn `DD/MM/YYYY` (ví dụ: `01/06/2026`).
   * Chứa đúng **1 Icon Lịch duy nhất (`CalendarIcon`)** bên góc phải.
   * Tự động kích hoạt bộ chọn ngày mượt mà khi nhấp vào.
 
-### 3.5. Thanh Nút Bấm Hành Động Dưới Cùng (Bottom Floating Action Bar)
+### 4.5. Thanh Nút Bấm Hành Động Dưới Cùng (Bottom Floating Action Bar)
 * Nút `Hủy Bỏ` (`Button variant="outline" className="px-5 h-9 text-xs"`) ở bên trái nút lưu.
 * Nút `Lưu thay đổi` / `Tạo mới` (`Button variant="primary" className="px-6 h-9 text-xs bg-blue-600 hover:bg-blue-700"`) ở ngoài cùng bên phải, có hiệu ứng spinner khi đang `isSubmitting`.
 
 ---
 
-## 🛠️ 4. Danh Sách Common Components Chuẩn (Golden Component Registry)
+## 🛠️ 5. Danh Sách Common Components Chuẩn (Golden Component Registry)
 
 Tất cả các màn hình mới khi phát triển BẮT BUỘC tái sử dụng các component chuẩn tại `src/components/common/`:
 
@@ -109,7 +125,7 @@ Tất cả các màn hình mới khi phát triển BẮT BUỘC tái sử dụng
 
 ---
 
-## 📂 5. Danh Sách File Mẫu Chuẩn Mực (Golden Reference Source Files)
+## 📂 6. Danh Sách File Mẫu Chuẩn Mực (Golden Reference Source Files)
 
 * **Danh Sách (List View)**: [coupons/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/index.tsx)
 * **Tạo Mới (Create Form)**: [coupons/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/create.tsx)
