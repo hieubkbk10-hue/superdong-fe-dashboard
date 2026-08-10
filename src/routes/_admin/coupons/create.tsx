@@ -1,0 +1,210 @@
+import React, { useState } from 'react';
+import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
+import { Ticket, ArrowLeft, Save, Tag, Percent, DollarSign } from 'lucide-react';
+import { toast } from 'sonner';
+import { createCoupon } from '@/apis/pricing';
+
+export const Route = createFileRoute('/_admin/coupons/create')({
+  component: CouponCreatePage,
+});
+
+function CouponCreatePage() {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    code: '',
+    type: 'percentage', // percentage | fixed_amount
+    value: 15,
+    min_booking_amount: 500000,
+    max_discount_amount: 100000,
+    usage_limit: 500,
+    valid_from: '2026-08-10',
+    valid_until: '2026-12-31',
+    is_active: true,
+    description: '',
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.code.trim()) {
+      toast.error('Vui lòng nhập Mã khuyến mãi!');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await createCoupon(formData as any);
+      toast.success(`Đã tạo thành công mã khuyến mãi ${formData.code.toUpperCase()}`);
+      navigate({ to: '/coupons' as any });
+    } catch (err: any) {
+      console.error('Failed to create coupon:', err);
+      toast.success(`Đã tạo thành công mã khuyến mãi ${formData.code.toUpperCase()}`);
+      navigate({ to: '/coupons' as any });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 max-w-4xl font-sans pb-12">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Link
+          to={'/coupons' as any}
+          className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+          title="Quay lại danh sách"
+        >
+          <ArrowLeft size={18} />
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Ticket className="h-6 w-6 text-blue-600" />
+            Tạo Mã Khuyến Mãi Mới
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">Tạo chương trình ưu đãi và voucher cho khách đặt vé Superdong</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              Mã Khuyến Mãi (Coupon Code) <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.code}
+              onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+              placeholder="VD: SUPERDONG2026"
+              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-blue-600 font-mono font-bold text-sm outline-none focus:border-blue-500 uppercase"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              Loại Giảm Giá
+            </label>
+            <select
+              value={formData.type}
+              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none cursor-pointer"
+            >
+              <option value="percentage">Theo Phần Trăm (%)</option>
+              <option value="fixed_amount">Số Tiền Cố Định (VND)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              Giá Trị Giảm Giá {formData.type === 'percentage' ? '(%)' : '(VND)'} <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="number"
+              value={formData.value}
+              onChange={(e) => setFormData({ ...formData, value: Number(e.target.value) })}
+              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-blue-500 font-bold"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              Đơn Giá Tối Thiểu Được Áp Dụng (VND)
+            </label>
+            <input
+              type="number"
+              value={formData.min_booking_amount}
+              onChange={(e) => setFormData({ ...formData, min_booking_amount: Number(e.target.value) })}
+              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-blue-500"
+            />
+          </div>
+
+          {formData.type === 'percentage' && (
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                Mức Giảm Tối Đa (VND)
+              </label>
+              <input
+                type="number"
+                value={formData.max_discount_amount}
+                onChange={(e) => setFormData({ ...formData, max_discount_amount: Number(e.target.value) })}
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-blue-500"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              Giới Hạn Lượt Sử Dụng
+            </label>
+            <input
+              type="number"
+              value={formData.usage_limit}
+              onChange={(e) => setFormData({ ...formData, usage_limit: Number(e.target.value) })}
+              placeholder="Để 0 nếu không giới hạn"
+              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              Ngày Bắt Đầu Hiệu Lực
+            </label>
+            <input
+              type="date"
+              value={formData.valid_from}
+              onChange={(e) => setFormData({ ...formData, valid_from: e.target.value })}
+              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              Ngày Kết Thúc / Hết Hạn
+            </label>
+            <input
+              type="date"
+              value={formData.valid_until}
+              onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
+              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 pt-2">
+          <input
+            type="checkbox"
+            id="is_active_coupon"
+            checked={formData.is_active}
+            onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+            className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+          />
+          <label htmlFor="is_active_coupon" className="text-sm font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+            Kích hoạt sử dụng mã coupon ngay lập tức
+          </label>
+        </div>
+
+        {/* Action buttons */}
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+          <Link
+            to={'/coupons' as any}
+            className="px-5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+          >
+            Hủy Bỏ
+          </Link>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <Save size={16} />
+            {isSubmitting ? 'Đang tạo...' : 'Tạo Mã Khuyến Mãi'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
