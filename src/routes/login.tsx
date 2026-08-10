@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { LayoutGrid, Loader2, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { login } from '@/apis/auth';
 
 export const Route = createFileRoute('/login')({
   component: LoginComponent,
@@ -14,11 +15,10 @@ function LoginComponent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Extract returnTo from URL search query if available
   const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
   const returnTo = searchParams.get('returnTo') || '/';
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -29,52 +29,62 @@ function LoginComponent() {
 
     setLoading(true);
 
-    setTimeout(() => {
+    try {
+      const res: any = await login({ email, password });
+      const token = res?.access_token || res?.data?.access_token;
+      if (token) {
+        toast.success('Đăng nhập OAuth2 thành công!');
+        navigate({ to: (returnTo.startsWith('/login') ? '/' : returnTo) as any });
+      } else {
+        setError('Đăng nhập thất bại. Không nhận được token từ Backend.');
+        toast.error('Đăng nhập thất bại!');
+      }
+    } catch (err: any) {
+      console.error('Login error:', err);
+      const msg = err?.response?.data?.message || err?.message || 'Tài khoản hoặc mật khẩu không chính xác!';
+      setError(`⚠️ Lỗi xác thực: ${msg}`);
+      toast.error('Đăng nhập thất bại: Kiểm tra lại Email/Mật khẩu');
+    } finally {
       setLoading(false);
-      localStorage.setItem('superdong_token', 'demo_token_superdong_admin_2026');
-      localStorage.setItem('superdong_access_token', 'demo_token_superdong_admin_2026');
-      localStorage.setItem(
-        'superdong_user',
-        JSON.stringify({
-          name: 'Super Admin',
-          email: email,
-          role: 'admin',
-        })
-      );
-      toast.success('Đăng nhập thành công!');
-      navigate({ to: (returnTo.startsWith('/login') ? '/' : returnTo) as any });
-    }, 400);
+    }
   };
 
-  const handleQuickDemoLogin = () => {
+  const handleQuickDemoLogin = async () => {
+    setEmail('admin@admin.com');
+    setPassword('admin');
     setLoading(true);
-    setTimeout(() => {
+    setError('');
+
+    try {
+      const res: any = await login({ email: 'admin@admin.com', password: 'admin' });
+      const token = res?.access_token || res?.data?.access_token;
+      if (token) {
+        toast.success('Đã xác thực tài khoản Admin thành công!');
+        navigate({ to: (returnTo.startsWith('/login') ? '/' : returnTo) as any });
+      } else {
+        setError('Đăng nhập thất bại từ Backend API.');
+        toast.error('Đăng nhập thất bại!');
+      }
+    } catch (err: any) {
+      console.error('Quick login error:', err);
+      const msg = err?.response?.data?.message || err?.message || 'Không thể đăng nhập bằng tài khoản mặc định';
+      setError(`⚠️ Lỗi xác thực: ${msg}`);
+      toast.error('Không thể đăng nhập tài khoản mặc định');
+    } finally {
       setLoading(false);
-      localStorage.setItem('superdong_token', 'demo_token_superdong_admin_2026');
-      localStorage.setItem('superdong_access_token', 'demo_token_superdong_admin_2026');
-      localStorage.setItem(
-        'superdong_user',
-        JSON.stringify({
-          name: 'Super Admin',
-          email: 'admin@admin.com',
-          role: 'admin',
-        })
-      );
-      toast.success('Đã tự động xác thực quyền Super Admin!');
-      navigate({ to: (returnTo.startsWith('/login') ? '/' : returnTo) as any });
-    }, 300);
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 font-sans">
       <div className="w-full max-w-md">
-        {/* Logo Container matching VietAdmin */}
+        {/* Logo Container */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 mb-4">
             <LayoutGrid className="w-8 h-8 text-blue-500" />
           </div>
           <h1 className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">Superdong Admin Panel</h1>
-          <p className="text-sm text-slate-500 mt-1">Đăng nhập tài khoản quản trị hệ thống</p>
+          <p className="text-sm text-slate-500 mt-1">Đăng nhập tài khoản quản trị hệ thống qua OAuth2</p>
         </div>
 
         {/* Login Form Card */}
@@ -83,7 +93,7 @@ function LoginComponent() {
           className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-4"
         >
           {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg text-sm text-red-600 dark:text-red-400">
+            <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg text-sm text-red-600 dark:text-red-400 font-medium">
               {error}
             </div>
           )}
@@ -132,10 +142,10 @@ function LoginComponent() {
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Đang xác thực...
+                Đang xác thực OAuth2...
               </>
             ) : (
-              'Đăng nhập Hệ thống'
+              'Đăng nhập Hệ thống (Live Backend API)'
             )}
           </button>
 
@@ -143,10 +153,11 @@ function LoginComponent() {
             <button
               type="button"
               onClick={handleQuickDemoLogin}
+              disabled={loading}
               className="w-full py-2.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
               <ShieldCheck size={16} className="text-emerald-500" />
-              Truy cập nhanh với tài khoản Admin mặc định (admin@admin.com)
+              Đăng nhập bằng tài khoản Admin mặc định
             </button>
           </div>
         </form>
