@@ -138,7 +138,7 @@ function CouponEditPage() {
       const updatedVersion = res?.data?.version ?? (expectedVersion !== undefined ? expectedVersion + 1 : 1);
       setExpectedVersion(updatedVersion);
 
-      toast.success(`Đã lưu thay đổi mã khuyến mãi ${formData.code} thành công! (Phiên bản: ${updatedVersion})`, { id: 'coupon-edit-toast' });
+      toast.success(`Đã lưu thay đổi mã khuyến mãi ${formData.code} thành công!`, { id: 'coupon-edit-toast' });
 
       // Refetch fresh coupon data to keep form state in sync without leaving the edit page
       if (couponId) {
@@ -204,7 +204,7 @@ function CouponEditPage() {
             Chỉnh Sửa Mã Khuyến Mãi: {loading ? '...' : formData.code}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            ID mã trong hệ thống: <span className="font-mono">{couponId}</span> (Phiên bản: <span className="font-mono">{String(expectedVersion)}</span>)
+            ID mã trong hệ thống: <span className="font-mono">{couponId}</span>
           </p>
         </div>
       </div>
@@ -315,7 +315,7 @@ function CouponEditPage() {
 
           <div className="md:col-span-2">
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Lý Do Điều Chỉnh (Reason) <span className="text-slate-400 font-normal">(Tùy chọn)</span>
+              Lý do điều chỉnh <span className="text-slate-400 font-normal">(nếu có)</span>
             </label>
             <input
               type="text"
