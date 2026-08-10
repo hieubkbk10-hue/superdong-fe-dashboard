@@ -75,7 +75,7 @@ function CouponEditPage() {
             usage_limit: c.usage_limit !== undefined ? c.usage_limit : 0,
             valid_from: c.effective_from || c.valid_from || '2026-06-01',
             valid_until: c.effective_to || c.valid_until || '2026-08-31',
-            is_active: c.status === 'active' || c.is_active !== false,
+            is_active: c.status ? c.status === 'active' : Boolean(c.is_active),
             reason: c.reason || 'Cập nhật thông tin mã khuyến mãi',
           });
         }

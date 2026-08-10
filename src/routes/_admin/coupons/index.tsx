@@ -323,8 +323,8 @@ function CouponsPage() {
             className="h-10 px-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none cursor-pointer"
           >
             <option value="all">Tất cả trạng thái</option>
-            <option value="active">Đang kích hoạt</option>
-            <option value="inactive">Đã ngừng / Hết hạn</option>
+            <option value="active">Kích hoạt</option>
+            <option value="inactive">Đã khóa</option>
           </select>
 
           {/* UI: Nút Cột (Column Toggle Dropdown) */}
@@ -544,12 +544,12 @@ function CouponsPage() {
                       {visibleColumns.status && (
                         <td className="p-3.5">
                           {isActive ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                              <CheckCircle2 size={12} /> Đang kích hoạt
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
+                              <CheckCircle2 size={12} className="shrink-0" /> Kích hoạt
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
-                              <XCircle size={12} /> Hết hạn / Khóa
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 whitespace-nowrap">
+                              <XCircle size={12} className="shrink-0" /> Đã khóa
                             </span>
                           )}
                         </td>
