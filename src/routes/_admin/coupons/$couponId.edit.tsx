@@ -192,17 +192,17 @@ function CouponEditPage() {
   };
 
   return (
-    <div className="space-y-6 w-full font-sans pb-12 text-slate-800 dark:text-slate-200">
+    <div className="space-y-4 w-full font-sans pb-10 text-slate-800 dark:text-slate-200">
       {/* Top Header Navigation Bar */}
-      <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <Button variant="light" size="icon" className="h-9 w-9" asChild>
+          <Button variant="light" size="icon" className="h-8 w-8" asChild>
             <Link to={'/coupons' as any} title="Quay lại danh sách">
               <ArrowLeft size={16} />
             </Link>
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <h1 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Ticket className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               Chỉnh sửa mã khuyến mãi: {loading ? '...' : formData.code}
             </h1>
@@ -225,15 +225,15 @@ function CouponEditPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5">
         
         {/* Section 1: Thông tin cơ bản */}
-        <div className="space-y-4">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-4 py-2.5 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs flex items-center gap-2 border border-blue-100 dark:border-slate-800">
-            <span className="text-blue-500 font-bold">|||</span> Thông tin cơ bản
+        <div className="space-y-3">
+          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
+            I. Thông tin cơ bản
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className="space-y-1">
               <Label htmlFor="coupon-code" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Mã Khuyến Mãi (Coupon Code) <span className="text-rose-500 font-bold">*</span>
               </Label>
@@ -242,12 +242,12 @@ function CouponEditPage() {
                 type="text"
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase().replace(/\s+/g, '') })}
-                className="text-blue-600 dark:text-blue-400 font-mono font-bold text-xs uppercase h-10 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                className="text-blue-600 dark:text-blue-400 font-mono font-bold text-sm h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                 required
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label htmlFor="coupon-name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Tên Chương Trình Ưu Đãi
               </Label>
@@ -257,19 +257,19 @@ function CouponEditPage() {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="VD: Ưu Đãi Mùa Hè 2026"
-                className="text-xs h-10 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                className="text-sm h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
               />
             </div>
           </div>
         </div>
 
         {/* Section 2: Mức giảm giá & Điều kiện áp dụng */}
-        <div className="space-y-4">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-4 py-2.5 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs flex items-center gap-2 border border-blue-100 dark:border-slate-800">
-            <span className="text-blue-500 font-bold">|||</span> Mức giảm giá &amp; Điều kiện áp dụng
+        <div className="space-y-3">
+          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
+            II. Mức giảm giá &amp; Điều kiện áp dụng
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="space-y-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
+            <div className="space-y-1">
               <Label htmlFor="discount-type" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Loại Giảm Giá
               </Label>
@@ -277,14 +277,14 @@ function CouponEditPage() {
                 id="discount-type"
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-xs outline-none cursor-pointer focus:border-blue-500"
+                className="w-full h-9 px-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm outline-none cursor-pointer focus:border-blue-500"
               >
                 <option value="percentage">Theo Phần Trăm (%)</option>
                 <option value="fixed_amount">Số Tiền Cố Định (VND)</option>
               </select>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label htmlFor="discount-value" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Giá Trị Giảm <span className="text-rose-500 font-bold">*</span>
               </Label>
@@ -294,12 +294,12 @@ function CouponEditPage() {
                 value={formData.value}
                 onChange={(e) => setFormData({ ...formData, value: Number(e.target.value) })}
                 min={1}
-                className="text-xs h-10 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                className="text-sm h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                 required
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label htmlFor="min-booking" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Đơn Tối Thiểu (VND)
               </Label>
@@ -309,11 +309,11 @@ function CouponEditPage() {
                 value={formData.min_booking_amount}
                 onChange={(e) => setFormData({ ...formData, min_booking_amount: Number(e.target.value) })}
                 min={0}
-                className="text-xs h-10 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                className="text-sm h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label htmlFor="max-discount" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Mức Giảm Tối Đa (VND)
               </Label>
@@ -323,19 +323,19 @@ function CouponEditPage() {
                 value={formData.max_discount_amount}
                 onChange={(e) => setFormData({ ...formData, max_discount_amount: Number(e.target.value) })}
                 min={0}
-                className="text-xs h-10 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                className="text-sm h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
               />
             </div>
           </div>
         </div>
 
         {/* Section 3: Thời hạn & Giới hạn sử dụng */}
-        <div className="space-y-4">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-4 py-2.5 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs flex items-center gap-2 border border-blue-100 dark:border-slate-800">
-            <span className="text-blue-500 font-bold">|||</span> Thời hạn &amp; Giới hạn sử dụng
+        <div className="space-y-3">
+          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
+            III. Thời hạn &amp; Giới hạn sử dụng
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            <div className="space-y-1">
               <Label htmlFor="usage-limit" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Giới Hạn Lượt Sử Dụng
               </Label>
@@ -345,11 +345,11 @@ function CouponEditPage() {
                 value={formData.usage_limit}
                 onChange={(e) => setFormData({ ...formData, usage_limit: Number(e.target.value) })}
                 min={0}
-                className="text-xs h-10 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                className="text-sm h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label htmlFor="valid-from" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Ngày Bắt Đầu Hiệu Lực
               </Label>
@@ -360,7 +360,7 @@ function CouponEditPage() {
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label htmlFor="valid-until" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Ngày Kết Thúc / Hết Hạn
               </Label>
@@ -374,13 +374,13 @@ function CouponEditPage() {
         </div>
 
         {/* Section 4: Trạng thái & Lý do điều chỉnh */}
-        <div className="space-y-4">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-4 py-2.5 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs flex items-center gap-2 border border-blue-100 dark:border-slate-800">
-            <span className="text-blue-500 font-bold">|||</span> Trạng thái &amp; Lý do điều chỉnh
+        <div className="space-y-3">
+          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
+            IV. Trạng thái &amp; Lý do điều chỉnh
           </div>
           
-          <div className="space-y-4">
-            <div className="space-y-1.5">
+          <div className="space-y-3">
+            <div className="space-y-1">
               <Label htmlFor="reason" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Lý do điều chỉnh <span className="text-slate-400 font-normal">(tùy chọn)</span>
               </Label>
@@ -390,11 +390,11 @@ function CouponEditPage() {
                 value={formData.reason}
                 onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                 placeholder="VD: Cập nhật tỷ lệ giảm giá theo chính sách bán hàng mới..."
-                className="text-xs h-10 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                className="text-sm h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
               />
             </div>
 
-            <div className="flex items-center gap-3 pt-1">
+            <div className="flex items-center gap-2.5 pt-1">
               <input
                 id="is-active-toggle"
                 type="checkbox"
@@ -410,15 +410,15 @@ function CouponEditPage() {
         </div>
 
         {/* Bottom Right Floating Action Bar */}
-        <div className="flex justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-800">
-          <Button variant="outline" type="button" asChild className="px-5">
+        <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-200 dark:border-slate-800">
+          <Button variant="outline" type="button" asChild className="px-5 h-9 text-xs">
             <Link to={'/coupons' as any}>Hủy Bỏ</Link>
           </Button>
           <Button
             type="submit"
             variant="primary"
             disabled={isSubmitting}
-            className="px-6 gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg"
+            className="px-6 h-9 text-xs gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg"
           >
             {isSubmitting ? (
               <>

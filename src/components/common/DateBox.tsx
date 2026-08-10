@@ -22,7 +22,7 @@ export const DateBox: React.FC<DateBoxProps> = ({
         onChange={onChange}
         disabled={disabled}
         className={cn(
-          "w-full h-10 px-3 pr-10 text-xs font-mono text-slate-800 dark:text-slate-200 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:border-blue-500 focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer",
+          "w-full h-10 px-3 text-sm font-mono text-slate-800 dark:text-slate-200 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:border-blue-500 focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer",
           className
         )}
         {...props}
