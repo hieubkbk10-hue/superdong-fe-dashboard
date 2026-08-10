@@ -42,15 +42,34 @@ api.interceptors.request.use(
   }
 );
 
-// LOGIC: Response interceptor handling responses
+// LOGIC: Response interceptor handling responses and automatic 405 Method Not Allowed retry (PUT <-> PATCH)
 api.interceptors.response.use(
   (response: AxiosResponse) => {
     return response;
   },
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
+    const config = error.config as (InternalAxiosRequestConfig & { _retry405?: boolean }) | undefined;
+
+    // LOGIC: Handle 405 Method Not Allowed (e.g., Apiato route expecting PATCH instead of PUT, or vice-versa)
+    if (error.response && error.response.status === 405 && config && !config._retry405) {
+      config._retry405 = true;
+      const currentMethod = (config.method || 'get').toLowerCase();
+
+      if (currentMethod === 'put') {
+        console.warn(`[API Interceptor] 405 Method Not Allowed for PUT ${config.url}. Retrying automatically with PATCH method...`);
+        config.method = 'PATCH';
+        return api.request(config);
+      } else if (currentMethod === 'patch') {
+        console.warn(`[API Interceptor] 405 Method Not Allowed for PATCH ${config.url}. Retrying automatically with PUT method...`);
+        config.method = 'PUT';
+        return api.request(config);
+      }
+    }
+
     if (error.response && error.response.status === 401) {
       console.warn('API 401 Unauthorized từ Server Backend.');
     }
+
     return Promise.reject(error);
   }
 );
