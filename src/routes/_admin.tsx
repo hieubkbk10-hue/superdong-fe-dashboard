@@ -1,5 +1,5 @@
-import React from 'react';
-import { createFileRoute } from '@tanstack/react-router';
+import React, { useEffect, useState } from 'react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 
 export const Route = createFileRoute('/_admin')({
@@ -7,20 +7,35 @@ export const Route = createFileRoute('/_admin')({
 });
 
 function AdminLayoutWrapper() {
-  // Ensure token exists to prevent auth flickering
-  if (typeof window !== 'undefined') {
-    if (!localStorage.getItem('superdong_token')) {
-      localStorage.setItem('superdong_token', 'demo_token_superdong_admin_2026');
-      localStorage.setItem('superdong_access_token', 'demo_token_superdong_admin_2026');
-      localStorage.setItem(
-        'superdong_user',
-        JSON.stringify({
-          name: 'Super Admin',
-          email: 'admin@admin.com',
-          role: 'admin',
-        })
-      );
+  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('superdong_token') || localStorage.getItem('superdong_access_token');
+      if (!token) {
+        setIsAuthenticated(false);
+        const currentPath = window.location.pathname + window.location.search;
+        navigate({ to: '/login' as any, search: { returnTo: currentPath } as any });
+      } else {
+        setIsAuthenticated(true);
+      }
     }
+  }, [navigate]);
+
+  if (isAuthenticated === null) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 font-sans">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs text-slate-500 font-medium">Đang kiểm tra quyền truy cập...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated === false) {
+    return null;
   }
 
   return <AdminLayout />;
