@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { UserCheck, ArrowLeft, Save, RefreshCw, KeyRound } from 'lucide-react';
+import { UserCheck, ArrowLeft, Save, RefreshCw, KeyRound, Lock, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { updateUser, findUserById } from '@/apis/users';
@@ -14,16 +14,37 @@ export const Route = createFileRoute('/_admin/users/$userId/edit')({
   component: UserEditPage,
 });
 
+// HELPER LOGIC: Phân tích vai trò chính xác từ dữ liệu Backend Apiato Porto
+const getUserRoleName = (user: any): string => {
+  if (!user) return 'Nhân viên quầy';
+  const email = (user.email || '').toLowerCase();
+  const name = (user.name || '').toLowerCase();
+
+  if (email === 'admin@admin.com' || name === 'super admin' || name === 'admin') {
+    return 'Super Admin';
+  }
+  if (user.roles?.data && Array.isArray(user.roles.data) && user.roles.data.length > 0) {
+    return user.roles.data[0].name || 'Nhân viên quầy';
+  }
+  if (user.roles && Array.isArray(user.roles) && user.roles.length > 0) {
+    return typeof user.roles[0] === 'string' ? user.roles[0] : (user.roles[0].name || 'Nhân viên quầy');
+  }
+  if (typeof user.role === 'string' && user.role) {
+    return user.role;
+  }
+  return 'Nhân viên quầy';
+};
+
 function UserEditPage() {
   const { userId } = Route.useParams();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    name: 'Nguyễn Văn Thành',
-    email: 'thanh.nv@superdong.com.vn',
+    name: 'Super Admin',
+    email: 'admin@admin.com',
     phone: '0903111222',
     birthday: '1992-05-15',
-    role_name: 'Quản trị viên',
+    role_name: 'Super Admin',
     status: 'active',
     is_active: true,
     notes: '',
@@ -38,11 +59,13 @@ function UserEditPage() {
       const res = await findUserById(userId);
       if (res && res.data) {
         const user = res.data;
+        const detectedRole = getUserRoleName(user);
         setFormData((prev) => ({
           ...prev,
           name: user.name || prev.name,
           email: user.email || prev.email,
           phone: user.phone || prev.phone,
+          role_name: detectedRole,
           is_active: user.status ? user.status === 'active' : true,
         }));
       }
@@ -56,6 +79,8 @@ function UserEditPage() {
   useEffect(() => {
     if (userId) fetchUserDetails();
   }, [userId]);
+
+  const isSuperAdmin = (formData.email || '').toLowerCase() === 'admin@admin.com' || formData.role_name === 'Super Admin';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +97,7 @@ function UserEditPage() {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
-        status: formData.is_active ? 'active' : 'inactive',
+        status: isSuperAdmin ? 'active' : (formData.is_active ? 'active' : 'inactive'),
       });
       toast.success(`Đã cập nhật thông tin tài khoản ${formData.name} thành công!`, { id: 'user-edit-toast' });
 
@@ -82,11 +107,13 @@ function UserEditPage() {
           const fresh = await findUserById(userId);
           if (fresh && fresh.data) {
             const user = fresh.data;
+            const detectedRole = getUserRoleName(user);
             setFormData((prev) => ({
               ...prev,
               name: user.name || prev.name,
               email: user.email || prev.email,
               phone: user.phone || prev.phone,
+              role_name: detectedRole,
               is_active: user.status ? user.status === 'active' : true,
             }));
           }
@@ -127,7 +154,11 @@ function UserEditPage() {
         </div>
 
         <div>
-          {formData.is_active ? (
+          {isSuperAdmin ? (
+            <Badge variant="blue" className="px-3 py-1 text-xs gap-1 font-bold">
+              <Shield size={12} /> Super Admin
+            </Badge>
+          ) : formData.is_active ? (
             <Badge variant="success" className="px-3 py-1 text-xs">
               Kích hoạt
             </Badge>
@@ -214,19 +245,28 @@ function UserEditPage() {
 
         {/* SECTION 3: PHÂN QUYỀN & VAI TRÒ */}
         <div className="space-y-3">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-            III. Phân quyền &amp; Vai trò
+          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800 flex items-center justify-between">
+            <span>III. Phân quyền &amp; Vai trò</span>
+            {isSuperAdmin && (
+              <span className="text-[11px] normal-case font-normal text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                <Lock size={12} /> Tài khoản Super Admin tối cao
+              </span>
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
             <div className="space-y-1">
-              <Label htmlFor="user-role" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Vai Trò Hệ Thống
+              <Label htmlFor="user-role" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                Vai Trò Hệ Thống {isSuperAdmin && <Lock size={12} className="text-slate-400" />}
               </Label>
               <select
                 id="user-role"
                 value={formData.role_name}
+                disabled={isSuperAdmin}
                 onChange={(e) => setFormData({ ...formData, role_name: e.target.value })}
-                className="w-full h-9 px-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm outline-none cursor-pointer focus:border-blue-500"
+                className={`w-full h-9 px-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm outline-none cursor-pointer focus:border-blue-500 ${
+                  isSuperAdmin ? 'bg-slate-100 dark:bg-slate-800/60 opacity-80 cursor-not-allowed font-bold text-blue-600' : ''
+                }`}
+                title={isSuperAdmin ? 'Tài khoản Super Admin gốc hệ thống không thể giáng cấp vai trò' : ''}
               >
                 <option value="Super Admin">Super Admin (Toàn quyền hệ thống)</option>
                 <option value="Quản trị viên">Quản trị viên bến tàu / tuyến</option>
@@ -279,12 +319,22 @@ function UserEditPage() {
               <input
                 id="is-active-toggle"
                 type="checkbox"
-                checked={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                checked={isSuperAdmin ? true : formData.is_active}
+                disabled={isSuperAdmin}
+                onChange={(e) => !isSuperAdmin && setFormData({ ...formData, is_active: e.target.checked })}
+                className={`h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 ${
+                  isSuperAdmin ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'
+                }`}
               />
-              <Label htmlFor="is-active-toggle" className="text-xs font-semibold cursor-pointer text-slate-800 dark:text-slate-200">
-                Cho phép tài khoản đăng nhập hệ thống
+              <Label
+                htmlFor="is-active-toggle"
+                className={`text-xs font-semibold text-slate-800 dark:text-slate-200 ${
+                  isSuperAdmin ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'
+                }`}
+              >
+                {isSuperAdmin
+                  ? 'Cho phép tài khoản đăng nhập hệ thống (Super Admin luôn ở trạng thái Kích hoạt)'
+                  : 'Cho phép tài khoản đăng nhập hệ thống'}
               </Label>
             </div>
           </div>
