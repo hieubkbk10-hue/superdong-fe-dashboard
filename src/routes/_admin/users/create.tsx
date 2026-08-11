@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { UserCheck, ArrowLeft, Save, RefreshCw } from 'lucide-react';
+import { UserCheck, ArrowLeft, Save, RefreshCw, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { createUser } from '@/apis/users';
@@ -17,6 +17,17 @@ export const Route = createFileRoute('/_admin/users/create')({
 
 const DRAFT_KEY = 'superdong_user_draft_create';
 
+const DEFAULT_FORM_DATA = {
+  name: 'Trần Mạnh Hiếu',
+  email: '',
+  phone: '',
+  birthday: '1995-01-01',
+  password: '',
+  role_name: 'Super Admin',
+  is_active: true,
+  notes: '',
+};
+
 function UserCreatePage() {
   const navigate = useNavigate();
 
@@ -29,16 +40,7 @@ function UserCreatePage() {
       }
     } catch (_) {}
 
-    return {
-      name: 'Trần Mạnh Hiếu',
-      email: '',
-      phone: '',
-      birthday: '1995-01-01',
-      password: '',
-      role_name: 'Super Admin',
-      is_active: true,
-      notes: '',
-    };
+    return DEFAULT_FORM_DATA;
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,6 +56,22 @@ function UserCreatePage() {
     try {
       localStorage.removeItem(DRAFT_KEY);
     } catch (_) {}
+  };
+
+  // NÚT LÀM SẠCH DỮ LIỆU (RESET FORM) - DÀNH RIÊNG CHO TRANG CREATE
+  const handleResetForm = () => {
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      birthday: '',
+      password: '',
+      role_name: 'Super Admin',
+      is_active: true,
+      notes: '',
+    });
+    handleClearDraft();
+    toast.success('Đã làm sạch toàn bộ dữ liệu trên form và xóa bản nháp!', { id: 'user-create-toast' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,7 +115,6 @@ function UserCreatePage() {
     if (isSubmitting) return;
     setIsSubmitting(true);
 
-    // Mật khẩu mặc định đạt 100% tiêu chí Apiato nếu để trống
     const finalPassword = pwd || 'Superdong@2026';
 
     try {
@@ -156,7 +173,20 @@ function UserCreatePage() {
           </div>
         </div>
 
-        <div>
+        <div className="flex items-center gap-2">
+          {/* NÚT LÀM SẠCH DỮ LIỆU FORM (DÀNH RIÊNG MÀN CREATE) */}
+          <Button
+            type="button"
+            variant="light"
+            size="sm"
+            onClick={handleResetForm}
+            className="h-8 text-xs gap-1 text-slate-600 dark:text-slate-400 hover:text-rose-600 border border-slate-200 dark:border-slate-800"
+            title="Làm sạch toàn bộ ô nhập liệu và xóa bản nháp"
+          >
+            <RotateCcw size={13} />
+            Làm sạch dữ liệu
+          </Button>
+
           <Badge variant="blue" className="px-3 py-1 text-xs font-bold">
             Tài khoản mới
           </Badge>
@@ -265,7 +295,6 @@ function UserCreatePage() {
               <Label htmlFor="user-password" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Mật Khẩu Ban Đầu <span className="text-slate-400 font-normal">(để trống sẽ dùng mặc định: Superdong@2026)</span>
               </Label>
-              {/* SMART PASSWORD INPUT WITH REAL-TIME CHECKLIST */}
               <PasswordInput
                 id="user-password"
                 value={formData.password}

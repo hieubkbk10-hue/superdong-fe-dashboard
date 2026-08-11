@@ -33,9 +33,11 @@ export const Route = createFileRoute('/_admin/users/')({
 type SortField = 'name' | 'email' | 'phone' | 'role' | 'status' | null;
 type SortOrder = 'asc' | 'desc' | 'none';
 
-// HELPER LOGIC: Phân tích chính xác tên Vai trò từ dữ liệu Apiato Porto Backend
+// HELPER LOGIC: Phân tích chính xác tên Vai trò từ dữ liệu Apiato Porto Backend & Cache
 const getUserRoleName = (row: any): string => {
-  if (!row) return 'Nhân viên';
+  if (!row) return 'Nhân viên quầy';
+  if (row.role_name) return row.role_name;
+
   const email = (row.email || '').toLowerCase();
   const name = (row.name || '').toLowerCase();
 
@@ -46,16 +48,16 @@ const getUserRoleName = (row: any): string => {
 
   // Cấu trúc Apiato Porto Transformer: roles.data = [{ name: "Super Admin" }]
   if (row.roles?.data && Array.isArray(row.roles.data) && row.roles.data.length > 0) {
-    return row.roles.data[0].name || 'Nhân viên';
+    return row.roles.data[0].name || 'Nhân viên quầy';
   }
   // Mảng roles tiêu chuẩn
   if (row.roles && Array.isArray(row.roles) && row.roles.length > 0) {
-    return typeof row.roles[0] === 'string' ? row.roles[0] : (row.roles[0].name || 'Nhân viên');
+    return typeof row.roles[0] === 'string' ? row.roles[0] : (row.roles[0].name || 'Nhân viên quầy');
   }
   if (typeof row.role === 'string' && row.role) {
     return row.role;
   }
-  return 'Nhân viên';
+  return 'Nhân viên quầy';
 };
 
 function UsersPage() {
@@ -154,6 +156,7 @@ function UsersPage() {
                 name: cached.name || u.name,
                 email: cached.email || u.email,
                 phone: cached.phone || u.phone,
+                role_name: cached.role_name || u.role_name,
                 status: cached.is_active !== undefined ? (cached.is_active ? 'active' : 'inactive') : (u.status || 'active'),
               };
             }

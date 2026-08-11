@@ -14,9 +14,12 @@ export const Route = createFileRoute('/_admin/users/$userId/edit')({
   component: UserEditPage,
 });
 
-// HELPER LOGIC: Phân tích vai trò chính xác từ dữ liệu Backend Apiato Porto
-const getUserRoleName = (user: any): string => {
+// HELPER LOGIC: Phân tích vai trò chính xác từ dữ liệu Backend Apiato Porto & Cache
+const getUserRoleName = (user: any, cachedRole?: string): string => {
+  if (cachedRole) return cachedRole;
   if (!user) return 'Nhân viên quầy';
+  if (user.role_name) return user.role_name;
+
   const email = (user.email || '').toLowerCase();
   const name = (user.name || '').toLowerCase();
 
@@ -71,7 +74,6 @@ function UserEditPage() {
       const res = await findUserById(userId);
       if (res && res.data) {
         const user = res.data;
-        const detectedRole = getUserRoleName(user);
 
         // Merge dữ liệu từ API và cache localStorage
         let cachedData: any = {};
@@ -80,13 +82,15 @@ function UserEditPage() {
           if (cachedStr) cachedData = JSON.parse(cachedStr);
         } catch (_) {}
 
+        const detectedRole = getUserRoleName(user, cachedData.role_name);
+
         setFormData((prev: any) => {
           const updated = {
             ...prev,
             name: user.name || cachedData.name || prev.name,
             email: user.email || cachedData.email || prev.email,
             phone: user.phone ? String(user.phone).replace(/[^0-9]/g, '') : (cachedData.phone || prev.phone),
-            role_name: detectedRole,
+            role_name: cachedData.role_name || detectedRole || prev.role_name,
             is_active: user.status ? user.status === 'active' : (cachedData.is_active ?? true),
           };
           try {
@@ -157,7 +161,7 @@ function UserEditPage() {
           const fresh = await findUserById(userId);
           if (fresh && fresh.data) {
             const user = fresh.data;
-            const detectedRole = getUserRoleName(user);
+            const detectedRole = getUserRoleName(user, updatedFormData.role_name);
             setFormData((prev: any) => {
               const freshUpdated = {
                 ...prev,
@@ -294,7 +298,6 @@ function UserEditPage() {
                 type="text"
                 value={formData.phone}
                 onChange={(e) => {
-                  // FILTER: Loại bỏ ngay các ký tự không phải chữ số (tránh gõ ws hay ký tự lạ)
                   const digitsOnly = e.target.value.replace(/[^0-9]/g, '');
                   setFormData({ ...formData, phone: digitsOnly });
                 }}

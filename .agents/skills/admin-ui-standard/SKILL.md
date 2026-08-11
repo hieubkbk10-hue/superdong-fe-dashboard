@@ -11,15 +11,17 @@ Bộ quy chuẩn thiết kế và lập trình **Full-Stack Frontend & Backend**
 
 ## 📋 CHECKLIST TỰ KIỂM TRÁ BẮT BUỘC KHÔNG ĐƯỢC BỎ BƯỚC (FULL-STACK DEFINITION OF DONE)
 
-Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edit), AI Agent **BẮT BUỘC** phải rà soát qua 6 nhóm tiêu chí bên dưới trước khi bàn giao cho anh Hiếu:
+Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edit), AI Agent **BẮT BUỘC** phải rà soát qua 6 nhóm tiêu chí bên dưới trước khi bàn giao cho anh Hiếu (Tuyệt đối không được skip):
 
 ```
 [ ] 1. BACKEND INTEGRITY: Migration table, Model $fillable, Request rules(), Action sanitizeInput(), Transformer transform() đầy đủ TẤT CẢ các trường
-[ ] 2. FRONTEND INPUT FILTER & PASSWORD UI: Lọc live SĐT/Tiền tệ/Phần trăm, PasswordInput với nút Eye toggle + Checklist 4 tiêu chí Apiato (min 8, A-Z/a-z, 0-9, special char)
-[ ] 3. F5 & FORM DRAFT PERSISTENCE: Lưu bản nháp tự động cho Form đang nhập dở (F5 không mất dữ liệu) + Re-sync API + Map-Merge Cache cho cả màn Edit và màn List
-[ ] 4. DOMAIN & DESIGN: 1 Card liền mạch, w-full, CẤM cột ID nội bộ DB thô, Banner Cyan (#EBF7FA) Số La Mã (I, II, III, IV), DateBox DD/MM/YYYY 1 icon
-[ ] 5. BRAND COLOR & BADGES: Blue (#2B7FFF / blue-600) chủ đạo, Badge 4 màu chuẩn (Emerald, Rose, Amber, Blue)
-[ ] 6. GIT & MASTER BRANCH DEPLOY: Cả Backend và Frontend làm việc trực tiếp trên nhánh master, commit & push thẳng master để Vercel & Live LiteSpeed Server đồng bộ tức thì
+[ ] 2. INPUT & ROLE DATA PRECISION: AI Agent tự kiểm tra thủ công tính chính xác của từng ô input, option value select và role_name. Giá trị chọn thế nào giữ nguyên 100% không bị trôi role
+[ ] 3. CREATE PAGE CLEAR DATA BUTTON: Màn Create BẮT BUỘC có nút nhỏ gọn 'Làm sạch dữ liệu' (Clear Form) reset toàn bộ input và xóa bản nháp (CẤM thêm ở màn Edit)
+[ ] 4. FRONTEND INPUT FILTER & PASSWORD UI: Lọc live SĐT/Tiền tệ/Phần trăm, PasswordInput với nút Eye toggle + Checklist 4 tiêu chí Apiato (min 8, A-Z/a-z, 0-9, special char)
+[ ] 5. F5 & FORM DRAFT PERSISTENCE: Lưu bản nháp tự động cho Form đang nhập dở (F5 không mất dữ liệu) + Re-sync API + Map-Merge Cache cho cả màn Edit và màn List
+[ ] 6. DOMAIN & DESIGN: 1 Card liền mạch, w-full, CẤM cột ID nội bộ DB thô, Banner Cyan (#EBF7FA) Số La Mã (I, II, III, IV), DateBox DD/MM/YYYY 1 icon
+[ ] 7. BRAND COLOR & BADGES: Blue (#2B7FFF / blue-600) chủ đạo, Badge 4 màu chuẩn (Emerald, Rose, Amber, Blue)
+[ ] 8. GIT & MASTER BRANCH DEPLOY: Cả Backend và Frontend làm việc trực tiếp trên nhánh master, commit & push thẳng master để Vercel & Live LiteSpeed Server đồng bộ tức thì
 ```
 
 ---
@@ -51,15 +53,19 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
 
 ---
 
-## 🛡️ 2. Quy Chuẩn Frontend Filter & Validation (Input Validation)
+## 🛡️ 2. Quy Chuẩn Frontend Filter, Input Precision & Role Handling
 
-1. **Lọc Ký Tự Trực Tiếp Trên Ô Nhập (Live Input Filter)**:
+1. **Kiểm Tra Thủ Công Tính Chính Xác Của Dữ Liệu Input & Select (Data Integrity Audit)**:
+   * AI Agent BẮT BUỘC phải rà soát thủ công (hand-audit) mối quan hệ giữa các ô input, giá trị `<option value="...">` và mảng dữ liệu.
+   * **Xử lý vai trò (Role Handling)**: Khi tạo mới hoặc chỉnh sửa user chọn vai trò (ví dụ `Super Admin`, `Quản trị viên`, `Nhân viên quầy`), hàm `getUserRoleName` BẮT BUỘC phải đọc và giữ nguyên `role_name` từ state/cache. **NGHIÊM CẤM** tự ý ép vai trò về giá trị mặc định làm tài khoản bị đổi vai trò sai lệch.
+
+2. **Lọc Ký Tự Trực Tiếp Trên Ô Nhập (Live Input Filter)**:
    * **Số điện thoại**: BẮT BUỘC lọc sạch các ký tự không phải chữ số ngay khi người dùng gõ:
      `onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/[^0-9]/g, '') })}`.
      $\rightarrow$ Tuyệt đối KHÔNG cho phép người dùng gõ chữ cái (như `ws`, `abc`) hay ký tự đặc biệt vào ô SĐT.
    * **Số tiền tệ / Phần trăm**: Lọc bỏ số âm và chữ cái.
 
-2. **Giao Diện Ô Mật Khẩu Thông Minh (`PasswordInput.tsx`)**:
+3. **Giao Diện Ô Mật Khẩu Thông Minh (`PasswordInput.tsx`)**:
    * BẮT BUỘC dùng component `<PasswordInput>` tích hợp:
      * Icon mắt `Eye` / `EyeOff` bật/tắt hiển thị mật khẩu.
      * Bảng checklist 4 quy định mật khẩu Backend Apiato tự động tích xanh theo thời gian thực (Live Validation Checklist):
@@ -68,26 +74,22 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
        3. `✓ Chữ số (0-9)`
        4. `✓ Ký tự đặc biệt (!@#$%...)`
 
-3. **Validation Trước Khi Submit Form**:
-   * **Họ tên / Trường bắt buộc**: Kiểm tra `!formData.name.trim()`, hiển thị Toast báo lỗi cụ thể.
-   * **Email**: Kiểm tra regex `^[^\s@]+@[^\s@]+\.[^\s@]+$`. Báo lỗi nếu thiếu cú pháp `@domain.com`.
-   * **Số điện thoại**: Kiểm tra từ **9 đến 11 chữ số** (bắt đầu bằng `0` hoặc `84`).
-
 ---
 
-## 🔄 3. Cơ Chế Đồng Bộ Dữ Liệu & Tự Động Lưu Nháp Form Khi F5 (Universal Draft & State Persistence)
+## 🔄 3. Cơ Chế Nút Làm Sạch & Đồng Bộ Dữ Liệu Form Đang Nhập Dở Khi F5
 
-1. **Form Draft Persistence (Tự Động Lưu Nháp Form Đang Nhập Dở Khi F5)**:
+1. **Nút Làm Sạch Dữ Liệu Ở Màn Create (`Create Page Clear Data Button`)**:
+   * Mọi màn hình Create (`create.tsx`) BẮT BUỘC có nút nhỏ gọn **`Làm sạch dữ liệu`** (`RotateCcw` icon) ở góc trên Header bar bên cạnh tiêu đề.
+   * Nút này cho phép reset toàn bộ ô input về trống và xóa sạch bản nháp `localStorage.removeItem(...)`.
+   * **NGHIÊM CẤM** thêm nút "Làm sạch dữ liệu" ở các trang Chỉnh sửa Edit (`edit.tsx`).
+
+2. **Form Draft Persistence (Tự Động Lưu Nháp Form Đang Nhập Dở Khi F5)**:
    * Tất cả các form Create/Edit khi người dùng đang nhập dở (như tên `Trần Mạnh Hiếu`, email `tranmanhhieu10@gmail.com`, SĐT `0948066514`) BẮT BUỘC tự động sao lưu bản nháp vào `localStorage` (`superdong_<entity>_draft_create`).
    * Khi người dùng bấm **F5 (Reload trang)**, form tự khôi phục lại 100% dữ liệu đang nhập dở mà KHÔNG BỊ MẤT THÔNG TIN.
    * Bản nháp chỉ bị xóa `localStorage.removeItem(...)` khi submit thành công hoặc bấm nút Hủy.
 
-2. **Post-Save Re-sync (Đồng Bộ Dữ Liệu Sau Khi Lưu)**:
+3. **Post-Save Re-sync (Đồng Bộ Dữ Liệu Sau Khi Lưu)**:
    * Ngay sau khi gọi API cập nhật thành công và hiển thị `toast.success(...)`, Frontend BẮT BUỘC thực hiện re-fetch lại dữ liệu mới nhất từ Server (ví dụ `findUserById(id)` / `findCouponById(id)`) và cập nhật lại state `setFormData(...)`.
-
-3. **LocalStorage Cache Fallback Cho Màn Edit**:
-   * **Column Visibility**: Cài đặt ẩn/hiện cột bảng BẮT BUỘC lưu vào `localStorage` (`superdong_<entity>_visible_columns`).
-   * **Form Data Cache**: BẤT KỲ trường dữ liệu nào vừa chỉnh sửa BẮT BUỘC được tự động backup vào `localStorage` (`superdong_<entity>_cache_${id}`).
 
 4. **List View Cache Merge (Đồng Bộ Dữ Liệu Cho Màn Danh Sách)**:
    * Mọi trang Danh Sách (List View) khi fetch mảng dữ liệu từ API BẮT BUỘC phải map-merge mảng kết quả với `localStorage` cache fallback (`superdong_<entity>_cache_${item.id}`) của từng dòng.
