@@ -101,10 +101,10 @@ export async function updateJourney(id: string | number, data: Partial<Journey>)
 }
 
 /**
- * LOGIC: Tạm ngưng hành trình theo contract backend hiện có.
+ * LOGIC: Xóa hành trình khỏi master data. Backend trả 409 nếu hành trình đang được tham chiếu bởi chặng đặt vé.
  */
-export async function deactivateJourney(id: string | number): Promise<ApiResponse<Journey>> {
-  const response = await api.delete<ApiResponse<Journey>>(`/journeys/${id}`);
+export async function deleteJourney(id: string | number, data?: { reason?: string; tracking_id?: string }): Promise<{ message: string }> {
+  const response = await api.delete<{ message: string }>(`/journeys/${id}`, { data });
   return response.data;
 }
 
@@ -132,6 +132,6 @@ export default {
   getRoutes,
   createJourney,
   updateJourney,
-  deactivateJourney,
+  deleteJourney,
   manageJourneys,
 };

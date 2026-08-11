@@ -3,7 +3,8 @@ import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { Route as RouteIcon, ArrowLeft, Save, RotateCcw, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { createJourney, getAdminLocations, getRoutes } from '@/apis/journeys';
-import { Location, Route as JourneyRoute, RouteStop } from '@/types';
+import { Location, Route as JourneyRoute } from '@/types';
+import { formatRouteOptionLabel, normalizeRouteStops, StopOption } from '@/helpers/journeyRoutes';
 
 export const Route = createFileRoute('/_admin/journeys/create')({
   component: JourneyCreatePage,
@@ -22,13 +23,7 @@ type RouteOption = {
   name: string;
   status: 'active' | 'inactive';
   stops: StopOption[];
-};
-
-type StopOption = {
-  location_id: string;
-  stop_order: number;
-  name: string;
-  code: string;
+  label: string;
 };
 
 const emptyForm: JourneyFormData = {
@@ -40,34 +35,21 @@ const emptyForm: JourneyFormData = {
 
 const draftKey = 'superdong_journeys_draft_create';
 
-const unwrapData = <T,>(value: T | { data?: T } | undefined): T | undefined => {
-  if (!value) return undefined;
-  if (typeof value === 'object' && value !== null && 'data' in value) return (value as { data?: T }).data;
-  return value as T;
-};
+const normalizeRoute = (route: JourneyRoute, locationsById: Map<string, Location>): RouteOption => {
+  const stops = normalizeRouteStops(route, locationsById);
+  const normalized = {
+    id: String(route.id),
+    code: route.code || '',
+    name: route.name || '',
+    status: (route.status === 'inactive' || route.is_active === false ? 'inactive' : 'active') as RouteOption['status'],
+    stops,
+  };
 
-const getStopsArray = (route: JourneyRoute): RouteStop[] => {
-  if (Array.isArray(route.stops)) return route.stops;
-  return route.stops?.data || [];
+  return {
+    ...normalized,
+    label: formatRouteOptionLabel(normalized),
+  };
 };
-
-const normalizeRoute = (route: JourneyRoute, locationsById: Map<string, Location>): RouteOption => ({
-  id: String(route.id),
-  code: route.code || '',
-  name: route.name || '',
-  status: route.status === 'inactive' || route.is_active === false ? 'inactive' : 'active',
-  stops: getStopsArray(route)
-    .map((stop) => {
-      const location = unwrapData<Location>(stop.location) || locationsById.get(String(stop.location_id));
-      return {
-        location_id: String(stop.location_id),
-        stop_order: Number(stop.stop_order || 0),
-        name: location?.name || '',
-        code: location?.code || '',
-      };
-    })
-    .sort((a, b) => a.stop_order - b.stop_order),
-});
 
 function JourneyCreatePage() {
   const navigate = useNavigate();
@@ -239,7 +221,7 @@ function JourneyCreatePage() {
               <option value="">{loadingRoutes ? 'Đang tải luồng tuyến...' : 'Chọn luồng tuyến'}</option>
               {routes.map((route) => (
                 <option key={route.id} value={route.id}>
-                  {route.name || 'Chưa cập nhật'} ({route.code || 'Chưa cập nhật'})
+                  {route.label}
                 </option>
               ))}
             </select>

@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { Route as RouteIcon, Plus, Edit, Search, CheckCircle2, XCircle, ArrowRight, RefreshCw, AlertTriangle, Columns3, Ban } from 'lucide-react';
+import { Route as RouteIcon, Plus, Edit, Search, CheckCircle2, XCircle, ArrowRight, RefreshCw, AlertTriangle, Columns3, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { deactivateJourney, getJourneys } from '@/apis/journeys';
+import { deleteJourney, getJourneys } from '@/apis/journeys';
 import { Journey, Location, Route as JourneyRoute } from '@/types';
 import { PaginationBar } from '@/components/common/PaginationBar';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
+import { buildRouteDisplayName, unwrapData } from '@/helpers/journeyRoutes';
 
 export const Route = createFileRoute('/_admin/journeys/')({
   component: JourneysPage,
@@ -32,12 +33,6 @@ const defaultVisibleColumns = {
 };
 type VisibleColumns = typeof defaultVisibleColumns;
 
-const unwrapData = <T,>(value: T | { data?: T } | undefined): T | undefined => {
-  if (!value) return undefined;
-  if (typeof value === 'object' && value !== null && 'data' in value) return (value as { data?: T }).data;
-  return value as T;
-};
-
 const normalizeJourney = (journey: Journey): JourneyRow => {
   const route = unwrapData<JourneyRoute>(journey.route);
   const fromLocation = unwrapData<Location>(journey.from_location);
@@ -46,7 +41,7 @@ const normalizeJourney = (journey: Journey): JourneyRow => {
   return {
     id: String(journey.id),
     routeCode: route?.code || '',
-    routeName: route?.name || '',
+    routeName: route ? buildRouteDisplayName({ code: route.code, name: route.name }, fromLocation?.name, toLocation?.name) : '',
     fromName: fromLocation?.name || '',
     toName: toLocation?.name || '',
     status: journey.status === 'inactive' || journey.is_active === false ? 'inactive' : 'active',
@@ -77,8 +72,8 @@ function JourneysPage() {
       return defaultVisibleColumns;
     }
   });
-  const [deactivateTarget, setDeactivateTarget] = useState<JourneyRow | null>(null);
-  const [deactivating, setDeactivating] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<JourneyRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchJourneys = async () => {
     setLoading(true);
@@ -129,19 +124,21 @@ function JourneysPage() {
     return filteredJourneys.slice(start, start + pageSize);
   }, [filteredJourneys, currentPage, pageSize]);
 
-  const executeDeactivate = async () => {
-    if (!deactivateTarget || deactivating) return;
-    setDeactivating(true);
+  const executeDelete = async () => {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
     try {
-      await deactivateJourney(deactivateTarget.id);
-      toast.success(`Đã tạm ngưng hành trình ${deactivateTarget.fromName || 'Chưa cập nhật'} → ${deactivateTarget.toName || 'Chưa cập nhật'}`);
-      setDeactivateTarget(null);
+      const response = await deleteJourney(deleteTarget.id, {
+        reason: `Xóa hành trình ${deleteTarget.fromName || 'Chưa cập nhật'} → ${deleteTarget.toName || 'Chưa cập nhật'} từ dashboard vận hành`,
+      });
+      toast.success(response?.message || 'Đã xóa hành trình');
+      setDeleteTarget(null);
       await fetchJourneys();
     } catch (err: any) {
-      const message = err?.response?.data?.message || err?.message || 'Không thể tạm ngưng hành trình';
-      toast.error(`Tạm ngưng hành trình thất bại. ${message}`);
+      const message = err?.response?.data?.message || err?.message || 'Không thể xóa hành trình';
+      toast.error(`Xóa hành trình thất bại. ${message}`);
     } finally {
-      setDeactivating(false);
+      setDeleting(false);
     }
   };
 
@@ -325,12 +322,11 @@ function JourneysPage() {
                         </Link>
                         <button
                           type="button"
-                          onClick={() => setDeactivateTarget(journey)}
-                          disabled={journey.status === 'inactive'}
-                          className="p-1.5 inline-flex items-center justify-center rounded-md hover:bg-amber-50 dark:hover:bg-amber-950/30 text-amber-600 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                          title={journey.status === 'inactive' ? 'Hành trình đã tạm ngưng' : 'Tạm ngưng hành trình'}
+                          onClick={() => setDeleteTarget(journey)}
+                          className="p-1.5 inline-flex items-center justify-center rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 cursor-pointer"
+                          title="Xóa hành trình"
                         >
-                          <Ban size={16} />
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </td>
@@ -351,18 +347,18 @@ function JourneysPage() {
       />
 
       <ConfirmModal
-        open={Boolean(deactivateTarget)}
-        onOpenChange={(open) => !open && setDeactivateTarget(null)}
-        title="Tạm ngưng hành trình?"
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Xóa hành trình?"
         description={
           <span>
-            Hành trình <strong>{deactivateTarget?.fromName || 'Chưa cập nhật'} → {deactivateTarget?.toName || 'Chưa cập nhật'}</strong> sẽ chuyển sang trạng thái tạm ngưng theo contract backend hiện có.
+            Hành trình <strong>{deleteTarget?.fromName || 'Chưa cập nhật'} → {deleteTarget?.toName || 'Chưa cập nhật'}</strong> sẽ bị xóa khỏi master data. Nếu hành trình đang có chặng đặt vé phụ thuộc, hệ thống sẽ chặn và báo cần xử lý chặng đó trước.
           </span>
         }
-        confirmLabel="Tạm ngưng"
+        confirmLabel="Xóa hành trình"
         cancelLabel="Hủy bỏ"
-        loading={deactivating}
-        onConfirm={executeDeactivate}
+        loading={deleting}
+        onConfirm={executeDelete}
       />
     </div>
   );
