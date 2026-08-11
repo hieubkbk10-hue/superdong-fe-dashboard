@@ -1,202 +1,137 @@
 ---
 name: admin-ui-standard
-description: Quy chuẩn thiết kế và phát triển giao diện Admin Dashboard (React, TanStack Router, TailwindCSS, Shadcn, Lucide React) chuẩn Newmoon-Admin và Superdong. Sử dụng Module Coupon làm tham chiếu mẫu chuẩn mực cho mọi màn hình List, Create, Edit.
+description: Quy chuẩn thiết kế và phát triển giao diện Admin Dashboard (React, TanStack Router, TailwindCSS, Shadcn, Lucide React) chuẩn Newmoon-Admin và Superdong. Sử dụng Module Coupon & User làm tham chiếu mẫu chuẩn mực cho mọi màn hình Full-Stack List, Create, Edit.
 ---
 
-# Admin UI Standard - Quy Chuẩn Thiết Kế Giao Diện Superdong Admin Dashboard
+# Admin UI Standard - Quy Chuẩn Thiết Kế & Phát Triển Full-Stack Admin Dashboard
 
-Bộ quy chuẩn thiết kế và lập trình Frontend Dashboard được tổng hợp trực tiếp từ module mẫu **Coupon (`src/routes/_admin/coupons/`)**, tuân thủ 100% triết lý UI/UX từ `Newmoon-Admin` và nhận diện thương hiệu Superdong.
-
----
-
-## 🧠 1. Triết Lý Thiết Kế Cốt Lõi (Design Philosophy)
-
-1. **Đúng Bản Chất Nghiệp Vụ (Domain Model Authenticity)**:
-   * Không máy móc đưa các phần tử thuộc tính của đối tượng này sang đối tượng khác (ví dụ: Nhân viên `Employee` có ảnh đại diện nên có khung upload Avatar, nhưng Mã khuyến mãi `Coupon` là chính sách giá nên KHÔNG CÓ khung upload ảnh Avatar).
-   * Mọi ô nhập liệu và trường thông tin phải phản ánh đúng dữ liệu nghiệp vụ thực tế.
-
-2. **Nhất Quán Tông Màu Thương Hiệu (Unified Brand Color Palette)**:
-   * **Màu Chủ Đạo Thương Hiệu (Primary Brand Color)**: **Tông Xanh Dương (`blue-600` / `#2B7FFF`)**
-     * Nút chính (Primary Action Buttons): `bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg`
-     * Khung mã code / Highlight badge: `bg-blue-50 text-blue-600 border-blue-200`
-     * Icon sắp xếp bảng & active state: `text-blue-600 dark:text-blue-400`
-     * Viền focus ring ô nhập liệu: `focus:border-blue-500`
-
-3. **Bố Cục 1 Khung Liền Mạch (Single Unified Card Layout)**:
-   * Form Tạo mới và Chỉnh sửa không chia thành nhiều khối lơ lửng rời rạc mà được gom gọn trong **1 khung Card duy nhất** (`bg-white shadow-2xs`).
-   * Các phần thông tin được phân nhóm bằng **Thanh Banner màu Cyan nhạt chuẩn Newmoon-Admin (`bg-[#EBF7FA]`)** có dán Số La Mã (`I.`, `II.`, `III.`, `IV.`).
-
-4. **Trải Rộng Toàn Bộ Chiều Rộng & Nhất Quán Spacing**:
-   * Sử dụng `w-full` trải rộng toàn bộ khung hình, loại bỏ `max-w-4xl` gây thừa khoảng trắng.
-   * Kích thước chữ ô nhập liệu chuẩn `text-sm h-9`, khoảng cách dính sát gọn gàng (`space-y-3` / `gap-3.5`).
+Bộ quy chuẩn thiết kế và lập trình **Full-Stack Frontend & Backend** được đúc kết từ hai module mẫu **Coupon (`src/routes/_admin/coupons/`)** và **User (`src/routes/_admin/users/`)**, tuân thủ 100% triết lý UI/UX từ `Newmoon-Admin` và kiến trúc Porto/Apiato Backend.
 
 ---
 
-## 🔽 2. Đầy Đủ Danh Sách Dropdown & Controls Trong Màn Hình CRUD
+## 📋 CHECKLIST TỰ KIỂM TRÁ BẮT BUỘC KHÔNG ĐƯỢC BỎ BƯỚC (FULL-STACK DEFINITION OF DONE)
 
-Mọi màn hình CRUD tiêu chuẩn BẮT BUỘC có đầy đủ các bộ điều khiển Dropdown và Control sau:
+Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edit), AI Agent **BẮT BUỘC** phải rà soát qua 6 nhóm tiêu chí bên dưới trước khi bàn giao cho anh Hiếu:
 
-### 2.1. Dropdown Trong Màn Hình Danh Sách (List Page - `index.tsx`)
-
-1. **SearchInput (Ô Tìm Kiếm Có Icon Kính Lúp)**:
-   * Vị trí: Đầu thanh Filter Bar.
-   * Tự động lọc dữ liệu theo từ khóa tìm kiếm (mã hoặc tên).
-
-2. **Filter Select Dropdown (Lọc Trạng Thái / Danh Mục)**:
-   * Vị trí: Bên cạnh ô tìm kiếm.
-   * Tùy chọn tiêu chuẩn: `Tất cả trạng thái`, `Kích hoạt`, `Đã khóa`.
-   * Thể hiện: `<select className="h-9 px-3 text-[13px] border border-slate-200 rounded-md bg-white">`.
-
-3. **Column Visibility Toggle Dropdown (Ẩn / Hiện Cột)**:
-   * Vị trí: Góc phải thanh Filter Bar (`SlidersHorizontal` icon).
-   * Tính năng: Popup danh sách checkbox bật/tắt hiển thị từng cột + Link `Mặc định` reset cấu hình.
-   * **BẮT BUỘC Persistence `localStorage`**: Mọi thay đổi ẩn/hiện cột phải lưu tự động vào `localStorage` (`superdong_<entity>_visible_columns`) để khi bấm **F5 (Reload)** không bị mất cài đặt.
-
-4. **Pagination Rows Per Page Dropdown (Số Dòng / Trang)**:
-   * Vị trí: Thanh phân trang `<PaginationBar>`.
-   * Tùy chọn: `5`, `10`, `20`, `50` dòng/trang.
-
-5. **Row Actions (Dropdown / Button Hành Động Từng Dòng)**:
-   * Nút icon trực tiếp: `Pen` (Sửa - hover xanh `text-blue-600 bg-blue-50`) & `Trash2` (Xóa - hover đỏ `text-rose-600 bg-rose-50`).
-   * Nếu có từ 3 hành động trở lên, dùng `<DropdownMenu>` icon 3 dấu chấm (`MoreHorizontal`).
-
-### 2.2. Controls Trong Màn Hình Tạo Mới & Chỉnh Sửa (Edit / Create Forms)
-
-1. **Discount Type Select Dropdown (Loại Giảm Giá / Vai Trò Hệ Thống)**:
-   * Dropdown `<select>` chuẩn font `text-sm h-9 bg-white border-slate-200`.
-
-2. **DateBox Control (Ô Chọn Ngày Chuẩn Newmoon)**:
-   * Sử dụng `<DateBox>` ([DateBox.tsx](file:///E:/cty/superdong-fe-dashboard/src/components/common/DateBox.tsx)).
-   * Hiển thị văn bản ngày Việt Nam `DD/MM/YYYY` (ví dụ: `01/06/2026`).
-   * Chứa đúng **1 Icon Lịch duy nhất (`CalendarIcon`)** bên góc phải, kích hoạt chọn ngày mượt mà khi nhấp vào.
-
-3. **Status Checkbox / Toggle (Trạng Thái Kích Hoạt)**:
-   * Checkbox `Kích hoạt sử dụng ngay lập tức`.
-
----
-
-## 📊 3. Quy Chuẩn Cấu Trúc Bảng Dữ Liệu (`<DataTable>`)
-
-1. **Header Bảng (`TableHeader`)**:
-   * Chữ in hoa, font bold (`text-slate-600 uppercase text-[12px] font-bold`), nền xám nhạt `#F9FAFB`.
-   * Các cột phân tách bằng đường kẻ dọc mỏng (`border-r border-slate-200/80`).
-
-2. **Sắp Xếp 3 Trạng Thái (3-State Sorting)**:
-   * Click 1 $\rightarrow$ Tăng dần (`asc`), Click 2 $\rightarrow$ Giảm dần (`desc`), Click 3 $\rightarrow$ Trở về ban đầu (`none`).
-
-3. **Định Dạng Ô Dữ Liệu (Cell Formatting)**:
-   * **Mã Code / ID**: Font mono `text-blue-600 bg-blue-50 border-blue-200 px-2 py-0.5 rounded`.
-   * **Tiền Tệ / phần trăm**: Tiền tệ VND dùng `formatCurrency` sạch không dùng icon $ (`Giảm 100.000 đ`), phần trăm dùng `Percent` icon (`Giảm 15%`).
-   * **Hạn Dùng / Ngày Tháng**: Icon `Calendar` / `Mail` / `Phone` định dạng chuẩn.
-   * **Trạng Thái**: Badge `<Badge variant="success">` (`CheckCircle2`) cho Kích hoạt, `<Badge variant="danger">` (`XCircle`) cho Đã khóa.
-
-4. **Trạng Thái Loading & Empty**:
-   * Tải dữ liệu: 5 dòng Skeleton loading animation (`<Skeleton className="h-5 w-full">`).
-   * Không có dữ liệu: Icon `Inbox` kèm thông báo rỗng.
-
----
-
-## 📝 4. Cấu Trúc Form Mẫu Chuẩn Mực (Standard Form Structure)
-
-```tsx
-<form className="bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5">
-  
-  {/* SECTION 1 */}
-  <div className="space-y-3">
-    <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-      I. Thông tin cơ bản
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-      {/* Inputs */}
-    </div>
-  </div>
-
-  {/* SECTION 2 */}
-  <div className="space-y-3">
-    <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-      II. Mức giảm giá & Điều kiện áp dụng
-    </div>
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
-      {/* Inputs */}
-    </div>
-  </div>
-
-  {/* SECTION 3 */}
-  <div className="space-y-3">
-    <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-      III. Thời hạn & Giới hạn sử dụng
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-      {/* Usage limit, Valid from DateBox, Valid until DateBox */}
-    </div>
-  </div>
-
-  {/* SECTION 4 */}
-  <div className="space-y-3">
-    <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-      IV. Trạng thái & Lý do điều chỉnh
-    </div>
-    <div className="space-y-3">
-      {/* Reason & Is Active Checkbox */}
-    </div>
-  </div>
-
-  {/* BOTTOM ACTION BAR */}
-  <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-200 dark:border-slate-800">
-    <Button variant="outline" type="button" className="px-5 h-9 text-xs">Hủy Bỏ</Button>
-    <Button type="submit" variant="primary" className="px-6 h-9 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg">
-      Lưu thay đổi
-    </Button>
-  </div>
-</form>
+```
+[ ] 1. BACKEND INTEGRITY: Migration table, Model $fillable, Request rules(), Action sanitizeInput(), Transformer transform()
+[ ] 2. FRONTEND INPUT FILTER: Lọc ký tự SĐT (replace /[^0-9]/g), Email regex, Tiền tệ VND không có icon $
+[ ] 3. F5 & PERSISTENCE: Post-Save Re-sync (refetch API), localStorage Column Visibility + Form Cache Fallback
+[ ] 4. DOMAIN & DESIGN: 1 Card liền mạch, w-full tràn viền, Banner Cyan (#EBF7FA) Số La Mã (I, II, III, IV), DateBox DD/MM/YYYY 1 icon
+[ ] 5. BRAND COLOR & BADGES: Blue (#2B7FFF / blue-600) chủ đạo, Badge 4 màu chuẩn (Emerald, Rose, Amber, Blue)
+[ ] 6. SECURITY GUARDS: Khóa hành động xóa/giáng cấp tài khoản Super Admin root gốc
 ```
 
-### 4.1. Quy Trình Xử Lý Sau Khi Lưu (Post-Save Re-sync & F5 State Synchronization)
-* Mọi màn hình Edit/Create sau khi lưu thành công BẮT BUỘC thực hiện luồng:
-  1. Hiển thị thông báo thành công `toast.success(...)`.
-  2. **Tự động Re-fetch dữ liệu mới nhất**: Gọi lại API đọc chi tiết (ví dụ `findUserById` / `findCouponById`) để cập nhật state `setFormData(...)` bằng dữ liệu chuẩn từ Backend Server.
-  3. **Đồng bộ hóa F5 (Reload Safe)**: Khi người dùng bấm **F5 (Reload trang)** hoặc tiếp tục chỉnh sửa, state dữ liệu trên giao diện luôn khớp $100\%$ với Backend API mà không bao giờ bị trôi dữ liệu cũ hoặc xung đột phiên bản!
+---
+
+## ⚙️ 1. Quy Chuẩn Backend & Database (Full-Stack Backend Integrity)
+
+Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSection/<Domain>/`):
+
+1. **Migration Schema (`Data/Migrations/`)**:
+   * Kiểm tra bảng Database BẮT BUỘC có đầy đủ các cột dữ liệu cần lưu (`phone`, `status`, `effective_from`, `effective_to`, `reason`, `version`...).
+   * **NGHIÊM CẤM** thiếu cột trên Database dẫn đến gửi payload từ Frontend mà Backend không thể lưu được.
+
+2. **Model (`Models/<Entity>.php`)**:
+   * Mọi cột dữ liệu có thể chỉnh sửa BẮT BUỘC phải nằm trong mảng `$fillable = ['name', 'email', 'phone', 'status', ...];`.
+
+3. **Request Validation (`UI/API/Requests/<Action>Request.php`)**:
+   * Khai báo rule kiểm tra chặt chẽ:
+     * Số điện thoại: `'phone' => 'nullable|string|regex:/^(0|\+?84)[0-9]{8,10}$/'`
+     * Email: `'email' => 'nullable|email'`
+     * Trạng thái: `'status' => 'nullable|in:active,inactive'`
+     * Ngày tháng: `'birth' => 'nullable|date'`
+
+4. **Action Use-Case (`Actions/<Action>Action.php`)**:
+   * Mảng `$request->sanitizeInput([...])` BẮT BUỘC liệt kê đầy đủ TẤT CẢ các trường dữ liệu được phép cập nhật. **NGHIÊM CẤM** bỏ sót trường làm Backend tự động nuốt/bỏ qua dữ liệu Frontend gửi lên.
+
+5. **Transformer Contract (`UI/API/Transformers/<Entity>Transformer.php`)**:
+   * Phương thức `transform()` BẮT BUỘC trả về đầy đủ các trường thông tin cho Frontend (`phone`, `status`, `roles`...).
 
 ---
 
-## 🛡️ 5. Quy Chuẩn Validate Dữ Liệu Đầu Vào (Input Validation Standards)
+## 🛡️ 2. Quy Chuẩn Frontend Filter & Validation (Input Validation)
 
-Mọi màn hình nhập liệu BẮT BUỘC tuân thủ các quy tắc Validation nghiêm ngặt ở cả Frontend và Backend:
+1. **Lọc Ký Tự Trực Tiếp Trên Ô Nhập (Live Input Filter)**:
+   * **Số điện thoại**: BẮT BUỘC lọc sạch các ký tự không phải chữ số ngay khi người dùng gõ:
+     `onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/[^0-9]/g, '') })}`.
+     $\rightarrow$ Tuyệt đối KHÔNG cho phép người dùng gõ chữ cái (như `ws`, `abc`) hay ký tự đặc biệt vào ô SĐT.
+   * **Số tiền tệ / Phần trăm**: Lọc bỏ số âm và chữ cái.
 
-1. **Số Điện Thoại (Phone Number Validation)**:
-   * **Lọc Ký Tự Trực Tiếp Trên Input (Frontend Filter)**: Ô nhập SĐT BẮT BUỘC lọc sạch các ký tự không phải chữ số ngay khi người dùng gõ:
-     `value.replace(/[^0-9]/g, '')`. Tuyệt đối KHÔNG cho phép gõ ký tự chữ cái (như `ws`, `abc`) hay ký tự đặc biệt vào ô SĐT.
-   * **Kiểm Tra Độ Dài & Định Dạng (Regex Check)**: Số điện thoại phải từ **9 đến 11 chữ số** (bắt đầu bằng `0` hoặc `84`).
-   * **Backend Request Rule**: Backend API Request class BẮT BUỘC phải chứa rule:
-     `'phone' => 'nullable|string|regex:/^(0|\+?84)[0-9]{8,10}$/'`.
-
-2. **Địa Chỉ Email (Email Validation)**:
-   * **Định Dạng Email**: Kiểm tra regex chuẩn `^[^\s@]+@[^\s@]+\.[^\s@]+$`. Báo lỗi ngay qua Toast nếu nhập sai định dạng.
-
-3. **Số Tiền Tệ & Giá Trị Phần Trăm (Numeric & Currency Validation)**:
-   * Lọc bỏ ký tự âm hoặc chữ cái. Số tiền tối thiểu / Số tiền tối đa phải $\ge 0$.
-
-4. **Trường Bắt Buộc (Required Fields)**:
-   * Phải dán dấu sao đỏ `<span className="text-rose-500 font-bold">*</span>`. Khi bấm Lưu mà để trống, hiển thị Toast cảnh báo và highlight viền đỏ ô nhập liệu.
+2. **Validation Trước Khi Submit Form**:
+   * **Họ tên / Trường bắt buộc**: Kiểm tra `!formData.name.trim()`, hiển thị Toast báo lỗi cụ thể.
+   * **Email**: Kiểm tra regex `^[^\s@]+@[^\s@]+\.[^\s@]+$`. Báo lỗi nếu thiếu cú pháp `@domain.com`.
+   * **Số điện thoại**: Kiểm tra từ **9 đến 11 chữ số** (bắt đầu bằng `0` hoặc `84`).
 
 ---
 
-## 🛠️ 6. Danh Sách Common Components Chuẩn (Golden Component Registry)
+## 🔄 3. Cơ Chế Lưu Dữ Liệu & Chống Mất State Khi F5 (F5 Persistence Safe)
 
-| Component | Đường dẫn File | Mục đích sử dụng |
-| :--- | :--- | :--- |
-| **`Button`** | [Button.tsx](file:///E:/cty/superdong-fe-dashboard/src/components/common/Button.tsx) | Nút bấm chuẩn với các variant `primary` (Blue), `light`, `outline`, `ghost`, `danger` |
-| **`Badge`** | [Badge.tsx](file:///E:/cty/superdong-fe-dashboard/src/components/common/Badge.tsx) | Nhãn trạng thái `success`, `danger`, `warning`, `blue`, `secondary` |
-| **`DateBox`** | [DateBox.tsx](file:///E:/cty/superdong-fe-dashboard/src/components/common/DateBox.tsx) | Ô chọn ngày hiển thị dạng `DD/MM/YYYY` kèm 1 icon lịch duy nhất |
-| **`DataTable`** | [DataTable.tsx](file:///E:/cty/superdong-fe-dashboard/src/components/common/DataTable.tsx) | Bảng dữ liệu hỗ trợ sắp xếp 3 trạng thái, skeleton loading & ẩn/hiện cột |
-| **`PaginationBar`** | [PaginationBar.tsx](file:///E:/cty/superdong-fe-dashboard/src/components/common/PaginationBar.tsx) | Thanh điều hướng phân trang và chọn số dòng/trang |
-| **`SearchInput`** | [SearchInput.tsx](file:///E:/cty/superdong-fe-dashboard/src/components/common/SearchInput.tsx) | Ô tìm kiếm từ khóa dùng chung có icon kính lúp |
-| **`ConfirmModal`** | [ConfirmModal.tsx](file:///E:/cty/superdong-fe-dashboard/src/components/common/ConfirmModal.tsx) | Dialog xác nhận hành động nguy hiểm (xóa/khóa dữ liệu) |
+1. **Post-Save Re-sync (Đồng Bộ State Sau Khi Lưu)**:
+   * Ngay sau khi gọi API cập nhật thành công và hiển thị `toast.success(...)`, Frontend BẮT BUỘC thực hiện re-fetch lại dữ liệu mới nhất từ Server (ví dụ `findUserById(id)` / `findCouponById(id)`) và cập nhật lại state `setFormData(...)`.
+
+2. **LocalStorage Cache Fallback (Bảo Vệ Dữ Liệu Khỏi F5)**:
+   * **Column Visibility**: Cài đặt ẩn/hiện cột bảng BẮT BUỘC lưu vào `localStorage` (`superdong_<entity>_visible_columns`).
+   * **Form Data Cache**: Dữ liệu vừa chỉnh sửa được tự động backup vào `localStorage` (`superdong_<entity>_cache_${id}`). Khi người dùng bấm **F5 (Reload trang)**, hệ thống đọc lại cache để giữ nguyên trạng thái mới nhất $100\%$, không bao giờ bị trôi về dữ liệu cũ.
+
+---
+
+## 🎨 4. Quy Chuẩn Màu Sắc & Nhận Diện Thương Hiệu (Brand Theme)
+
+* **Màu Chủ Đạo Thương Hiệu (Primary Brand Color)**: **Tông Xanh Dương (`blue-600` / `#2B7FFF`)**
+  * Nút bấm chính: `bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg`
+  * Khung mã code / Highlight badge: `bg-blue-50 text-blue-600 border-blue-200`
+  * Icon sắp xếp bảng & active state: `text-blue-600 dark:text-blue-400`
+  * Viền focus ring ô nhập liệu: `focus:border-blue-500`
+
+* **Màu Trạng Thái Chuẩn (Status Palette)**:
+  * **Success (Kích hoạt / Đã thanh toán)**: `bg-emerald-50 text-emerald-700 border-emerald-200`
+  * **Danger (Khóa / Thất bại)**: `bg-rose-50 text-rose-700 border-rose-200`
+  * **Warning (Cảnh báo / Quản lý)**: `bg-amber-50 text-amber-700 border-amber-200`
+  * **Blue / Primary (Super Admin / Mã mới)**: `bg-blue-50 text-blue-700 border-blue-200`
+
+---
+
+## 📐 5. Cấu Trúc Bố Cục Màn Hình (Layout Architecture)
+
+### 5.1. Màn Hình Danh Sách (List Page - `index.tsx`)
+* **Top Header Bar**: Icon đại diện + Tiêu đề + Nút `Làm mới` (spinner animation) + Nút `+ Tạo mới`.
+* **Filter Bar Đầy Đủ 4 Dropdown**:
+  1. `<SearchInput>`: Ô tìm kiếm dùng icon kính lúp.
+  2. `<select>` Lọc trạng thái / danh mục (`Tất cả`, `Kích hoạt`, `Đã khóa`).
+  3. **Column Visibility Dropdown (`Cột`)**: Checkbox bật/tắt cột + link `Mặc định` reset + **lưu `localStorage`**.
+  4. **Pagination Rows Per Page Dropdown**: Choose `5`, `10`, `20`, `50` dòng/trang.
+* **Bảng `<DataTable>`**: Header in hoa `#F9FAFB`, Sắp xếp 3 trạng thái (Asc $\rightarrow$ Desc $\rightarrow$ None), Skeleton loading, Empty state.
+* **Thanh Phân Trang `<PaginationBar>`** & **Modal Xác Nhận Xóa `<ConfirmModal>`**.
+
+### 5.2. Màn Hình Tạo Mới & Chỉnh Sửa (Create & Edit Forms)
+* **Tràn viền `w-full`**: Toàn bộ form nằm trong **1 khung Card duy nhất** (`bg-white shadow-2xs`).
+* **Thanh Banner Nhóm Số La Mã Màu Cyan Nhạt (`bg-[#EBF7FA]`)**:
+  * `I. THÔNG TIN CÁ NHÂN` / `I. THÔNG TIN CƠ BẢN`
+  * `II. THÔNG TIN TÀI KHOẢN & LIÊN HỆ` / `II. MỨC GIẢM GIÁ & ĐIỀU KIỆN ÁP DỤNG`
+  * `III. PHÂN QUYỀN & VAI TRÒ` / `III. THỜI HẠN & GIỚI HẠN SỬ DỤNG`
+  * `IV. TRẠNG THÁI & GHI CHÚ`
+* **Component Ô Chọn Ngày `<DateBox>`**: Định dạng ngày Việt Nam `DD/MM/YYYY` kèm **đúng 1 Icon Lịch duy nhất**.
+* **Thanh Nút Bấm Hành Động Dưới Cùng**: `Hủy Bỏ` & `Lưu thay đổi` (góc phải).
+
+---
+
+## 🔒 6. Quy Chuẩn Bảo Vệ Quyền Hạn & Security Guards
+
+1. **Bảo Vệ Tài Khoản Super Admin Gốc**:
+   * Tài khoản root (`admin@admin.com` / `Super Admin`) **TUYỆT ĐỐI KHÔNG THỂ BỊ XÓA**: Thay nút xóa bằng **Icon Ổ Khóa (`Lock`)** mờ kèm tooltip *"Tài khoản Super Admin gốc hệ thống - Không thể xóa"*.
+   * Dropdown **Vai Trò Hệ Thống** và Checkbox **Trạng Thái Kích Hoạt** của Super Admin BẮT BUỘC bị khoá `disabled`, giữ nguyên vai trò tối cao và trạng thái Kích hoạt.
 
 ---
 
 ## 📂 7. Danh Sách File Mẫu Chuẩn Mực (Golden Reference Source Files)
 
-* **Danh Sách (List View)**: [coupons/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/index.tsx), [users/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/users/index.tsx)
-* **Tạo Mới (Create Form)**: [coupons/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/create.tsx), [users/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/users/create.tsx)
-* **Chỉnh Sửa (Edit Form)**: [coupons/$couponId.edit.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/$couponId.edit.tsx), [users/$userId.edit.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/users/$userId.edit.tsx)
+* **Coupon Module**:
+  * List: [coupons/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/index.tsx)
+  * Create: [coupons/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/create.tsx)
+  * Edit: [coupons/$couponId.edit.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/$couponId.edit.tsx)
+
+* **User Module**:
+  * List: [users/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/users/index.tsx)
+  * Create: [users/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/users/create.tsx)
+  * Edit: [users/$userId.edit.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/users/$userId.edit.tsx)
