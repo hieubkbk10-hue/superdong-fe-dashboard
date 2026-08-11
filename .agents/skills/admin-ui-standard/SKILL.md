@@ -19,7 +19,7 @@ Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edi
 [ ] 3. F5 & UNIVERSAL STATE SYNC: Re-sync API + Map-Merge TẤT CẢ các trường dữ liệu (Name, Email, Phone, Code, Status, Value...) vào LocalStorage Cache cho cả màn Edit và màn List
 [ ] 4. DOMAIN & DESIGN: 1 Card liền mạch, w-full, CẤM cột ID nội bộ DB thô, Banner Cyan (#EBF7FA) Số La Mã (I, II, III, IV), DateBox DD/MM/YYYY 1 icon
 [ ] 5. BRAND COLOR & BADGES: Blue (#2B7FFF / blue-600) chủ đạo, Badge 4 màu chuẩn (Emerald, Rose, Amber, Blue)
-[ ] 6. SECURITY GUARDS: Khóa hành động xóa/giáng cấp tài khoản Super Admin root gốc
+[ ] 6. GIT & DEPLOY: Backend push cả nhánh dev_ và master; Frontend push master để Vercel & Live LiteSpeed Server đồng bộ
 ```
 
 ---
@@ -131,7 +131,20 @@ Quy chuẩn này áp dụng cho **TẤT CẢ CÁC TRƯỜNG DỮ LIỆU** (Tên,
 
 ---
 
-## 📂 7. Danh Sách File Mẫu Chuẩn Mực (Golden Reference Source Files)
+## 🚀 7. Quy Chuẩn Git Workflow & Deployment Cho Backend & Frontend
+
+1. **Backend (`superdong-be`)**:
+   * Sau khi hoàn tất code & commit ở nhánh tính năng (ví dụ `dev_hieu_superdong_booking_system`), BẮT BUỘC thực hiện merge và push thẳng sang nhánh **`master`**:
+     `git checkout master && git merge dev_hieu_superdong_booking_system && git push origin master`
+   * Chuyển lại nhánh làm việc hiện tại `git checkout dev_hieu_superdong_booking_system`.
+   * Việc này đảm bảo máy chủ Production LiteSpeed (`https://superdong-be.vitrasau.info.vn`) nhận webhook CI/CD và tự động deploy bản code Backend mới nhất.
+
+2. **Frontend (`superdong-fe-dashboard`)**:
+   * Push code thẳng lên `origin/master` để Vercel tự động kích hoạt build & deploy live dashboard.
+
+---
+
+## 📂 8. Danh Sách File Mẫu Chuẩn Mực (Golden Reference Source Files)
 
 * **Coupon Module**:
   * List: [coupons/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/index.tsx)
