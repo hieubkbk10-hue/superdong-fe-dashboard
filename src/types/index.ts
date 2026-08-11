@@ -196,31 +196,54 @@ export interface Location {
 
 export interface Route {
   id: string | number;
-  origin_location_id: string | number;
-  destination_location_id: string | number;
-  origin_location?: Location;
-  destination_location?: Location;
-  distance_km?: number;
-  estimated_duration_minutes?: number;
-  is_active: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface Journey {
-  id: string | number;
-  name: string;
-  code: string;
-  route_id: string | number;
-  route?: Route;
+  code?: string;
+  name?: string;
+  status?: 'active' | 'inactive';
+  stops?: {
+    data?: RouteStop[];
+  } | RouteStop[];
   origin_location_id?: string | number;
   destination_location_id?: string | number;
   origin_location?: Location;
   destination_location?: Location;
   distance_km?: number;
   estimated_duration_minutes?: number;
-  description?: string;
-  is_active: boolean;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface RouteStop {
+  id: string | number;
+  route_id?: string | number;
+  location_id: string | number;
+  stop_order: number;
+  location?: {
+    data?: Location;
+  } | Location;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Journey {
+  id: string | number;
+  object?: 'Journey';
+  name?: string;
+  code?: string;
+  route_id: string | number;
+  from_location_id?: string | number;
+  to_location_id?: string | number;
+  route?: {
+    data?: Route;
+  } | Route;
+  from_location?: {
+    data?: Location;
+  } | Location;
+  to_location?: {
+    data?: Location;
+  } | Location;
+  status?: 'active' | 'inactive';
+  is_active?: boolean;
   created_at?: string;
   updated_at?: string;
 }
