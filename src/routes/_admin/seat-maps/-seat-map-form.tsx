@@ -135,6 +135,7 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
   const [generator, setGenerator] = useState<GeneratorState>(emptyGenerator);
 
   const activeSeatClasses = useMemo(() => seatClasses.filter((sc) => sc.status !== 'inactive' && sc.is_active !== false), [seatClasses]);
+  const seatClassById = useMemo(() => new Map(seatClasses.map((seatClass) => [String(seatClass.id), seatClass])), [seatClasses]);
 
   const updateDeck = (index: number, patch: Partial<FormDeck>) => {
     setForm((prev) => ({ ...prev, decks: prev.decks.map((item, idx) => (idx === index ? { ...item, ...patch } : item)) }));
@@ -226,6 +227,11 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
       toast.error('Sơ đồ ghế cần ít nhất 1 tầng, 1 khu vực và 1 ghế');
       return;
     }
+    const layoutError = findLayoutError(form);
+    if (layoutError) {
+      toast.error(layoutError);
+      return;
+    }
     await onSubmit({ ...form, name: form.name.trim(), reason: form.reason?.trim() || undefined });
   };
 
@@ -314,6 +320,8 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
         ])} />
       </Section>
 
+      <SeatMapPreview decks={form.decks} zones={form.zones} seats={form.seats} elements={form.elements} seatClassById={seatClassById} />
+
       <div className="p-6 pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
         {mode === 'create' && (
           <button type="button" onClick={() => setForm(defaultPayload)} className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm font-semibold flex items-center gap-2">
@@ -329,6 +337,141 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
       </div>
     </form>
   );
+}
+
+function findLayoutError(form: SeatMapPayload) {
+  const deckCodes = new Set(form.decks.map((deck) => deck.code));
+  const zonesByKey = new Set(form.zones.map((zone) => `${zone.deck_code}:${zone.code}`));
+  const occupiedByDeck = new Set<string>();
+
+  for (const zone of form.zones) {
+    if (!deckCodes.has(zone.deck_code)) return `Khu vực ${zone.code} đang tham chiếu tầng không tồn tại.`;
+  }
+
+  for (const seat of form.seats) {
+    if (!zonesByKey.has(`${seat.deck_code}:${seat.zone_code}`)) return `Ghế ${seat.seat_number || 'chưa đặt số'} đang tham chiếu khu vực không tồn tại.`;
+    const coordinateKey = `${seat.deck_code}:${seat.row}:${seat.column}`;
+    if (occupiedByDeck.has(coordinateKey)) return `Trùng vị trí hàng ${seat.row}, cột ${seat.column} trong tầng ${seat.deck_code}. Mỗi ô trên cùng tầng chỉ chứa được một ghế hoặc tiện ích.`;
+    occupiedByDeck.add(coordinateKey);
+  }
+
+  for (const element of form.elements) {
+    if (!deckCodes.has(element.deck_code)) return `Tiện ích ${element.label || element.type} đang tham chiếu tầng không tồn tại.`;
+    if (element.type === 'block' && !element.label?.trim()) return 'Tiện ích loại “Tiện ích” cần nhập nhãn, ví dụ WC hoặc Cầu thang.';
+    const width = element.type === 'block' ? Number(element.width || 1) : 1;
+    for (let column = Number(element.column); column < Number(element.column) + width; column += 1) {
+      const coordinateKey = `${element.deck_code}:${element.row}:${column}`;
+      if (occupiedByDeck.has(coordinateKey)) return `Tiện ích bị trùng vị trí hàng ${element.row}, cột ${column} trong tầng ${element.deck_code}.`;
+      occupiedByDeck.add(coordinateKey);
+    }
+  }
+
+  return null;
+}
+
+function SeatMapPreview({
+  decks,
+  zones,
+  seats,
+  elements,
+  seatClassById,
+}: {
+  decks: FormDeck[];
+  zones: FormZone[];
+  seats: FormSeat[];
+  elements: FormElement[];
+  seatClassById: Map<string, SeatClass>;
+}) {
+  const sortedDecks = [...decks].sort((a, b) => a.floor_order - b.floor_order);
+
+  return (
+    <div>
+      <div className="bg-[#EBF7FA] px-6 py-3 text-xs font-bold uppercase tracking-wide text-slate-700">VII. Xem trước sơ đồ</div>
+      <div className="p-6 space-y-5">
+        {sortedDecks.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">Thêm tầng, khu vực và ghế để xem trước sơ đồ.</div>
+        ) : sortedDecks.map((deck) => (
+          <DeckPreview key={deck.code} deck={deck} zones={zones.filter((zone) => zone.deck_code === deck.code)} seats={seats.filter((seat) => seat.deck_code === deck.code)} elements={elements.filter((element) => element.deck_code === deck.code)} seatClassById={seatClassById} />
+        ))}
+        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+          <span className="inline-flex items-center gap-1.5"><span className="h-4 w-4 rounded border border-slate-200 bg-white" /> Ghế</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-4 w-4 rounded border border-amber-200 bg-amber-50" /> Tiện ích</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-4 w-4 rounded border border-dashed border-slate-300 bg-slate-50" /> Lối đi / khoảng trống</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeckPreview({
+  deck,
+  zones,
+  seats,
+  elements,
+  seatClassById,
+}: {
+  deck: FormDeck;
+  zones: FormZone[];
+  seats: FormSeat[];
+  elements: FormElement[];
+  seatClassById: Map<string, SeatClass>;
+}) {
+  const maxRow = Math.max(1, ...seats.map((seat) => Number(seat.row || 1)), ...elements.map((element) => Number(element.row || 1)));
+  const maxColumn = Math.max(1, ...seats.map((seat) => Number(seat.column || 1)), ...elements.map((element) => Number(element.column || 1) + Number(element.width || 1) - 1));
+  const seatByCoordinate = new Map(seats.map((seat) => [`${seat.row}:${seat.column}`, seat]));
+  const elementsByCoordinate = new Map<string, FormElement>();
+
+  elements.forEach((element) => {
+    const width = element.type === 'block' ? Number(element.width || 1) : 1;
+    for (let column = Number(element.column); column < Number(element.column) + width; column += 1) {
+      elementsByCoordinate.set(`${element.row}:${column}`, element);
+    }
+  });
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+      <div className="mb-3 flex flex-col md:flex-row md:items-center justify-between gap-2">
+        <div>
+          <div className="font-bold text-slate-900">{deck.name || deck.code}</div>
+          <div className="text-xs text-slate-500">{zones.length} khu vực, {seats.length} ghế</div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {zones.map((zone) => <span key={zone.code} className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">{zone.name || zone.code}</span>)}
+        </div>
+      </div>
+      <div className="overflow-auto rounded-lg border border-slate-200 bg-white p-3">
+        <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${maxColumn}, minmax(44px, 1fr))` }}>
+          {Array.from({ length: maxRow }).flatMap((_, rowIndex) => Array.from({ length: maxColumn }).map((__, columnIndex) => {
+            const row = rowIndex + 1;
+            const column = columnIndex + 1;
+            const key = `${row}:${column}`;
+            const seat = seatByCoordinate.get(key);
+            const element = elementsByCoordinate.get(key);
+            if (seat) {
+              const seatClass = seatClassById.get(String(seat.seat_class_id));
+              return <PreviewCell key={key} label={seat.seat_number || `${row}-${column}`} title={seatClass ? `${seatClass.code} - ${seatClass.name}` : 'Chưa chọn hạng ghế'} color={seatClass?.color} />;
+            }
+            if (element) {
+              const label = element.type === 'block' ? element.label || 'Tiện ích' : element.type === 'aisle' ? 'Lối' : 'Trống';
+              return <PreviewCell key={key} label={label} variant={element.type === 'block' ? 'block' : 'gap'} />;
+            }
+            return <div key={key} className="h-10 rounded-md border border-dashed border-slate-100 bg-slate-50" />;
+          }))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewCell({ label, title, color, variant = 'seat' }: { label: string; title?: string; color?: string; variant?: 'seat' | 'block' | 'gap' }) {
+  const style = variant === 'seat' && color ? { borderColor: color, color } : undefined;
+  const className = variant === 'block'
+    ? 'h-10 rounded-md border border-amber-200 bg-amber-50 px-2 text-xs font-bold text-amber-700 flex items-center justify-center truncate'
+    : variant === 'gap'
+      ? 'h-10 rounded-md border border-dashed border-slate-300 bg-slate-50 px-2 text-xs font-semibold text-slate-500 flex items-center justify-center truncate'
+      : 'h-10 rounded-md border border-blue-200 bg-blue-50 px-2 text-xs font-bold text-blue-700 flex items-center justify-center truncate';
+
+  return <div className={className} style={style} title={title || label}>{label}</div>;
 }
 
 function Section({ title, children, onAdd, addLabel }: { title: string; children: React.ReactNode; onAdd: () => void; addLabel: string }) {
