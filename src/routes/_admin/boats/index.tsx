@@ -36,7 +36,7 @@ function BoatsPage() {
           code: b.code || '',
           name: b.name || '',
           capacity: b.capacity || 0,
-          speed: typeof b.speed === 'number' ? `${b.speed} hải lý/giờ` : (b.speed || '28 hải lý/giờ'),
+          speed: typeof b.speed === 'number' ? `${b.speed} hải lý/giờ` : (b.speed || ''),
           is_express: b.is_express ?? true,
           status: (b.status as any) || 'active',
         }));
@@ -170,8 +170,12 @@ function BoatsPage() {
                     <td className="p-4 font-bold text-slate-900 dark:text-white flex items-center gap-2">
                       <Anchor size={16} className="text-slate-400" /> {b.name}
                     </td>
-                    <td className="p-4 font-medium text-slate-700 dark:text-slate-300">{b.capacity} hành khách</td>
-                    <td className="p-4 text-slate-600 dark:text-slate-400 font-mono text-xs">{b.speed}</td>
+                    <td className="p-4 font-medium text-slate-700 dark:text-slate-300">
+                      {b.capacity > 0 ? `${b.capacity} hành khách` : <span className="text-slate-400">Chưa cập nhật</span>}
+                    </td>
+                    <td className="p-4 text-slate-600 dark:text-slate-400 font-mono text-xs">
+                      {b.speed || <span className="font-sans text-slate-400">Chưa cập nhật</span>}
+                    </td>
                     <td className="p-4">
                       {b.is_express ? (
                         <span className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs px-2.5 py-0.5 rounded-full font-semibold">

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { Ship, ArrowLeft, Save } from 'lucide-react';
+import { Ship, ArrowLeft, Save, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { createBoat } from '@/apis/boats';
 
@@ -10,13 +10,16 @@ export const Route = createFileRoute('/_admin/boats/create')({
 
 function BoatCreatePage() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
+  const defaultFormData = {
     code: '',
     name: '',
-    capacity: 306,
-    speed: '30 hải lý/giờ',
+    capacity: '',
+    speed: '',
     is_express: true,
     status: 'active' as 'active' | 'maintenance' | 'inactive',
+  };
+  const [formData, setFormData] = useState({
+    ...defaultFormData,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -26,18 +29,27 @@ function BoatCreatePage() {
       toast.error('Vui lòng nhập đầy đủ Mã tàu và Tên tàu');
       return;
     }
+    if (!formData.capacity || Number(formData.capacity) <= 0) {
+      toast.error('Vui lòng nhập sức chứa thực tế của tàu');
+      return;
+    }
 
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await createBoat({
+      const payload: Record<string, any> = {
         code: formData.code,
         name: formData.name,
         capacity: Number(formData.capacity),
-        speed: formData.speed,
         is_express: formData.is_express,
         status: formData.status,
-      });
+      };
+
+      if (formData.speed.trim()) {
+        payload.speed = formData.speed.trim();
+      }
+
+      await createBoat(payload);
       toast.success(`Tạo thành công tàu mới: ${formData.name}`, { id: 'boat-create-toast' });
       navigate({ to: '/boats' as any });
     } catch (err: any) {
@@ -47,6 +59,11 @@ function BoatCreatePage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const clearForm = () => {
+    setFormData({ ...defaultFormData });
+    toast.success('Đã làm sạch dữ liệu nhập');
   };
 
   return (
@@ -69,6 +86,14 @@ function BoatCreatePage() {
             <p className="text-xs text-slate-500 mt-0.5">Khai báo thông số kỹ thuật và sức chứa ghế cho tàu mới trong đội tàu</p>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={clearForm}
+          className="h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+        >
+          <RotateCcw size={14} />
+          Làm sạch dữ liệu
+        </button>
       </div>
 
       {/* Main Form Card */}
@@ -109,7 +134,8 @@ function BoatCreatePage() {
             <input
               type="number"
               value={formData.capacity}
-              onChange={(e) => setFormData({ ...formData, capacity: Number(e.target.value) })}
+              onChange={(e) => setFormData({ ...formData, capacity: e.target.value.replace(/[^0-9]/g, '') })}
+              placeholder="VD: 306"
               className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
               required
             />

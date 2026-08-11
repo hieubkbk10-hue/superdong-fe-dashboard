@@ -17,15 +17,16 @@ Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edi
 [ ] 1. DYNAMIC API DATA FETCHING (CẤM HARDCODE): BẮT BUỘC gọi API trực tiếp từ Backend (ví dụ `getRoles()` từ `/v1/roles`) để render dynamic options cho ô Select/Dropdown ở cả màn Create, Edit và List Filter
 [ ] 2. BACKEND INTEGRITY: Migration table, Model $fillable, Request rules(), Action sanitizeInput(), Transformer transform() đầy đủ TẤT CẢ các trường
 [ ] 3. INPUT & ROLE DATA PRECISION: AI Agent tự kiểm tra thủ công tính chính xác của từng ô input, option value select và role_name. Giá trị chọn thế nào giữ nguyên 100% không bị trôi role
-[ ] 4. CREATE PAGE CLEAR DATA BUTTON: Màn Create BẮT BUỘC có nút nhỏ gọn 'Làm sạch dữ liệu' (Clear Form) reset toàn bộ input và xóa bản nháp (CẤM thêm ở màn Edit)
+[ ] 4. CREATE PAGE DEFAULTS & CLEAR DATA: Màn Create BẮT BUỘC để trống input nghiệp vụ chưa biết, chỉ dùng placeholder; chỉ được default giá trị an toàn như status=`active`, checkbox phù hợp domain, và phải có nút 'Làm sạch dữ liệu'
 [ ] 5. FRONTEND INPUT FILTER & PASSWORD UI: Lọc live SĐT/Tiền tệ/Phần trăm, PasswordInput với nút Eye toggle + Checklist 4 tiêu chí Apiato (min 8, A-Z/a-z, 0-9, special char)
 [ ] 6. F5 & FORM DRAFT PERSISTENCE: Lưu bản nháp tự động cho Form đang nhập dở (F5 không mất dữ liệu) + Re-sync API + Map-Merge Cache cho cả màn Edit và màn List
 [ ] 7. DOMAIN & DESIGN: 1 Card liền mạch, w-full, CẤM cột ID nội bộ DB thô, Banner Cyan (#EBF7FA) Số La Mã (I, II, III, IV), DateBox DD/MM/YYYY 1 icon
 [ ] 8. BRAND COLOR & BADGES: Blue (#2B7FFF / blue-600) chủ đạo, Badge 4 màu chuẩn (Emerald, Rose, Amber, Blue)
 [ ] 9. ADMIN-READABLE COPYWRITING: Tên cột, label, toast, badge BẮT BUỘC viết cho Admin vận hành đọc, CẤM wording dev như "Backend", "Guard", "Permissions" nếu không thật sự cần
-[ ] 10. ROLE/PERMISSION GUARD PRECISION: Role/Permission dành cho dashboard BẮT BUỘC lọc `guard_name === 'api'`; KHÔNG lấy `web` vì `web` là guard nội bộ Backend
-[ ] 11. REAL CRUD NAVIGATION & ACTIONS: Nút Tạo/Sửa/Xóa/Lưu BẮT BUỘC navigate hoặc gọi API thật; CẤM toast placeholder kiểu "Tính năng đang phát triển"
-[ ] 12. GIT & MASTER BRANCH DEPLOY: Cả Backend và Frontend làm việc trực tiếp trên nhánh master, commit & push thẳng master để Vercel & Live LiteSpeed Server đồng bộ tức thì
+[ ] 10. NO FAKE FALLBACK DATA: List/Edit/Create CẤM bịa fallback dữ liệu nghiệp vụ (`28 hải lý/giờ`, `306 ghế`, email/sđt mẫu). Nếu API rỗng thì hiển thị `Chưa cập nhật` hoặc để input trống.
+[ ] 11. ROLE/PERMISSION GUARD PRECISION: Role/Permission dành cho dashboard BẮT BUỘC lọc `guard_name === 'api'`; KHÔNG lấy `web` vì `web` là guard nội bộ Backend
+[ ] 12. REAL CRUD NAVIGATION & ACTIONS: Nút Tạo/Sửa/Xóa/Lưu BẮT BUỘC navigate hoặc gọi API thật; CẤM toast placeholder kiểu "Tính năng đang phát triển"
+[ ] 13. GIT & MASTER BRANCH DEPLOY: Cả Backend và Frontend làm việc trực tiếp trên nhánh master, commit & push thẳng master để Vercel & Live LiteSpeed Server đồng bộ tức thì
 ```
 
 ---
@@ -109,18 +110,38 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
    * Nút này cho phép reset toàn bộ ô input về trống và xóa sạch bản nháp `localStorage.removeItem(...)`.
    * **NGHIÊM CẤM** thêm nút "Làm sạch dữ liệu" ở các trang Chỉnh sửa Edit (`edit.tsx`).
 
-2. **Form Draft Persistence (Tự Động Lưu Nháp Form Đang Nhập Dở Khi F5)**:
+2. **Create Form Defaults Không Được Là Dữ Liệu Giả**:
+   * Màn Create phải để trống các input nghiệp vụ mà Admin cần nhập thật, ví dụ `code`, `name`, `capacity`, `speed`, `phone`, `price`, `email`.
+   * Chỉ dùng placeholder để gợi ý format, ví dụ `VD: SD-09`, `VD: 30 hải lý/giờ`; placeholder KHÔNG được gửi trong payload.
+   * Chỉ được đặt default cho giá trị an toàn và có ý nghĩa vận hành:
+     * `status = active` nếu record mới mặc định hoạt động.
+     * Checkbox boolean có default theo domain rõ ràng, ví dụ tàu cao tốc mặc định `is_express = true` nếu màn tên là "Thêm Tàu Cao Tốc".
+   * Nếu input optional để trống, payload gửi lên phải là `null` hoặc bỏ field, KHÔNG gửi chuỗi ví dụ.
+   * Nếu input required để trống, phải chặn submit bằng toast tiếng Việt rõ ràng trước khi gọi API.
+
+3. **Form Draft Persistence (Tự Động Lưu Nháp Form Đang Nhập Dở Khi F5)**:
    * Tất cả các form Create/Edit khi người dùng đang nhập dở (như tên `Trần Mạnh Hiếu`, email `tranmanhhieu10@gmail.com`, SĐT `0948066514`) BẮT BUỘC tự động sao lưu bản nháp vào `localStorage` (`superdong_<entity>_draft_create`).
    * Khi người dùng bấm **F5 (Reload trang)**, form tự khôi phục lại 100% dữ liệu đang nhập dở mà KHÔNG BỊ MẤT THÔNG TIN.
    * Bản nháp chỉ bị xóa `localStorage.removeItem(...)` khi submit thành công hoặc bấm nút Hủy.
 
-3. **Post-Save Re-sync (Đồng Bộ Dữ Liệu Sau Khi Lưu)**:
+4. **Post-Save Re-sync (Đồng Bộ Dữ Liệu Sau Khi Lưu)**:
    * Ngay sau khi gọi API cập nhật thành công và hiển thị `toast.success(...)`, Frontend BẮT BUỘC thực hiện re-fetch lại dữ liệu mới nhất từ Server (ví dụ `findUserById(id)` / `findCouponById(id)`) và cập nhật lại state `setFormData(...)`.
 
-4. **List View Cache Merge (Đồng Bộ Dữ Liệu Cho Màn Danh Sách)**:
+5. **List View Cache Merge (Đồng Bộ Dữ Liệu Cho Màn Danh Sách)**:
    * Mọi trang Danh Sách (List View) khi fetch mảng dữ liệu từ API BẮT BUỘC phải map-merge mảng kết quả với `localStorage` cache fallback (`superdong_<entity>_cache_${item.id}`) của từng dòng.
+   * Cache chỉ được merge dữ liệu người dùng vừa lưu thật. **CẤM** dùng cache/fallback để bịa số liệu nghiệp vụ.
 
-5. **Not Found & API Error UX**:
+6. **List/Edit Không Được Bịa Fallback Dữ Liệu**:
+   * Nếu API trả `null`, `''`, hoặc `0` cho dữ liệu nghiệp vụ chưa biết, UI phải hiển thị `Chưa cập nhật` hoặc để input trống.
+   * **CẤM** fallback kiểu:
+     * `speed || '28 hải lý/giờ'`
+     * `capacity || 306`
+     * `phone || '090...'`
+     * `email || 'demo@example.com'`
+   * Placeholder ví dụ được phép, nhưng placeholder không được trở thành value hoặc payload.
+   * Edit form với dữ liệu thiếu phải bắt Admin nhập giá trị thật trước khi lưu nếu field là required.
+
+7. **Not Found & API Error UX**:
    * Khi Edit page không tìm thấy record, toast phải nêu rõ hành động thất bại, ví dụ: `Không tải được vai trò. Dữ liệu có thể đã bị xóa hoặc ID không thuộc guard API.`
    * Không hiển thị form trắng gây hiểu nhầm. Phải có loading state, error state, hoặc redirect về List.
    * Toast lỗi phải lấy `err.response.data.message` nếu có, nhưng phải bọc bằng câu tiếng Việt có ngữ cảnh nghiệp vụ.
@@ -177,6 +198,8 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
   * Create page phải submit API tạo mới thật, sau đó sync relation thật nếu có (ví dụ sync Role Permissions).
   * Edit page phải fetch detail thật bằng ID từ URL, hydrate form từ server, lưu thành công thì re-fetch detail.
   * Nếu có multi-select/checkbox quyền, phải tick sẵn dữ liệu đang gán, không hardcode giá trị mặc định.
+  * Create page không được prefill dữ liệu nghiệp vụ giả. Ví dụ không được đặt sẵn `capacity: 306`, `speed: "30 hải lý/giờ"`; phải để rỗng và dùng placeholder.
+  * List page không được fallback dữ liệu nghiệp vụ giả. Nếu thiếu tốc độ/sức chứa, hiển thị `Chưa cập nhật` thay vì tự đoán.
   * Edit page không có nút `Làm sạch dữ liệu`; Create page bắt buộc có.
 
 ### 5.3. Quy chuẩn riêng cho Role & Permission UI

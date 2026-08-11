@@ -15,7 +15,7 @@ function BoatEditPage() {
   const [formData, setFormData] = useState({
     code: '',
     name: '',
-    capacity: 0,
+    capacity: '',
     speed: '',
     is_express: true,
     status: 'active' as 'active' | 'maintenance' | 'inactive',
@@ -34,7 +34,7 @@ function BoatEditPage() {
           setFormData({
             code: boat.code || '',
             name: boat.name || '',
-            capacity: boat.capacity || 0,
+            capacity: boat.capacity && boat.capacity > 0 ? String(boat.capacity) : '',
             speed: typeof boat.speed === 'number' ? `${boat.speed} hải lý/giờ` : (boat.speed || ''),
             is_express: boat.is_express ?? true,
             status: boat.status || 'active',
@@ -54,6 +54,10 @@ function BoatEditPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
+    if (!formData.capacity || Number(formData.capacity) <= 0) {
+      toast.error('Vui lòng nhập sức chứa thực tế của tàu', { id: 'boat-edit-toast' });
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -132,7 +136,8 @@ function BoatEditPage() {
             <input
               type="number"
               value={formData.capacity}
-              onChange={(e) => setFormData({ ...formData, capacity: Number(e.target.value) })}
+              onChange={(e) => setFormData({ ...formData, capacity: e.target.value.replace(/[^0-9]/g, '') })}
+              placeholder="VD: 306"
               className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
               required
             />
