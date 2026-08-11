@@ -11,7 +11,7 @@ Bộ quy chuẩn thiết kế và lập trình **Full-Stack Frontend & Backend**
 
 ## 📋 CHECKLIST TỰ KIỂM TRÁ BẮT BUỘC KHÔNG ĐƯỢC BỎ BƯỚC (FULL-STACK DEFINITION OF DONE)
 
-Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edit), AI Agent **BẮT BUỘC** phải rà soát qua 9 nhóm tiêu chí bên dưới trước khi bàn giao cho anh Hiếu (NGHIÊM CẤM HARDCODE DỮ LIỆU GIẢ / SKIP):
+Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edit), AI Agent **BẮT BUỘC** phải rà soát qua 12 nhóm tiêu chí bên dưới trước khi bàn giao cho anh Hiếu (NGHIÊM CẤM HARDCODE DỮ LIỆU GIẢ / SKIP):
 
 ```
 [ ] 1. DYNAMIC API DATA FETCHING (CẤM HARDCODE): BẮT BUỘC gọi API trực tiếp từ Backend (ví dụ `getRoles()` từ `/v1/roles`) để render dynamic options cho ô Select/Dropdown ở cả màn Create, Edit và List Filter
@@ -22,7 +22,10 @@ Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edi
 [ ] 6. F5 & FORM DRAFT PERSISTENCE: Lưu bản nháp tự động cho Form đang nhập dở (F5 không mất dữ liệu) + Re-sync API + Map-Merge Cache cho cả màn Edit và màn List
 [ ] 7. DOMAIN & DESIGN: 1 Card liền mạch, w-full, CẤM cột ID nội bộ DB thô, Banner Cyan (#EBF7FA) Số La Mã (I, II, III, IV), DateBox DD/MM/YYYY 1 icon
 [ ] 8. BRAND COLOR & BADGES: Blue (#2B7FFF / blue-600) chủ đạo, Badge 4 màu chuẩn (Emerald, Rose, Amber, Blue)
-[ ] 9. GIT & MASTER BRANCH DEPLOY: Cả Backend và Frontend làm việc trực tiếp trên nhánh master, commit & push thẳng master để Vercel & Live LiteSpeed Server đồng bộ tức thì
+[ ] 9. ADMIN-READABLE COPYWRITING: Tên cột, label, toast, badge BẮT BUỘC viết cho Admin vận hành đọc, CẤM wording dev như "Backend", "Guard", "Permissions" nếu không thật sự cần
+[ ] 10. ROLE/PERMISSION GUARD PRECISION: Role/Permission dành cho dashboard BẮT BUỘC lọc `guard_name === 'api'`; KHÔNG lấy `web` vì `web` là guard nội bộ Backend
+[ ] 11. REAL CRUD NAVIGATION & ACTIONS: Nút Tạo/Sửa/Xóa/Lưu BẮT BUỘC navigate hoặc gọi API thật; CẤM toast placeholder kiểu "Tính năng đang phát triển"
+[ ] 12. GIT & MASTER BRANCH DEPLOY: Cả Backend và Frontend làm việc trực tiếp trên nhánh master, commit & push thẳng master để Vercel & Live LiteSpeed Server đồng bộ tức thì
 ```
 
 ---
@@ -52,6 +55,20 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
 5. **Transformer Contract (`UI/API/Transformers/<Entity>Transformer.php`)**:
    * Phương thức `transform()` BẮT BUỘC trả về đầy đủ TẤT CẢ các trường thông tin cho Frontend (`name`, `email`, `phone`, `status`, `roles`...).
 
+6. **Guard Contract cho Role & Permission**:
+   * Endpoint phục vụ dashboard (`/v1/roles`, `/v1/permissions`) BẮT BUỘC chỉ trả dữ liệu `guard_name = api`.
+   * Nếu Backend vẫn có dữ liệu `web`, phải filter ở Task/Action bằng `whereGuard('api')` hoặc query tương đương.
+   * Transformer Role/Permission BẮT BUỘC trả `guard_name` để Frontend có lớp phòng vệ thứ hai.
+   * Frontend BẮT BUỘC filter lại `(guard_name || 'api') === 'api'` trước khi dedupe, render, sync quyền.
+   * **CẤM** dedupe role chỉ theo `name` trước khi lọc guard, vì `admin/web` có thể đứng trước `admin/api` và làm Edit bị 404.
+
+7. **ApiDoc bắt buộc sau khi đổi Backend API**:
+   * Khi thêm/sửa Route, Request, Transformer, hoặc response contract, BẮT BUỘC chạy:
+     `php artisan apiato:apidoc`
+   * Route ApiDoc phải dùng title tiếng Anh ở dòng `@api`, ví dụ `Update Role`, `Get All Roles`.
+   * `@apiPermission`, `@apiHeader`, `@apiParam`, `@apiBody` phải đúng chuẩn Apiato. Không viết tiếng Việt tự do trong `@apiPermission`.
+   * Nếu apidoc fail do chạy sai thư mục, phải chạy lại từ root backend repo (`E:\cty\superdong-be`).
+
 ---
 
 ## 🛡️ 2. Quy Chuẩn Dynamic API Fetching & Input Precision
@@ -61,13 +78,20 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
    * BẮT BUỘC phải sử dụng `useEffect` gọi API thực tế từ Backend (như `getRoles()` từ endpoint `/v1/roles`) để nạp mảng dữ liệu sống trực tiếp từ Database.
    * Chỉ dùng mảng fallback domain thực tế khi kết nối mạng hoặc Backend API bị ngắt.
 
-2. **Lọc Ký Tự Trực Tiếp Trên Ô Nhập (Live Input Filter)**:
+2. **Không Được Làm Form/List Demo hoặc Toast Placeholder**:
+   * Nút **Tạo mới** trên List phải dùng `<Link to="/<entity>/create">` hoặc navigate thật.
+   * Nút **Sửa** trong từng dòng phải dùng `<Link to="/<entity>/$id/edit">` với ID API đúng.
+   * Nút **Lưu** ở Create/Edit phải gọi API thật, xử lý loading, success, error, và re-fetch khi cần.
+   * **CẤM** các handler chỉ `toast.info('Tính năng ...')` ở các action chính.
+   * Nếu Backend thiếu endpoint cho Edit/Delete/Sync, phải bổ sung flow Apiato đúng chuẩn thay vì giả lập ở Frontend.
+
+3. **Lọc Ký Tự Trực Tiếp Trên Ô Nhập (Live Input Filter)**:
    * **Số điện thoại**: BẮT BUỘC lọc sạch các ký tự không phải chữ số ngay khi người dùng gõ:
      `onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/[^0-9]/g, '') })}`.
      $\rightarrow$ Tuyệt đối KHÔNG cho phép người dùng gõ chữ cái (như `ws`, `abc`) hay ký tự đặc biệt vào ô SĐT.
    * **Số tiền tệ / Phần trăm**: Lọc bỏ số âm và chữ cái.
 
-3. **Giao Diện Ô Mật Khẩu Thông Minh (`PasswordInput.tsx`)**:
+4. **Giao Diện Ô Mật Khẩu Thông Minh (`PasswordInput.tsx`)**:
    * BẮT BUỘC dùng component `<PasswordInput>` tích hợp:
      * Icon mắt `Eye` / `EyeOff` bật/tắt hiển thị mật khẩu.
      * Bảng checklist 4 quy định mật khẩu Backend Apiato tự động tích xanh theo thời gian thực (Live Validation Checklist):
@@ -96,6 +120,11 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
 4. **List View Cache Merge (Đồng Bộ Dữ Liệu Cho Màn Danh Sách)**:
    * Mọi trang Danh Sách (List View) khi fetch mảng dữ liệu từ API BẮT BUỘC phải map-merge mảng kết quả với `localStorage` cache fallback (`superdong_<entity>_cache_${item.id}`) của từng dòng.
 
+5. **Not Found & API Error UX**:
+   * Khi Edit page không tìm thấy record, toast phải nêu rõ hành động thất bại, ví dụ: `Không tải được vai trò. Dữ liệu có thể đã bị xóa hoặc ID không thuộc guard API.`
+   * Không hiển thị form trắng gây hiểu nhầm. Phải có loading state, error state, hoặc redirect về List.
+   * Toast lỗi phải lấy `err.response.data.message` nếu có, nhưng phải bọc bằng câu tiếng Việt có ngữ cảnh nghiệp vụ.
+
 ---
 
 ## 🎨 4. Quy Chuẩn Màu Sắc & Nhận Diện Thương Hiệu (Brand Theme)
@@ -118,6 +147,10 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
 
 ### 5.1. Màn Hình Danh Sách (List Page - `index.tsx`)
 * **CẤM HIỂN THỊ CỘT ID NỘI BỘ DB THÔ**: Tuyệt đối **KHÔNG** hiển thị cột ID băm/ID số nội bộ DB (như `#mEGx1djKqo3ABbOn`) làm cột riêng trong Bảng Danh Sách List View. Bảng chỉ hiển thị các cột thông tin có ý nghĩa nghiệp vụ cho người dùng Admin (Họ tên & Email, Mã Code Khuyến Mãi `SUMMER2026`, SĐT, Vai Trò, Trạng Thái, Hành Động).
+* **Tên cột cho Admin đọc, không cho Dev đọc**:
+  * Dùng `Vai trò`, `Mô tả`, `Nhân viên`, `Quyền API`, `Thao tác`.
+  * Tránh `Tên Hiển Thị & Guard`, `Mã Backend`, `Permissions`, `Backend ID`, hoặc các thuật ngữ kỹ thuật không cần thiết.
+  * Nếu bắt buộc hiển thị mã kỹ thuật, đặt dưới dạng badge phụ, không làm cột chính.
 * **Top Header Bar**: Icon đại diện + Tiêu đề + Nút `Làm mới` (spinner animation) + Nút `+ Tạo mới`.
 * **Filter Bar Đầy Đủ 4 Dropdown**:
   1. `<SearchInput>`: Ô tìm kiếm dùng icon kính lúp.
@@ -126,6 +159,10 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
   4. **Pagination Rows Per Page Dropdown**: Choose `5`, `10`, `20`, `50` dòng/trang.
 * **Bảng `<DataTable>`**: Header in hoa `#F9FAFB`, Sắp xếp 3 trạng thái (Asc $\rightarrow$ Desc $\rightarrow$ None), Skeleton loading, Empty state.
 * **Thanh Phân Trang `<PaginationBar>`** & **Modal Xác Nhận Xóa `<ConfirmModal>`**.
+* **Action column phải hoạt động thật**:
+  * Edit icon phải mở đúng màn Edit.
+  * Delete icon phải mở ConfirmModal và gọi API thật.
+  * System/root record dùng Lock icon disabled kèm tooltip rõ lý do.
 
 ### 5.2. Màn Hình Tạo Mới & Chỉnh Sửa (Create & Edit Forms)
 * **Tràn viền `w-full`**: Toàn bộ form nằm trong **1 khung Card duy nhất** (`bg-white shadow-2xs`).
@@ -136,6 +173,32 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
   * `IV. TRẠNG THÁI & GHI CHÚ`
 * **Component Ô Chọn Ngày `<DateBox>`**: Định dạng ngày Việt Nam `DD/MM/YYYY` kèm **đúng 1 Icon Lịch duy nhất**.
 * **Thanh Nút Bấm Hành Động Dưới Cùng**: `Hủy Bỏ` & `Lưu thay đổi` (góc phải).
+* **Create/Edit phải dùng data thật**:
+  * Create page phải submit API tạo mới thật, sau đó sync relation thật nếu có (ví dụ sync Role Permissions).
+  * Edit page phải fetch detail thật bằng ID từ URL, hydrate form từ server, lưu thành công thì re-fetch detail.
+  * Nếu có multi-select/checkbox quyền, phải tick sẵn dữ liệu đang gán, không hardcode giá trị mặc định.
+  * Edit page không có nút `Làm sạch dữ liệu`; Create page bắt buộc có.
+
+### 5.3. Quy chuẩn riêng cho Role & Permission UI
+
+* **Role list và User role column**:
+  * Luôn ưu tiên role `guard_name = api`.
+  * Hiển thị tên vai trò bằng `display_name` từ Backend, ví dụ `Administrator`, `Manager`, `Counter Staff`.
+  * Không tự ý đổi `Administrator` thành `Super Admin` nếu Backend đang đặt `display_name = Administrator`.
+  * Nếu user có cả `admin/web` và `admin/api`, phải chọn `admin/api`.
+
+* **Permission selection UI**:
+  * Không hiển thị raw permission name làm label chính nếu chưa format, ví dụ không để label chính là `manage-roles`.
+  * Phải có formatter tiếng Việt cho Admin đọc:
+    * `manage-roles` → `Quản lý vai trò`
+    * `manage-permissions` → `Quản lý quyền truy cập`
+    * `create-admins` → `Tạo mới tài khoản admin`
+    * `manage-admins-access` → `Quản lý phân quyền nhân viên`
+    * `access-dashboard` → `Truy cập dashboard`
+  * Raw permission name chỉ hiển thị nhỏ bằng font mono dưới label chính để hỗ trợ debug.
+  * Phải group quyền theo nghiệp vụ như `Người dùng & nhân viên`, `Vai trò`, `Quyền truy cập`, `Truy cập hệ thống`, `Tài liệu nội bộ`.
+  * Badge `Đã chọn N` chưa đủ. Form phải có box tóm tắt quyền đang chọn, liệt kê label tiếng Việt của từng quyền đang gán.
+  * Khi lưu Role, phải sync bằng ID permission API, không sync bằng label hoặc name.
 
 ---
 
