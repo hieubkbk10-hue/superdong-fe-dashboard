@@ -478,12 +478,14 @@ function UsersPage() {
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="h-9 px-3 text-[13px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-md text-slate-800 dark:text-slate-200 outline-none cursor-pointer hover:border-slate-300 dark:hover:border-slate-700"
+            className="h-9 px-3 text-[13px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-md text-slate-800 dark:text-slate-200 outline-none cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 font-medium"
           >
-            <option value="all">Tất cả vai trò</option>
+            <option value="all">Tất cả vai trò (5 vai trò)</option>
             <option value="Super Admin">Super Admin</option>
-            <option value="Quản trị viên">Quản trị viên</option>
-            <option value="Nhân viên quầy">Nhân viên quầy</option>
+            <option value="Quản trị viên">Quản trị viên (Manager)</option>
+            <option value="Nhân viên quầy">Nhân viên quầy (Counter Staff)</option>
+            <option value="Nhân viên điều hành">Nhân viên điều hành (Operations Staff)</option>
+            <option value="Nhân viên soát vé">Nhân viên soát vé (Check-in Staff)</option>
           </select>
         </div>
 

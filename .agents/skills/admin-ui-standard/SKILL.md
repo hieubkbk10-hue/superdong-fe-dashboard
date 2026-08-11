@@ -11,17 +11,18 @@ Bộ quy chuẩn thiết kế và lập trình **Full-Stack Frontend & Backend**
 
 ## 📋 CHECKLIST TỰ KIỂM TRÁ BẮT BUỘC KHÔNG ĐƯỢC BỎ BƯỚC (FULL-STACK DEFINITION OF DONE)
 
-Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edit), AI Agent **BẮT BUỘC** phải rà soát qua 6 nhóm tiêu chí bên dưới trước khi bàn giao cho anh Hiếu (Tuyệt đối không được skip):
+Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edit), AI Agent **BẮT BUỘC** phải rà soát qua 9 nhóm tiêu chí bên dưới trước khi bàn giao cho anh Hiếu (NGHIÊM CẤM BỎ BƯỚC / SKIP):
 
 ```
-[ ] 1. BACKEND INTEGRITY: Migration table, Model $fillable, Request rules(), Action sanitizeInput(), Transformer transform() đầy đủ TẤT CẢ các trường
-[ ] 2. INPUT & ROLE DATA PRECISION: AI Agent tự kiểm tra thủ công tính chính xác của từng ô input, option value select và role_name. Giá trị chọn thế nào giữ nguyên 100% không bị trôi role
-[ ] 3. CREATE PAGE CLEAR DATA BUTTON: Màn Create BẮT BUỘC có nút nhỏ gọn 'Làm sạch dữ liệu' (Clear Form) reset toàn bộ input và xóa bản nháp (CẤM thêm ở màn Edit)
-[ ] 4. FRONTEND INPUT FILTER & PASSWORD UI: Lọc live SĐT/Tiền tệ/Phần trăm, PasswordInput với nút Eye toggle + Checklist 4 tiêu chí Apiato (min 8, A-Z/a-z, 0-9, special char)
-[ ] 5. F5 & FORM DRAFT PERSISTENCE: Lưu bản nháp tự động cho Form đang nhập dở (F5 không mất dữ liệu) + Re-sync API + Map-Merge Cache cho cả màn Edit và màn List
-[ ] 6. DOMAIN & DESIGN: 1 Card liền mạch, w-full, CẤM cột ID nội bộ DB thô, Banner Cyan (#EBF7FA) Số La Mã (I, II, III, IV), DateBox DD/MM/YYYY 1 icon
-[ ] 7. BRAND COLOR & BADGES: Blue (#2B7FFF / blue-600) chủ đạo, Badge 4 màu chuẩn (Emerald, Rose, Amber, Blue)
-[ ] 8. GIT & MASTER BRANCH DEPLOY: Cả Backend và Frontend làm việc trực tiếp trên nhánh master, commit & push thẳng master để Vercel & Live LiteSpeed Server đồng bộ tức thì
+[ ] 1. SYSTEM DOMAIN INTEGRITY AUDIT: AI Agent tự đối soát thủ công 100% danh mục vai trò/dữ liệu thực tế ở trang /roles (5 vai trò: Super Admin, Quản trị viên, Nhân viên quầy, Nhân viên điều hành, Nhân viên soát vé). NGHIÊM CẤM khai báo thiếu dropdown
+[ ] 2. BACKEND INTEGRITY: Migration table, Model $fillable, Request rules(), Action sanitizeInput(), Transformer transform() đầy đủ TẤT CẢ các trường
+[ ] 3. INPUT & ROLE DATA PRECISION: AI Agent tự kiểm tra thủ công tính chính xác của từng ô input, option value select và role_name. Giá trị chọn thế nào giữ nguyên 100% không bị trôi role
+[ ] 4. CREATE PAGE CLEAR DATA BUTTON: Màn Create BẮT BUỘC có nút nhỏ gọn 'Làm sạch dữ liệu' (Clear Form) reset toàn bộ input và xóa bản nháp (CẤM thêm ở màn Edit)
+[ ] 5. FRONTEND INPUT FILTER & PASSWORD UI: Lọc live SĐT/Tiền tệ/Phần trăm, PasswordInput với nút Eye toggle + Checklist 4 tiêu chí Apiato (min 8, A-Z/a-z, 0-9, special char)
+[ ] 6. F5 & FORM DRAFT PERSISTENCE: Lưu bản nháp tự động cho Form đang nhập dở (F5 không mất dữ liệu) + Re-sync API + Map-Merge Cache cho cả màn Edit và màn List
+[ ] 7. DOMAIN & DESIGN: 1 Card liền mạch, w-full, CẤM cột ID nội bộ DB thô, Banner Cyan (#EBF7FA) Số La Mã (I, II, III, IV), DateBox DD/MM/YYYY 1 icon
+[ ] 8. BRAND COLOR & BADGES: Blue (#2B7FFF / blue-600) chủ đạo, Badge 4 màu chuẩn (Emerald, Rose, Amber, Blue)
+[ ] 9. GIT & MASTER BRANCH DEPLOY: Cả Backend và Frontend làm việc trực tiếp trên nhánh master, commit & push thẳng master để Vercel & Live LiteSpeed Server đồng bộ tức thì
 ```
 
 ---
@@ -55,9 +56,15 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
 
 ## 🛡️ 2. Quy Chuẩn Frontend Filter, Input Precision & Role Handling
 
-1. **Kiểm Tra Thủ Công Tính Chính Xác Của Dữ Liệu Input & Select (Data Integrity Audit)**:
-   * AI Agent BẮT BUỘC phải rà soát thủ công (hand-audit) mối quan hệ giữa các ô input, giá trị `<option value="...">` và mảng dữ liệu.
-   * **Xử lý vai trò (Role Handling)**: Khi tạo mới hoặc chỉnh sửa user chọn vai trò (ví dụ `Super Admin`, `Quản trị viên`, `Nhân viên quầy`), hàm `getUserRoleName` BẮT BUỘC phải đọc và giữ nguyên `role_name` từ state/cache. **NGHIÊM CẤM** tự ý ép vai trò về giá trị mặc định làm tài khoản bị đổi vai trò sai lệch.
+1. **Đối Soát Danh Mục Vai Trò Hệ Thống Khớp 100% Với Trang `/roles` (System Domain Role Audit)**:
+   * AI Agent BẮT BUỘC phải kiểm tra thủ công danh sách vai trò hệ thống hiển thị ở màn `/roles` trước khi khai báo bất kỳ dropdown select nào.
+   * **Danh sách 5 vai trò chuẩn mực**:
+     1. `Super Admin`: Administrator (Toàn quyền quản trị hệ thống)
+     2. `Quản trị viên`: Manager (Quản lý điều hành bến tàu Rạch Giá, Phú Quốc...)
+     3. `Nhân viên quầy`: Counter Staff (Bán vé trực tiếp tại quầy bến tàu)
+     4. `Nhân viên điều hành`: Operations Staff (Điều hành phân công xếp nốt chuyến tàu)
+     5. `Nhân viên soát vé`: Check-in Staff (Kiểm tra soát vé mã QR tại cổng bến tàu)
+   * **NGHIÊM CẤM** tự ý rút gọn còn 3 vai trò hoặc bỏ sót bất kỳ vai trò nào có trong ma trận phân quyền.
 
 2. **Lọc Ký Tự Trực Tiếp Trên Ô Nhập (Live Input Filter)**:
    * **Số điện thoại**: BẮT BUỘC lọc sạch các ký tự không phải chữ số ngay khi người dùng gõ:

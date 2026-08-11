@@ -283,11 +283,13 @@ function UserCreatePage() {
                 id="user-role"
                 value={formData.role_name}
                 onChange={(e) => setFormData({ ...formData, role_name: e.target.value })}
-                className="w-full h-9 px-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm outline-none cursor-pointer focus:border-blue-500"
+                className="w-full h-9 px-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm outline-none cursor-pointer focus:border-blue-500 font-medium"
               >
-                <option value="Super Admin">Super Admin (Toàn quyền hệ thống)</option>
-                <option value="Quản trị viên">Quản trị viên bến tàu / tuyến</option>
-                <option value="Nhân viên quầy">Nhân viên bán vé tại quầy POS</option>
+                <option value="Super Admin">Super Admin (Toàn quyền hệ thống - Administrator)</option>
+                <option value="Quản trị viên">Quản trị viên (Manager - Quản lý điều hành bến tàu)</option>
+                <option value="Nhân viên quầy">Nhân viên quầy (Counter Staff - Bán vé tại quầy)</option>
+                <option value="Nhân viên điều hành">Nhân viên điều hành (Operations Staff - Phân công nốt tàu)</option>
+                <option value="Nhân viên soát vé">Nhân viên soát vé (Check-in Staff - Kiểm tra vé QR cổng)</option>
               </select>
             </div>
 
