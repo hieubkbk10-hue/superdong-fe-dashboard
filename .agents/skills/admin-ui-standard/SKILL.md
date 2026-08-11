@@ -15,8 +15,8 @@ Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edi
 
 ```
 [ ] 1. BACKEND INTEGRITY: Migration table, Model $fillable, Request rules(), Action sanitizeInput(), Transformer transform() đầy đủ TẤT CẢ các trường
-[ ] 2. FRONTEND INPUT FILTER & VALIDATION: Lọc live theo kiểu dữ liệu (chỉ nhập số cho SĐT/Tiền tệ/Phần trăm, Regex Email, Regex SĐT 9-11 chữ số, Ngày DD/MM/YYYY)
-[ ] 3. F5 & UNIVERSAL STATE SYNC: Re-sync API + Map-Merge TẤT CẢ các trường dữ liệu (Name, Email, Phone, Code, Status, Value...) vào LocalStorage Cache cho cả màn Edit và màn List
+[ ] 2. FRONTEND INPUT FILTER & PASSWORD UI: Lọc live SĐT/Tiền tệ/Phần trăm, PasswordInput với nút Eye toggle + Checklist 4 tiêu chí Apiato (min 8, A-Z/a-z, 0-9, special char)
+[ ] 3. F5 & FORM DRAFT PERSISTENCE: Lưu bản nháp tự động cho Form đang nhập dở (F5 không mất dữ liệu) + Re-sync API + Map-Merge Cache cho cả màn Edit và màn List
 [ ] 4. DOMAIN & DESIGN: 1 Card liền mạch, w-full, CẤM cột ID nội bộ DB thô, Banner Cyan (#EBF7FA) Số La Mã (I, II, III, IV), DateBox DD/MM/YYYY 1 icon
 [ ] 5. BRAND COLOR & BADGES: Blue (#2B7FFF / blue-600) chủ đạo, Badge 4 màu chuẩn (Emerald, Rose, Amber, Blue)
 [ ] 6. GIT & MASTER BRANCH DEPLOY: Cả Backend và Frontend làm việc trực tiếp trên nhánh master, commit & push thẳng master để Vercel & Live LiteSpeed Server đồng bộ tức thì
@@ -37,6 +37,7 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
 
 3. **Request Validation (`UI/API/Requests/<Action>Request.php`)**:
    * Khai báo rule kiểm tra chặt chẽ:
+     * Mật khẩu: `User::getPasswordValidationRules()` (tối thiểu 8 ký tự, gồm chữ hoa, chữ thường, chữ số và ký tự đặc biệt).
      * Số điện thoại: `'phone' => 'nullable|string|regex:/^(0|\+?84)[0-9]{8,10}$/'`
      * Email: `'email' => 'nullable|email'`
      * Trạng thái: `'status' => 'nullable|in:active,inactive'`
@@ -58,27 +59,38 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
      $\rightarrow$ Tuyệt đối KHÔNG cho phép người dùng gõ chữ cái (như `ws`, `abc`) hay ký tự đặc biệt vào ô SĐT.
    * **Số tiền tệ / Phần trăm**: Lọc bỏ số âm và chữ cái.
 
-2. **Validation Trước Khi Submit Form**:
+2. **Giao Diện Ô Mật Khẩu Thông Minh (`PasswordInput.tsx`)**:
+   * BẮT BUỘC dùng component `<PasswordInput>` tích hợp:
+     * Icon mắt `Eye` / `EyeOff` bật/tắt hiển thị mật khẩu.
+     * Bảng checklist 4 quy định mật khẩu Backend Apiato tự động tích xanh theo thời gian thực (Live Validation Checklist):
+       1. `✓ Tối thiểu 8 ký tự`
+       2. `✓ Chữ hoa (A-Z) & chữ thường (a-z)`
+       3. `✓ Chữ số (0-9)`
+       4. `✓ Ký tự đặc biệt (!@#$%...)`
+
+3. **Validation Trước Khi Submit Form**:
    * **Họ tên / Trường bắt buộc**: Kiểm tra `!formData.name.trim()`, hiển thị Toast báo lỗi cụ thể.
    * **Email**: Kiểm tra regex `^[^\s@]+@[^\s@]+\.[^\s@]+$`. Báo lỗi nếu thiếu cú pháp `@domain.com`.
    * **Số điện thoại**: Kiểm tra từ **9 đến 11 chữ số** (bắt đầu bằng `0` hoặc `84`).
 
 ---
 
-## 🔄 3. Cơ Chế Đồng Bộ Dữ Liệu Tổng Quát & Chống Mất State Khi F5 (Universal State Synchronization)
+## 🔄 3. Cơ Chế Đồng Bộ Dữ Liệu & Tự Động Lưu Nháp Form Khi F5 (Universal Draft & State Persistence)
 
-Quy chuẩn này áp dụng cho **TẤT CẢ CÁC TRƯỜNG DỮ LIỆU** (Tên, Email, Số điện thoại, Mã Code, Số tiền giảm, Phần trăm, Ngày hiệu lực, Giới hạn sử dụng, Trạng thái, Vai trò, Ghi chú...):
+1. **Form Draft Persistence (Tự Động Lưu Nháp Form Đang Nhập Dở Khi F5)**:
+   * Tất cả các form Create/Edit khi người dùng đang nhập dở (như tên `Trần Mạnh Hiếu`, email `tranmanhhieu10@gmail.com`, SĐT `0948066514`) BẮT BUỘC tự động sao lưu bản nháp vào `localStorage` (`superdong_<entity>_draft_create`).
+   * Khi người dùng bấm **F5 (Reload trang)**, form tự khôi phục lại 100% dữ liệu đang nhập dở mà KHÔNG BỊ MẤT THÔNG TIN.
+   * Bản nháp chỉ bị xóa `localStorage.removeItem(...)` khi submit thành công hoặc bấm nút Hủy.
 
-1. **Post-Save Re-sync (Đồng Bộ Dữ Liệu Sau Khi Lưu)**:
+2. **Post-Save Re-sync (Đồng Bộ Dữ Liệu Sau Khi Lưu)**:
    * Ngay sau khi gọi API cập nhật thành công và hiển thị `toast.success(...)`, Frontend BẮT BUỘC thực hiện re-fetch lại dữ liệu mới nhất từ Server (ví dụ `findUserById(id)` / `findCouponById(id)`) và cập nhật lại state `setFormData(...)`.
 
-2. **LocalStorage Cache Fallback Cho Màn Edit (F5 Protection)**:
+3. **LocalStorage Cache Fallback Cho Màn Edit**:
    * **Column Visibility**: Cài đặt ẩn/hiện cột bảng BẮT BUỘC lưu vào `localStorage` (`superdong_<entity>_visible_columns`).
-   * **Form Data Cache**: BẤT KỲ trường dữ liệu nào vừa chỉnh sửa BẮT BUỘC được tự động backup vào `localStorage` (`superdong_<entity>_cache_${id}`). Khi người dùng bấm **F5 (Reload trang)**, hệ thống đọc lại cache để giữ nguyên trạng thái mới nhất 100%, không bao giờ bị trôi về dữ liệu cũ.
+   * **Form Data Cache**: BẤT KỲ trường dữ liệu nào vừa chỉnh sửa BẮT BUỘC được tự động backup vào `localStorage` (`superdong_<entity>_cache_${id}`).
 
-3. **List View Cache Merge (Đồng Bộ Dữ Liệu Cho Màn Danh Sách)**:
+4. **List View Cache Merge (Đồng Bộ Dữ Liệu Cho Màn Danh Sách)**:
    * Mọi trang Danh Sách (List View) khi fetch mảng dữ liệu từ API BẮT BUỘC phải map-merge mảng kết quả với `localStorage` cache fallback (`superdong_<entity>_cache_${item.id}`) của từng dòng.
-   * Điều này đảm bảo khi người dùng vừa chỉnh sửa BẤT KỲ trường dữ liệu nào ở màn Edit rồi quay lại trang List (hoặc F5), TẤT CẢ các trường dữ liệu vừa chỉnh sửa BẮT BUỘC phải hiển thị đồng bộ 100%, tuyệt đối KHÔNG bị dính dữ liệu cũ hay "Chưa cập nhật"!
 
 ---
 
@@ -146,6 +158,7 @@ Quy chuẩn này áp dụng cho **TẤT CẢ CÁC TRƯỜNG DỮ LIỆU** (Tên,
 
 ## 📂 8. Danh Sách File Mẫu Chuẩn Mực (Golden Reference Source Files)
 
+* **PasswordInput Component**: [PasswordInput.tsx](file:///E:/cty/superdong-fe-dashboard/src/components/common/PasswordInput.tsx)
 * **Coupon Module**:
   * List: [coupons/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/index.tsx)
   * Create: [coupons/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/create.tsx)

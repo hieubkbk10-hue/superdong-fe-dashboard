@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { UserCheck, ArrowLeft, Save, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import { createUser } from '@/apis/users';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
 import { DateBox } from '@/components/common/DateBox';
+import { PasswordInput } from '@/components/common/PasswordInput';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -14,20 +15,46 @@ export const Route = createFileRoute('/_admin/users/create')({
   component: UserCreatePage,
 });
 
+const DRAFT_KEY = 'superdong_user_draft_create';
+
 function UserCreatePage() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    name: 'Trần Mạnh Hiếu',
-    email: '',
-    phone: '',
-    birthday: '1995-01-01',
-    password: '',
-    role_name: 'Super Admin',
-    is_active: true,
-    notes: '',
+
+  // DRAFT FORM PERSISTENCE ON F5: Đọc nháp từ localStorage nếu có
+  const [formData, setFormData] = useState(() => {
+    try {
+      const savedDraft = localStorage.getItem(DRAFT_KEY);
+      if (savedDraft) {
+        return JSON.parse(savedDraft);
+      }
+    } catch (_) {}
+
+    return {
+      name: 'Trần Mạnh Hiếu',
+      email: '',
+      phone: '',
+      birthday: '1995-01-01',
+      password: '',
+      role_name: 'Super Admin',
+      is_active: true,
+      notes: '',
+    };
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Tự động sao lưu bản nháp đang nhập dở vào localStorage mỗi khi thay đổi bất kỳ ô input nào
+  useEffect(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(formData));
+    } catch (_) {}
+  }, [formData]);
+
+  const handleClearDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch (_) {}
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,19 +77,42 @@ function UserCreatePage() {
       return;
     }
 
+    // VALIDATION MẬT KHẨU: Nếu người dùng tự gõ mật khẩu thì phải thỏa mãn 4 quy tắc Backend Apiato
+    const pwd = formData.password.trim();
+    if (pwd) {
+      if (
+        pwd.length < 8 ||
+        !/[a-z]/.test(pwd) ||
+        !/[A-Z]/.test(pwd) ||
+        !/[0-9]/.test(pwd) ||
+        !/[^a-zA-Z0-9]/.test(pwd)
+      ) {
+        toast.error('Mật khẩu chưa đủ độ mạnh theo yêu cầu Backend! Mật khẩu phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường, chữ số và ký tự đặc biệt.', {
+          id: 'user-create-toast',
+        });
+        return;
+      }
+    }
+
     if (isSubmitting) return;
     setIsSubmitting(true);
+
+    // Mật khẩu mặc định đạt 100% tiêu chí Apiato nếu để trống
+    const finalPassword = pwd || 'Superdong@2026';
 
     try {
       const res = await createUser({
         name: formData.name,
         email: formData.email,
         phone: cleanPhone,
-        password: formData.password || 'Superdong@2026',
+        password: finalPassword,
         status: formData.is_active ? 'active' : 'inactive',
       });
 
-      // Save newly created user info to localStorage cache
+      // Xóa bản nháp sau khi submit thành công
+      handleClearDraft();
+
+      // Save newly created user info to localStorage cache for list view
       const newId = res?.data?.id || `new_${Date.now()}`;
       try {
         localStorage.setItem(`superdong_user_cache_${newId}`, JSON.stringify({
@@ -90,7 +140,7 @@ function UserCreatePage() {
       {/* Top Header Navigation Bar */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <Button variant="light" size="icon" className="h-8 w-8" asChild>
+          <Button variant="light" size="icon" className="h-8 w-8" asChild onClick={handleClearDraft}>
             <Link to={'/users' as any} title="Quay lại danh sách">
               <ArrowLeft size={16} />
             </Link>
@@ -101,7 +151,7 @@ function UserCreatePage() {
               Tạo tài khoản người dùng mới
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Khởi tạo tài khoản và cấp quyền truy cập hệ thống Superdong
+              Khởi tạo tài khoản và cấp quyền truy cập hệ thống Superdong (Form tự động lưu nháp chống mất khi F5)
             </p>
           </div>
         </div>
@@ -179,7 +229,6 @@ function UserCreatePage() {
                 type="text"
                 value={formData.phone}
                 onChange={(e) => {
-                  // FILTER: Loại bỏ ngay các ký tự không phải chữ số (tránh gõ ws hay ký tự lạ)
                   const digitsOnly = e.target.value.replace(/[^0-9]/g, '');
                   setFormData({ ...formData, phone: digitsOnly });
                 }}
@@ -214,15 +263,15 @@ function UserCreatePage() {
 
             <div className="space-y-1">
               <Label htmlFor="user-password" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Mật Khẩu Ban Đầu <span className="text-slate-400 font-normal">(để trống sẽ dùng mặc định)</span>
+                Mật Khẩu Ban Đầu <span className="text-slate-400 font-normal">(để trống sẽ dùng mặc định: Superdong@2026)</span>
               </Label>
-              <Input
+              {/* SMART PASSWORD INPUT WITH REAL-TIME CHECKLIST */}
+              <PasswordInput
                 id="user-password"
-                type="password"
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="••••••••"
-                className="text-sm h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                onChange={(val) => setFormData({ ...formData, password: val })}
+                placeholder="Nhập mật khẩu (VD: Superdong@2026)"
+                showRequirements={true}
               />
             </div>
           </div>
@@ -266,7 +315,7 @@ function UserCreatePage() {
 
         {/* Bottom Right Floating Action Bar */}
         <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-200 dark:border-slate-800">
-          <Button variant="outline" type="button" asChild className="px-5 h-9 text-xs">
+          <Button variant="outline" type="button" asChild className="px-5 h-9 text-xs" onClick={handleClearDraft}>
             <Link to={'/users' as any}>Hủy Bỏ</Link>
           </Button>
           <Button
