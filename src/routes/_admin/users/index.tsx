@@ -30,7 +30,7 @@ export const Route = createFileRoute('/_admin/users/')({
   component: UsersPage,
 });
 
-type SortField = 'id' | 'name' | 'email' | 'phone' | 'role' | 'status' | null;
+type SortField = 'name' | 'email' | 'phone' | 'role' | 'status' | null;
 type SortOrder = 'asc' | 'desc' | 'none';
 
 // HELPER LOGIC: Phân tích chính xác tên Vai trò từ dữ liệu Apiato Porto Backend
@@ -83,7 +83,6 @@ function UsersPage() {
   // STORAGE KEY: Persistent Column Visibility in localStorage
   const STORAGE_KEY_COLUMNS = 'superdong_users_visible_columns';
   const DEFAULT_COLUMNS: Record<string, boolean> = {
-    id: true,
     user_info: true,
     phone: true,
     role: true,
@@ -105,7 +104,6 @@ function UsersPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const columnOptions = [
-    { key: 'id', label: 'ID Tài Khoản' },
     { key: 'user_info', label: 'Họ Tên & Email' },
     { key: 'phone', label: 'Số Điện Thoại' },
     { key: 'role', label: 'Vai Trò / Phân Quyền' },
@@ -215,10 +213,6 @@ function UsersPage() {
       let bVal: any = '';
 
       switch (sortField) {
-        case 'id':
-          aVal = String(a.id);
-          bVal = String(b.id);
-          break;
         case 'name':
           aVal = (a.name || '').toLowerCase();
           bVal = (b.name || '').toLowerCase();
@@ -273,25 +267,10 @@ function UsersPage() {
 
   const columns: Column<User>[] = [
     {
-      id: 'id',
-      header: 'ID Tài Khoản',
-      accessor: 'id',
-      width: 'w-[140px]',
-      sortable: true,
-      visible: visibleColumns.id,
-      cell: ({ row }) => (
-        <span className="font-mono font-bold text-blue-600 dark:text-blue-400 text-xs">
-          <span className="bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800/80">
-            #{row.id}
-          </span>
-        </span>
-      ),
-    },
-    {
       id: 'user_info',
       header: 'Họ Tên & Email',
       accessor: 'name',
-      width: 'w-[260px]',
+      width: 'w-[280px]',
       sortable: true,
       visible: visibleColumns.user_info,
       cell: ({ row }) => {
@@ -471,7 +450,7 @@ function UsersPage() {
         <SearchInput
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Tìm tên, email hoặc SĐT nhân viên..."
+          placeholder="Tìm tên, email hoặc SĐT..."
         />
 
         {/* Role Filter Select */}

@@ -17,7 +17,7 @@ Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edi
 [ ] 1. BACKEND INTEGRITY: Migration table, Model $fillable, Request rules(), Action sanitizeInput(), Transformer transform()
 [ ] 2. FRONTEND INPUT FILTER: Lọc ký tự SĐT (replace /[^0-9]/g), Email regex, Tiền tệ VND không có icon $
 [ ] 3. F5 & PERSISTENCE: Post-Save Re-sync (refetch API), localStorage Column Visibility + Form Cache Fallback
-[ ] 4. DOMAIN & DESIGN: 1 Card liền mạch, w-full tràn viền, Banner Cyan (#EBF7FA) Số La Mã (I, II, III, IV), DateBox DD/MM/YYYY 1 icon
+[ ] 4. DOMAIN & DESIGN: 1 Card liền mạch, w-full, CẤM cột ID nội bộ DB thô, Banner Cyan (#EBF7FA) Số La Mã (I, II, III, IV), DateBox DD/MM/YYYY 1 icon
 [ ] 5. BRAND COLOR & BADGES: Blue (#2B7FFF / blue-600) chủ đạo, Badge 4 màu chuẩn (Emerald, Rose, Amber, Blue)
 [ ] 6. SECURITY GUARDS: Khóa hành động xóa/giáng cấp tài khoản Super Admin root gốc
 ```
@@ -95,6 +95,7 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
 ## 📐 5. Cấu Trúc Bố Cục Màn Hình (Layout Architecture)
 
 ### 5.1. Màn Hình Danh Sách (List Page - `index.tsx`)
+* **CẤM HIỂN THỊ CỘT ID NỘI BỘ DB THÔ**: Tuyệt đối **KHÔNG** hiển thị cột ID băm/ID số nội bộ DB (như `#mEGx1djKqo3ABbOn`) làm cột riêng trong Bảng Danh Sách List View. Bảng chỉ hiển thị các cột thông tin có ý nghĩa nghiệp vụ cho người dùng Admin (Họ tên & Email, Mã Code Khuyến Mãi `SUMMER2026`, SĐT, Vai Trò, Trạng Thái, Hành Động).
 * **Top Header Bar**: Icon đại diện + Tiêu đề + Nút `Làm mới` (spinner animation) + Nút `+ Tạo mới`.
 * **Filter Bar Đầy Đủ 4 Dropdown**:
   1. `<SearchInput>`: Ô tìm kiếm dùng icon kính lúp.
