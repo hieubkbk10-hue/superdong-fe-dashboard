@@ -48,26 +48,25 @@ export const normalizeRoleName = (rawName: string): string => {
 // HELPER LOGIC: Phân tích chính xác tên Vai trò từ dữ liệu Apiato Porto Backend & Cache
 const getUserRoleName = (row: any): string => {
   if (!row) return 'Counter Staff';
-  if (row.role_name) return normalizeRoleName(row.role_name);
-
-  const email = (row.email || '').toLowerCase();
-  const name = (row.name || '').toLowerCase();
-
-  // Phát hiện tài khoản Super Admin gốc hệ thống
-  if (email === 'admin@admin.com' || name === 'super admin' || name === 'admin') {
-    return 'Super Admin';
-  }
 
   if (row.roles?.data && Array.isArray(row.roles.data) && row.roles.data.length > 0) {
-    const r = row.roles.data[0];
-    return normalizeRoleName(r.display_name || r.name);
+    const apiRole = row.roles.data.find((role: any) => (role.guard_name || 'api') === 'api') || row.roles.data[0];
+    return apiRole.display_name || normalizeRoleName(apiRole.name);
   }
   if (row.roles && Array.isArray(row.roles) && row.roles.length > 0) {
-    const r = row.roles[0];
-    return normalizeRoleName(typeof r === 'string' ? r : (r.display_name || r.name));
+    const apiRole = row.roles.find((role: any) => typeof role !== 'string' && (role.guard_name || 'api') === 'api') || row.roles[0];
+    return typeof apiRole === 'string' ? normalizeRoleName(apiRole) : (apiRole.display_name || normalizeRoleName(apiRole.name));
+  }
+  if (row.role_name) {
+    return row.role_name;
   }
   if (typeof row.role === 'string' && row.role) {
     return normalizeRoleName(row.role);
+  }
+  const email = (row.email || '').toLowerCase();
+  const name = (row.name || '').toLowerCase();
+  if (email === 'admin@admin.com' || name === 'super admin' || name === 'admin') {
+    return 'Administrator';
   }
   return 'Counter Staff';
 };
@@ -90,12 +89,12 @@ function UsersPage() {
         const res = await getRoles();
         if (isMounted && res && res.data && Array.isArray(res.data) && res.data.length > 0) {
           const uniqueRolesMap = new Map<string, { name: string; display_name: string }>();
-          res.data.forEach((r: any) => {
-            const normName = normalizeRoleName(r.display_name || r.name);
-            if (!uniqueRolesMap.has(normName)) {
-              uniqueRolesMap.set(normName, {
-                name: normName,
-                display_name: normName,
+          res.data.filter((r: any) => (r.guard_name || 'api') === 'api').forEach((r: any) => {
+            const roleLabel = r.display_name || normalizeRoleName(r.name);
+            if (!uniqueRolesMap.has(roleLabel)) {
+              uniqueRolesMap.set(roleLabel, {
+                name: roleLabel,
+                display_name: roleLabel,
               });
             }
           });
@@ -377,7 +376,7 @@ function UsersPage() {
       cell: ({ row }: { row: any }) => {
         const roleName = getUserRoleName(row);
         let variant: any = 'secondary';
-        if (roleName.toLowerCase().includes('admin') || roleName.toLowerCase().includes('super')) {
+        if (roleName.toLowerCase().includes('admin') || roleName.toLowerCase().includes('administrator') || roleName.toLowerCase().includes('super')) {
           variant = 'blue';
         } else if (roleName.toLowerCase().includes('quản lý') || roleName.toLowerCase().includes('manager')) {
           variant = 'warning';
