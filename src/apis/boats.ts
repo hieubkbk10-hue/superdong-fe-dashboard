@@ -21,7 +21,7 @@ export async function createBoat(data: Partial<Boat>): Promise<ApiResponse<Boat>
  * LOGIC: Cập nhật thông tin tàu hiện có
  */
 export async function updateBoat(id: string | number, data: Partial<Boat>): Promise<ApiResponse<Boat>> {
-  const response = await api.put<ApiResponse<Boat>>(`/boats/${id}`, data);
+  const response = await api.patch<ApiResponse<Boat>>(`/boats/${id}`, data);
   return response.data;
 }
 

@@ -41,7 +41,8 @@ function BoatEditPage() {
           });
         }
       } catch (err: any) {
-        toast.error('Không thể tải thông tin tàu từ Backend API');
+        const serverMsg = err?.response?.data?.message || err?.message || '';
+        toast.error(serverMsg ? `Không thể tải thông tin tàu: ${serverMsg}` : 'Không thể tải thông tin tàu. Backend chưa trả được chi tiết tàu theo ID.', { id: 'boat-edit-toast' });
       } finally {
         if (isMounted) setLoading(false);
       }
