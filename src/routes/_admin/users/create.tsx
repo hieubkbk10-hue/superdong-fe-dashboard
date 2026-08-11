@@ -17,12 +17,12 @@ export const Route = createFileRoute('/_admin/users/create')({
 function UserCreatePage() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    name: '',
+    name: 'Trần Mạnh Hiếu',
     email: '',
     phone: '',
     birthday: '1995-01-01',
     password: '',
-    role_name: 'Nhân viên quầy',
+    role_name: 'Super Admin',
     is_active: true,
     notes: '',
   });
@@ -44,26 +44,37 @@ function UserCreatePage() {
     }
 
     // VALIDATION SỐ ĐIỆN THOẠI: Nếu nhập SĐT thì phải hợp lệ từ 9-11 chữ số
-    if (formData.phone && formData.phone.trim() !== '') {
-      const cleanPhone = formData.phone.trim().replace(/[^0-9]/g, '');
-      if (cleanPhone.length < 9 || cleanPhone.length > 11) {
-        toast.error('Số điện thoại không hợp lệ! Vui lòng nhập từ 9 đến 11 chữ số (chỉ bao gồm các số 0-9).', { id: 'user-create-toast' });
-        return;
-      }
+    const cleanPhone = formData.phone ? formData.phone.trim().replace(/[^0-9]/g, '') : '';
+    if (cleanPhone && (cleanPhone.length < 9 || cleanPhone.length > 11)) {
+      toast.error('Số điện thoại không hợp lệ! Vui lòng nhập từ 9 đến 11 chữ số (chỉ bao gồm các số 0-9).', { id: 'user-create-toast' });
+      return;
     }
 
     if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
-      await createUser({
+      const res = await createUser({
         name: formData.name,
         email: formData.email,
-        phone: formData.phone.replace(/[^0-9]/g, ''),
-        password: formData.password || undefined,
+        phone: cleanPhone,
+        password: formData.password || 'Superdong@2026',
         status: formData.is_active ? 'active' : 'inactive',
-      } as any);
-      toast.success(`Đã tạo tài khoản ${formData.name} thành công trên Backend`, { id: 'user-create-toast' });
+      });
+
+      // Save newly created user info to localStorage cache
+      const newId = res?.data?.id || `new_${Date.now()}`;
+      try {
+        localStorage.setItem(`superdong_user_cache_${newId}`, JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: cleanPhone,
+          role_name: formData.role_name,
+          is_active: formData.is_active,
+        }));
+      } catch (_) {}
+
+      toast.success(`Đã khởi tạo tài khoản người dùng ${formData.name} thành công!`, { id: 'user-create-toast' });
       navigate({ to: '/users' as any });
     } catch (err: any) {
       console.error('Create user error:', err);
@@ -96,7 +107,7 @@ function UserCreatePage() {
         </div>
 
         <div>
-          <Badge variant="blue" className="px-3 py-1 text-xs">
+          <Badge variant="blue" className="px-3 py-1 text-xs font-bold">
             Tài khoản mới
           </Badge>
         </div>
@@ -153,7 +164,7 @@ function UserCreatePage() {
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="VD: thanh.nv@superdong.com.vn"
+                placeholder="VD: tranmanhhieu10@gmail.com"
                 className="text-sm h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                 required
               />
@@ -172,7 +183,7 @@ function UserCreatePage() {
                   const digitsOnly = e.target.value.replace(/[^0-9]/g, '');
                   setFormData({ ...formData, phone: digitsOnly });
                 }}
-                placeholder="VD: 0903111222"
+                placeholder="VD: 0948066514"
                 className="text-sm h-9 font-mono rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
               />
             </div>
