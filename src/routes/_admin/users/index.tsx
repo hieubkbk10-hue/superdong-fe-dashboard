@@ -13,6 +13,7 @@ import {
   Mail,
   Phone,
   Shield,
+  Lock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -31,6 +32,31 @@ export const Route = createFileRoute('/_admin/users/')({
 
 type SortField = 'id' | 'name' | 'email' | 'phone' | 'role' | 'status' | null;
 type SortOrder = 'asc' | 'desc' | 'none';
+
+// HELPER LOGIC: Phân tích chính xác tên Vai trò từ dữ liệu Apiato Porto Backend
+const getUserRoleName = (row: any): string => {
+  if (!row) return 'Nhân viên';
+  const email = (row.email || '').toLowerCase();
+  const name = (row.name || '').toLowerCase();
+
+  // Phát hiện tài khoản Super Admin gốc hệ thống
+  if (email === 'admin@admin.com' || name === 'super admin' || name === 'admin') {
+    return 'Super Admin';
+  }
+
+  // Cấu trúc Apiato Porto Transformer: roles.data = [{ name: "Super Admin" }]
+  if (row.roles?.data && Array.isArray(row.roles.data) && row.roles.data.length > 0) {
+    return row.roles.data[0].name || 'Nhân viên';
+  }
+  // Mảng roles tiêu chuẩn
+  if (row.roles && Array.isArray(row.roles) && row.roles.length > 0) {
+    return typeof row.roles[0] === 'string' ? row.roles[0] : (row.roles[0].name || 'Nhân viên');
+  }
+  if (typeof row.role === 'string' && row.role) {
+    return row.role;
+  }
+  return 'Nhân viên';
+};
 
 function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -169,7 +195,7 @@ function UsersPage() {
       const search = searchTerm.toLowerCase().trim();
       const matchesSearch = name.toLowerCase().includes(search) || email.toLowerCase().includes(search) || phone.includes(search);
 
-      const userRole = u.roles?.[0]?.name || (u as any).role || '';
+      const userRole = getUserRoleName(u);
       const matchesRole = roleFilter === 'all' || userRole === roleFilter;
 
       const userStatus = u.status || 'active';
@@ -190,8 +216,8 @@ function UsersPage() {
 
       switch (sortField) {
         case 'id':
-          aVal = Number(a.id) || 0;
-          bVal = Number(b.id) || 0;
+          aVal = String(a.id);
+          bVal = String(b.id);
           break;
         case 'name':
           aVal = (a.name || '').toLowerCase();
@@ -206,8 +232,8 @@ function UsersPage() {
           bVal = b.phone || '';
           break;
         case 'role':
-          aVal = (a.roles?.[0]?.name || a.role || '').toLowerCase();
-          bVal = (b.roles?.[0]?.name || b.role || '').toLowerCase();
+          aVal = getUserRoleName(a).toLowerCase();
+          bVal = getUserRoleName(b).toLowerCase();
           break;
         case 'status':
           aVal = a.status === 'active' ? 1 : 0;
@@ -250,7 +276,7 @@ function UsersPage() {
       id: 'id',
       header: 'ID Nhân Viên',
       accessor: 'id',
-      width: 'w-[120px]',
+      width: 'w-[140px]',
       sortable: true,
       visible: visibleColumns.id,
       cell: ({ row }) => (
@@ -271,7 +297,7 @@ function UsersPage() {
       cell: ({ row }) => {
         const initials = row.name
           ? row.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
-          : 'NV';
+          : 'SA';
         return (
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs font-mono">
@@ -279,10 +305,10 @@ function UsersPage() {
             </div>
             <div className="flex flex-col truncate">
               <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm truncate">
-                {row.name || 'Cán bộ nhân viên'}
+                {row.name || 'Super Admin'}
               </span>
               <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 truncate">
-                <Mail size={12} className="shrink-0 text-slate-400" /> {row.email || 'N/A'}
+                <Mail size={12} className="shrink-0 text-slate-400" /> {row.email || 'admin@admin.com'}
               </span>
             </div>
           </div>
@@ -311,7 +337,7 @@ function UsersPage() {
       sortable: true,
       visible: visibleColumns.role,
       cell: ({ row }: { row: any }) => {
-        const roleName = row.roles?.[0]?.name || row.role || 'Nhân viên';
+        const roleName = getUserRoleName(row);
         let variant: any = 'secondary';
         if (roleName.toLowerCase().includes('admin') || roleName.toLowerCase().includes('super')) {
           variant = 'blue';
@@ -319,7 +345,7 @@ function UsersPage() {
           variant = 'warning';
         }
         return (
-          <Badge variant={variant} className="gap-1">
+          <Badge variant={variant} className="gap-1 font-bold">
             <Shield size={12} className="shrink-0" /> {roleName}
           </Badge>
         );
@@ -351,33 +377,49 @@ function UsersPage() {
       width: 'w-[100px]',
       headClass: 'text-right',
       cellClass: 'text-right',
-      cell: ({ row }: { row: any }) => (
-        <div className="flex items-center justify-end gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50"
-            asChild
-          >
-            <Link
-              to={'/users/$userId/edit' as any}
-              params={{ userId: row.id } as any}
-              title="Chỉnh sửa thông tin"
+      cell: ({ row }: { row: any }) => {
+        const isSuperAdmin = (row.email || '').toLowerCase() === 'admin@admin.com' || getUserRoleName(row) === 'Super Admin';
+        return (
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50"
+              asChild
             >
-              <Pen size={14} />
-            </Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50"
-            onClick={() => setDeleteTarget({ id: row.id, name: row.name || '' })}
-            title="Vô hiệu hóa tài khoản (Lưu Audit Trail)"
-          >
-            <Trash2 size={14} />
-          </Button>
-        </div>
-      ),
+              <Link
+                to={'/users/$userId/edit' as any}
+                params={{ userId: row.id } as any}
+                title="Chỉnh sửa thông tin"
+              >
+                <Pen size={14} />
+              </Link>
+            </Button>
+
+            {isSuperAdmin ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled
+                className="h-7 w-7 text-slate-300 dark:text-slate-700 opacity-40 cursor-not-allowed"
+                title="Tài khoản Super Admin gốc hệ thống - Không thể xóa"
+              >
+                <Lock size={14} />
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50"
+                onClick={() => setDeleteTarget({ id: row.id, name: row.name || '' })}
+                title="Vô hiệu hóa tài khoản (Lưu Audit Trail)"
+              >
+                <Trash2 size={14} />
+              </Button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
