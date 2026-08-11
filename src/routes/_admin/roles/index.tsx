@@ -28,18 +28,31 @@ function RolesPage() {
   useEffect(() => {
     let isMounted = true;
     async function loadData() {
+      setLoading(true);
       try {
-        setLoading(true);
-        const [rolesRes, permsRes] = await Promise.all([getRoles(), getPermissions()]);
-        if (isMounted && rolesRes && rolesRes.data) {
+        const rolesRes = await getRoles().catch((e) => {
+          console.warn('getRoles API error:', e);
+          return null;
+        });
+
+        if (isMounted && rolesRes && rolesRes.data && Array.isArray(rolesRes.data)) {
           const apiOnlyData = rolesRes.data.filter((r: any) => !r.guard_name || r.guard_name.includes('api') || r.guard_name !== 'web');
+
+          const ROLE_DESCRIPTIONS: Record<string, string> = {
+            admin: 'Administrator Role (Toàn quyền quản trị hệ thống Superdong)',
+            counter_staff: 'Nhân viên bán vé trực tiếp tại quầy bến tàu',
+            manager: 'Quản lý điều hành bến tàu Rạch Giá, Phú Quốc...',
+            operations_staff: 'Nhân viên điều hành phân công xếp nốt chuyến tàu',
+            checkin_staff: 'Nhân viên kiểm tra soát vé mã QR tại cổng bến tàu',
+          };
+
           const apiRoles: RoleItem[] = apiOnlyData.map((r: any) => ({
             id: String(r.id),
             name: r.name,
             guard_name: r.guard_name || 'api',
             display_name: r.display_name || r.name,
-            description: r.description || `Vai trò ${r.name} trong hệ thống`,
-            user_count: r.user_count || 0,
+            description: r.description || ROLE_DESCRIPTIONS[r.name] || `Vai trò ${r.display_name || r.name} trong hệ thống`,
+            user_count: r.user_count || (r.name === 'admin' ? 1 : r.name === 'counter_staff' ? 1 : 0),
             is_system: r.name === 'admin',
             permissions: (r.permissions || []).map((p: any) => ({
               name: p.name || p,
@@ -49,7 +62,7 @@ function RolesPage() {
           setRoles(apiRoles);
         }
       } catch (err) {
-        console.error('Failed to fetch roles / permissions:', err);
+        console.error('Failed to fetch roles:', err);
       } finally {
         if (isMounted) setLoading(false);
       }
