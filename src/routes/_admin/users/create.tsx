@@ -32,9 +32,24 @@ function UserCreatePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name.trim() || !formData.email.trim()) {
-      toast.error('Vui lòng điền Họ tên và Email tài khoản!', { id: 'user-create-toast' });
+    // VALIDATION: Kiểm tra bắt buộc Họ tên & Email
+    if (!formData.name.trim()) {
+      toast.error('Vui lòng điền Họ và Tên!', { id: 'user-create-toast' });
       return;
+    }
+
+    if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      toast.error('Email công việc không hợp lệ! Ví dụ: user@superdong.com.vn', { id: 'user-create-toast' });
+      return;
+    }
+
+    // VALIDATION SỐ ĐIỆN THOẠI: Nếu nhập SĐT thì phải hợp lệ từ 9-11 chữ số
+    if (formData.phone && formData.phone.trim() !== '') {
+      const cleanPhone = formData.phone.trim().replace(/[^0-9]/g, '');
+      if (cleanPhone.length < 9 || cleanPhone.length > 11) {
+        toast.error('Số điện thoại không hợp lệ! Vui lòng nhập từ 9 đến 11 chữ số (chỉ bao gồm các số 0-9).', { id: 'user-create-toast' });
+        return;
+      }
     }
 
     if (isSubmitting) return;
@@ -44,7 +59,7 @@ function UserCreatePage() {
       await createUser({
         name: formData.name,
         email: formData.email,
-        phone: formData.phone,
+        phone: formData.phone.replace(/[^0-9]/g, ''),
         password: formData.password || undefined,
         status: formData.is_active ? 'active' : 'inactive',
       } as any);
@@ -146,13 +161,17 @@ function UserCreatePage() {
 
             <div className="space-y-1">
               <Label htmlFor="user-phone" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Số Điện Thoại Liên Hệ
+                Số Điện Thoại Liên Hệ <span className="text-slate-400 font-normal">(chỉ nhập chữ số 0-9)</span>
               </Label>
               <Input
                 id="user-phone"
                 type="text"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) => {
+                  // FILTER: Loại bỏ ngay các ký tự không phải chữ số (tránh gõ ws hay ký tự lạ)
+                  const digitsOnly = e.target.value.replace(/[^0-9]/g, '');
+                  setFormData({ ...formData, phone: digitsOnly });
+                }}
                 placeholder="VD: 0903111222"
                 className="text-sm h-9 font-mono rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
               />

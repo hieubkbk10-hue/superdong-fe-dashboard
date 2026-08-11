@@ -39,15 +39,27 @@ function UserEditPage() {
   const { userId } = Route.useParams();
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    name: 'Super Admin',
-    email: 'admin@admin.com',
-    phone: '0903111222',
-    birthday: '1992-05-15',
-    role_name: 'Super Admin',
-    status: 'active',
-    is_active: true,
-    notes: '',
+  const cacheKey = `superdong_user_cache_${userId}`;
+
+  const [formData, setFormData] = useState(() => {
+    // PERSISTENCE FALLBACK: Đọc dữ liệu từ localStorage cache nếu có
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch (_) {}
+
+    return {
+      name: 'Super Admin',
+      email: 'admin@admin.com',
+      phone: '0903111222',
+      birthday: '1992-05-15',
+      role_name: 'Super Admin',
+      status: 'active',
+      is_active: true,
+      notes: '',
+    };
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,14 +72,28 @@ function UserEditPage() {
       if (res && res.data) {
         const user = res.data;
         const detectedRole = getUserRoleName(user);
-        setFormData((prev) => ({
-          ...prev,
-          name: user.name || prev.name,
-          email: user.email || prev.email,
-          phone: user.phone || prev.phone,
-          role_name: detectedRole,
-          is_active: user.status ? user.status === 'active' : true,
-        }));
+
+        // Merge dữ liệu từ API và cache localStorage
+        let cachedData: any = {};
+        try {
+          const cachedStr = localStorage.getItem(cacheKey);
+          if (cachedStr) cachedData = JSON.parse(cachedStr);
+        } catch (_) {}
+
+        setFormData((prev: any) => {
+          const updated = {
+            ...prev,
+            name: user.name || cachedData.name || prev.name,
+            email: user.email || cachedData.email || prev.email,
+            phone: user.phone ? String(user.phone).replace(/[^0-9]/g, '') : (cachedData.phone || prev.phone),
+            role_name: detectedRole,
+            is_active: user.status ? user.status === 'active' : (cachedData.is_active ?? true),
+          };
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify(updated));
+          } catch (_) {}
+          return updated;
+        });
       }
     } catch (err: any) {
       console.warn('Fetch user details error:', err);
@@ -86,17 +112,41 @@ function UserEditPage() {
     e.preventDefault();
     if (isSubmitting) return;
 
-    if (!formData.name.trim() || !formData.email.trim()) {
-      toast.error('Vui lòng điền Họ tên và Email tài khoản!', { id: 'user-edit-toast' });
+    // VALIDATION: Kiểm tra bắt buộc Họ tên & Email
+    if (!formData.name.trim()) {
+      toast.error('Vui lòng điền Họ và Tên!', { id: 'user-edit-toast' });
+      return;
+    }
+
+    if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      toast.error('Email công việc không hợp lệ! Ví dụ: user@superdong.com.vn', { id: 'user-edit-toast' });
+      return;
+    }
+
+    // VALIDATION SỐ ĐIỆN THOẠI: Nếu nhập SĐT thì phải hợp lệ từ 9-11 chữ số
+    const cleanPhone = formData.phone ? formData.phone.trim().replace(/[^0-9]/g, '') : '';
+    if (cleanPhone && (cleanPhone.length < 9 || cleanPhone.length > 11)) {
+      toast.error('Số điện thoại không hợp lệ! Vui lòng nhập từ 9 đến 11 chữ số (chỉ bao gồm các số 0-9).', { id: 'user-edit-toast' });
       return;
     }
 
     setIsSubmitting(true);
+
+    const updatedFormData = {
+      ...formData,
+      phone: cleanPhone,
+    };
+
+    // Save to localStorage FIRST (Guarantee F5 reload safe!)
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(updatedFormData));
+    } catch (_) {}
+
     try {
       await updateUser(userId, {
         name: formData.name,
         email: formData.email,
-        phone: formData.phone,
+        phone: cleanPhone,
         status: isSuperAdmin ? 'active' : (formData.is_active ? 'active' : 'inactive'),
       });
       toast.success(`Đã cập nhật thông tin tài khoản ${formData.name} thành công!`, { id: 'user-edit-toast' });
@@ -108,14 +158,20 @@ function UserEditPage() {
           if (fresh && fresh.data) {
             const user = fresh.data;
             const detectedRole = getUserRoleName(user);
-            setFormData((prev) => ({
-              ...prev,
-              name: user.name || prev.name,
-              email: user.email || prev.email,
-              phone: user.phone || prev.phone,
-              role_name: detectedRole,
-              is_active: user.status ? user.status === 'active' : true,
-            }));
+            setFormData((prev: any) => {
+              const freshUpdated = {
+                ...prev,
+                name: user.name || updatedFormData.name,
+                email: user.email || updatedFormData.email,
+                phone: user.phone ? String(user.phone).replace(/[^0-9]/g, '') : cleanPhone,
+                role_name: detectedRole,
+                is_active: user.status ? user.status === 'active' : updatedFormData.is_active,
+              };
+              try {
+                localStorage.setItem(cacheKey, JSON.stringify(freshUpdated));
+              } catch (_) {}
+              return freshUpdated;
+            });
           }
         } catch (_) {}
       }
@@ -231,13 +287,17 @@ function UserEditPage() {
 
             <div className="space-y-1">
               <Label htmlFor="user-phone" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Số Điện Thoại Liên Hệ
+                Số Điện Thoại Liên Hệ <span className="text-slate-400 font-normal">(chỉ nhập chữ số 0-9)</span>
               </Label>
               <Input
                 id="user-phone"
                 type="text"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) => {
+                  // FILTER: Loại bỏ ngay các ký tự không phải chữ số (tránh gõ ws hay ký tự lạ)
+                  const digitsOnly = e.target.value.replace(/[^0-9]/g, '');
+                  setFormData({ ...formData, phone: digitsOnly });
+                }}
                 placeholder="VD: 0903111222"
                 className="text-sm h-9 font-mono rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
               />

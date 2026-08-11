@@ -159,7 +159,29 @@ Mọi màn hình CRUD tiêu chuẩn BẮT BUỘC có đầy đủ các bộ đi�
 
 ---
 
-## 🛠️ 5. Danh Sách Common Components Chuẩn (Golden Component Registry)
+## 🛡️ 5. Quy Chuẩn Validate Dữ Liệu Đầu Vào (Input Validation Standards)
+
+Mọi màn hình nhập liệu BẮT BUỘC tuân thủ các quy tắc Validation nghiêm ngặt ở cả Frontend và Backend:
+
+1. **Số Điện Thoại (Phone Number Validation)**:
+   * **Lọc Ký Tự Trực Tiếp Trên Input (Frontend Filter)**: Ô nhập SĐT BẮT BUỘC lọc sạch các ký tự không phải chữ số ngay khi người dùng gõ:
+     `value.replace(/[^0-9]/g, '')`. Tuyệt đối KHÔNG cho phép gõ ký tự chữ cái (như `ws`, `abc`) hay ký tự đặc biệt vào ô SĐT.
+   * **Kiểm Tra Độ Dài & Định Dạng (Regex Check)**: Số điện thoại phải từ **9 đến 11 chữ số** (bắt đầu bằng `0` hoặc `84`).
+   * **Backend Request Rule**: Backend API Request class BẮT BUỘC phải chứa rule:
+     `'phone' => 'nullable|string|regex:/^(0|\+?84)[0-9]{8,10}$/'`.
+
+2. **Địa Chỉ Email (Email Validation)**:
+   * **Định Dạng Email**: Kiểm tra regex chuẩn `^[^\s@]+@[^\s@]+\.[^\s@]+$`. Báo lỗi ngay qua Toast nếu nhập sai định dạng.
+
+3. **Số Tiền Tệ & Giá Trị Phần Trăm (Numeric & Currency Validation)**:
+   * Lọc bỏ ký tự âm hoặc chữ cái. Số tiền tối thiểu / Số tiền tối đa phải $\ge 0$.
+
+4. **Trường Bắt Buộc (Required Fields)**:
+   * Phải dán dấu sao đỏ `<span className="text-rose-500 font-bold">*</span>`. Khi bấm Lưu mà để trống, hiển thị Toast cảnh báo và highlight viền đỏ ô nhập liệu.
+
+---
+
+## 🛠️ 6. Danh Sách Common Components Chuẩn (Golden Component Registry)
 
 | Component | Đường dẫn File | Mục đích sử dụng |
 | :--- | :--- | :--- |
@@ -173,7 +195,7 @@ Mọi màn hình CRUD tiêu chuẩn BẮT BUỘC có đầy đủ các bộ đi�
 
 ---
 
-## 📂 6. Danh Sách File Mẫu Chuẩn Mực (Golden Reference Source Files)
+## 📂 7. Danh Sách File Mẫu Chuẩn Mực (Golden Reference Source Files)
 
 * **Danh Sách (List View)**: [coupons/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/index.tsx), [users/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/users/index.tsx)
 * **Tạo Mới (Create Form)**: [coupons/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/create.tsx), [users/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/users/create.tsx)
