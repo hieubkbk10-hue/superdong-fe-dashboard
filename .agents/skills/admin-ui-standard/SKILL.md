@@ -16,7 +16,7 @@ Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edi
 ```
 [ ] 1. BACKEND INTEGRITY: Migration table, Model $fillable, Request rules(), Action sanitizeInput(), Transformer transform()
 [ ] 2. FRONTEND INPUT FILTER: Lọc ký tự SĐT (replace /[^0-9]/g), Email regex, Tiền tệ VND không có icon $
-[ ] 3. F5 & PERSISTENCE: Post-Save Re-sync (refetch API), localStorage Column Visibility + Form Cache Fallback
+[ ] 3. F5 & PERSISTENCE: Post-Save Re-sync (refetch API), List Cache Merge (List View merge cache SĐT/Data), localStorage Column Visibility + Form Cache Fallback
 [ ] 4. DOMAIN & DESIGN: 1 Card liền mạch, w-full, CẤM cột ID nội bộ DB thô, Banner Cyan (#EBF7FA) Số La Mã (I, II, III, IV), DateBox DD/MM/YYYY 1 icon
 [ ] 5. BRAND COLOR & BADGES: Blue (#2B7FFF / blue-600) chủ đạo, Badge 4 màu chuẩn (Emerald, Rose, Amber, Blue)
 [ ] 6. SECURITY GUARDS: Khóa hành động xóa/giáng cấp tài khoản Super Admin root gốc
@@ -73,6 +73,10 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
 2. **LocalStorage Cache Fallback (Bảo Vệ Dữ Liệu Khỏi F5)**:
    * **Column Visibility**: Cài đặt ẩn/hiện cột bảng BẮT BUỘC lưu vào `localStorage` (`superdong_<entity>_visible_columns`).
    * **Form Data Cache**: Dữ liệu vừa chỉnh sửa được tự động backup vào `localStorage` (`superdong_<entity>_cache_${id}`). Khi người dùng bấm **F5 (Reload trang)**, hệ thống đọc lại cache để giữ nguyên trạng thái mới nhất $100\%$, không bao giờ bị trôi về dữ liệu cũ.
+
+3. **List View Cache Merge (Đồng Bộ Dữ Liệu Màn Danh Sách)**:
+   * Mọi trang Danh Sách (List View) khi fetch mảng dữ liệu từ API BẮT BUỘC phải map-merge với `localStorage` cache fallback (`superdong_<entity>_cache_${id}`) của từng dòng.
+   * Điều này đảm bảo khi người dùng vừa chỉnh sửa SĐT (như `0903111221`) ở màn Edit rồi quay lại trang List (hoặc F5), SĐT và mọi thông tin vừa chỉnh sửa BẮT BUỘC phải hiển thị đồng bộ $100\%$, tuyệt đối KHÔNG bị 'Chưa cập nhật'!
 
 ---
 

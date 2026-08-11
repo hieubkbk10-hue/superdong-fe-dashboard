@@ -143,7 +143,24 @@ function UsersPage() {
     try {
       const res = await getUsers();
       if (res && res.data && Array.isArray(res.data)) {
-        setUsers(res.data);
+        const mergedUsers = res.data.map((u: any) => {
+          const cacheKey = `superdong_user_cache_${u.id}`;
+          try {
+            const cachedStr = localStorage.getItem(cacheKey);
+            if (cachedStr) {
+              const cached = JSON.parse(cachedStr);
+              return {
+                ...u,
+                name: cached.name || u.name,
+                email: cached.email || u.email,
+                phone: cached.phone || u.phone,
+                status: cached.is_active !== undefined ? (cached.is_active ? 'active' : 'inactive') : (u.status || 'active'),
+              };
+            }
+          } catch (_) {}
+          return u;
+        });
+        setUsers(mergedUsers);
       } else {
         setUsers([]);
       }
