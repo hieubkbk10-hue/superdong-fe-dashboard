@@ -33,10 +33,22 @@ export const Route = createFileRoute('/_admin/users/')({
 type SortField = 'name' | 'email' | 'phone' | 'role' | 'status' | null;
 type SortOrder = 'asc' | 'desc' | 'none';
 
+// HELPER LOGIC: Chuẩn hóa tên vai trò thống nhất 100% giữa Database, API và Select Dropdown
+export const normalizeRoleName = (rawName: string): string => {
+  if (!rawName) return 'Counter Staff';
+  const norm = String(rawName).trim();
+  if (norm === 'admin' || norm === 'Administrator' || norm === 'Super Admin') return 'Super Admin';
+  if (norm === 'counter_staff' || norm === 'Counter Staff' || norm === 'Nhân viên quầy') return 'Counter Staff';
+  if (norm === 'manager' || norm === 'Manager' || norm === 'Quản trị viên') return 'Manager';
+  if (norm === 'operations_staff' || norm === 'Operations Staff' || norm === 'Nhân viên điều hành') return 'Operations Staff';
+  if (norm === 'checkin_staff' || norm === 'Check-in Staff' || norm === 'Nhân viên soát vé') return 'Check-in Staff';
+  return norm;
+};
+
 // HELPER LOGIC: Phân tích chính xác tên Vai trò từ dữ liệu Apiato Porto Backend & Cache
 const getUserRoleName = (row: any): string => {
-  if (!row) return 'Nhân viên quầy';
-  if (row.role_name) return row.role_name;
+  if (!row) return 'Counter Staff';
+  if (row.role_name) return normalizeRoleName(row.role_name);
 
   const email = (row.email || '').toLowerCase();
   const name = (row.name || '').toLowerCase();
@@ -46,18 +58,18 @@ const getUserRoleName = (row: any): string => {
     return 'Super Admin';
   }
 
-  // Cấu trúc Apiato Porto Transformer: roles.data = [{ name: "Super Admin" }]
   if (row.roles?.data && Array.isArray(row.roles.data) && row.roles.data.length > 0) {
-    return row.roles.data[0].name || 'Nhân viên quầy';
+    const r = row.roles.data[0];
+    return normalizeRoleName(r.display_name || r.name);
   }
-  // Mảng roles tiêu chuẩn
   if (row.roles && Array.isArray(row.roles) && row.roles.length > 0) {
-    return typeof row.roles[0] === 'string' ? row.roles[0] : (row.roles[0].name || 'Nhân viên quầy');
+    const r = row.roles[0];
+    return normalizeRoleName(typeof r === 'string' ? r : (r.display_name || r.name));
   }
   if (typeof row.role === 'string' && row.role) {
-    return row.role;
+    return normalizeRoleName(row.role);
   }
-  return 'Nhân viên quầy';
+  return 'Counter Staff';
 };
 
 function UsersPage() {
@@ -77,11 +89,17 @@ function UsersPage() {
       try {
         const res = await getRoles();
         if (isMounted && res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-          const mapped = res.data.map((r: any) => ({
-            name: r.display_name || r.name || 'Vai trò hệ thống',
-            display_name: r.display_name || r.name,
-          }));
-          setDynamicRoles(mapped);
+          const uniqueRolesMap = new Map<string, { name: string; display_name: string }>();
+          res.data.forEach((r: any) => {
+            const normName = normalizeRoleName(r.display_name || r.name);
+            if (!uniqueRolesMap.has(normName)) {
+              uniqueRolesMap.set(normName, {
+                name: normName,
+                display_name: normName,
+              });
+            }
+          });
+          setDynamicRoles(Array.from(uniqueRolesMap.values()));
         }
       } catch (err) {
         console.warn('Failed to fetch dynamic roles from API in index page:', err);

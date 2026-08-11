@@ -9,6 +9,7 @@ import { Badge } from '@/components/common/Badge';
 import { DateBox } from '@/components/common/DateBox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { normalizeRoleName } from './index';
 
 export const Route = createFileRoute('/_admin/users/$userId/edit')({
   component: UserEditPage,
@@ -16,9 +17,9 @@ export const Route = createFileRoute('/_admin/users/$userId/edit')({
 
 // HELPER LOGIC: Phân tích vai trò chính xác từ dữ liệu Backend Apiato Porto & Cache
 const getUserRoleName = (user: any, cachedRole?: string): string => {
-  if (cachedRole) return cachedRole;
-  if (!user) return 'Nhân viên quầy';
-  if (user.role_name) return user.role_name;
+  if (cachedRole) return normalizeRoleName(cachedRole);
+  if (!user) return 'Counter Staff';
+  if (user.role_name) return normalizeRoleName(user.role_name);
 
   const email = (user.email || '').toLowerCase();
   const name = (user.name || '').toLowerCase();
@@ -27,16 +28,17 @@ const getUserRoleName = (user: any, cachedRole?: string): string => {
     return 'Super Admin';
   }
   if (user.roles?.data && Array.isArray(user.roles.data) && user.roles.data.length > 0) {
-    return user.roles.data[0].name || user.roles.data[0].display_name || 'Nhân viên quầy';
+    const r = user.roles.data[0];
+    return normalizeRoleName(r.display_name || r.name);
   }
   if (user.roles && Array.isArray(user.roles) && user.roles.length > 0) {
     const r = user.roles[0];
-    return typeof r === 'string' ? r : (r.display_name || r.name || 'Nhân viên quầy');
+    return normalizeRoleName(typeof r === 'string' ? r : (r.display_name || r.name));
   }
   if (typeof user.role === 'string' && user.role) {
-    return user.role;
+    return normalizeRoleName(user.role);
   }
-  return 'Nhân viên quầy';
+  return 'Counter Staff';
 };
 
 function UserEditPage() {
@@ -45,7 +47,7 @@ function UserEditPage() {
 
   const cacheKey = `superdong_user_cache_${userId}`;
 
-  // DYNAMIC ROLES FROM REAL BACKEND API `/v1/roles`
+  // DYNAMIC ROLES FROM REAL BACKEND API `/v1/roles` & DEDUPLICATE
   const [dynamicRoles, setDynamicRoles] = useState<Array<{ name: string; display_name: string }>>([]);
   const [loadingRoles, setLoadingRoles] = useState<boolean>(true);
 
@@ -72,7 +74,7 @@ function UserEditPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // FETCH REAL ROLES DIRECTLY FROM BACKEND API `/v1/roles`
+  // FETCH REAL ROLES DIRECTLY FROM BACKEND API `/v1/roles` & DEDUPLICATE
   useEffect(() => {
     let isMounted = true;
     async function fetchRolesFromApi() {
@@ -80,11 +82,17 @@ function UserEditPage() {
       try {
         const res = await getRoles();
         if (isMounted && res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-          const mapped = res.data.map((r: any) => ({
-            name: r.display_name || r.name || 'Vai trò hệ thống',
-            display_name: r.description ? `${r.display_name || r.name} (${r.description})` : (r.display_name || r.name),
-          }));
-          setDynamicRoles(mapped);
+          const uniqueRolesMap = new Map<string, { name: string; display_name: string }>();
+          res.data.forEach((r: any) => {
+            const normName = normalizeRoleName(r.display_name || r.name);
+            if (!uniqueRolesMap.has(normName)) {
+              uniqueRolesMap.set(normName, {
+                name: normName,
+                display_name: r.description ? `${normName} (${r.description})` : normName,
+              });
+            }
+          });
+          setDynamicRoles(Array.from(uniqueRolesMap.values()));
         }
       } catch (err) {
         console.warn('Failed to fetch dynamic roles from API in edit page:', err);

@@ -49,7 +49,7 @@ function UserCreatePage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // DYNAMIC API FETCH: Lấy danh sách Roles trực tiếp từ API `/v1/roles` của Backend
+  // DYNAMIC API FETCH: Lấy danh sách Roles trực tiếp từ API `/v1/roles` của Backend & Deduplicate
   useEffect(() => {
     let isMounted = true;
     async function fetchRolesFromApi() {
@@ -57,14 +57,26 @@ function UserCreatePage() {
       try {
         const res = await getRoles();
         if (isMounted && res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-          const mapped = res.data.map((r: any) => ({
-            name: r.display_name || r.name || 'Vai trò hệ thống',
-            display_name: r.description ? `${r.display_name || r.name} (${r.description})` : (r.display_name || r.name),
-          }));
-          setDynamicRoles(mapped);
+          const uniqueRolesMap = new Map<string, { name: string; display_name: string }>();
+          res.data.forEach((r: any) => {
+            const raw = (r.display_name || r.name || '').trim();
+            const normName = raw === 'admin' || raw === 'Administrator' ? 'Super Admin'
+              : raw === 'counter_staff' || raw === 'Counter Staff' ? 'Counter Staff'
+              : raw === 'manager' || raw === 'Manager' ? 'Manager'
+              : raw === 'operations_staff' || raw === 'Operations Staff' ? 'Operations Staff'
+              : raw === 'checkin_staff' || raw === 'Check-in Staff' ? 'Check-in Staff'
+              : raw;
+            if (normName && !uniqueRolesMap.has(normName)) {
+              uniqueRolesMap.set(normName, {
+                name: normName,
+                display_name: r.description ? `${normName} (${r.description})` : normName,
+              });
+            }
+          });
+          setDynamicRoles(Array.from(uniqueRolesMap.values()));
         }
       } catch (err) {
-        console.warn('Failed to fetch dynamic roles from API, using real domain fallback:', err);
+        console.warn('Failed to fetch dynamic roles from API in create page:', err);
       } finally {
         if (isMounted) setLoadingRoles(false);
       }
