@@ -184,9 +184,10 @@ export interface Location {
   id: string | number;
   name: string;
   code: string; // e.g. "RG", "PQ", "HT", "ND", "ST", "CD"
-  city: string;
+  status?: 'active' | 'inactive';
+  city?: string;
   address?: string;
-  is_active: boolean;
+  is_active?: boolean;
   latitude?: number;
   longitude?: number;
   created_at?: string;

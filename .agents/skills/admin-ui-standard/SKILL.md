@@ -25,7 +25,7 @@ Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edi
 [ ] 9. ADMIN-READABLE COPYWRITING: Tên cột, label, toast, badge BẮT BUỘC viết cho Admin vận hành đọc, CẤM wording dev như "Backend", "Guard", "Permissions" nếu không thật sự cần
 [ ] 10. NO FAKE FALLBACK DATA: List/Edit/Create CẤM bịa fallback dữ liệu nghiệp vụ (`28 hải lý/giờ`, `306 ghế`, email/sđt mẫu). Nếu API rỗng thì hiển thị `Chưa cập nhật` hoặc để input trống.
 [ ] 11. OPTIONAL UX FIELDS: Trường optional như `color`, `reason`, `note` KHÔNG được ép nhập. Nếu có `color`, ưu tiên dùng common color picker/preview thay vì chỉ text input.
-[ ] 12. HARD DELETE WITH SNAPSHOT: Nếu module cho phép xóa cứng master data, Backend BẮT BUỘC lưu audit snapshot `before_json` trước khi xóa; FE phải có ConfirmModal cảnh báo rõ.
+[ ] 12. HARD DELETE WITH SNAPSHOT & RESTRICT CHECK: Nếu module cho phép xóa master data thì phải là xóa thật có kiểm tra ràng buộc; Backend BẮT BUỘC lưu audit snapshot `before_json` trước khi xóa, kiểm tra FK/restrict trước khi delete, trả lỗi 409 nêu rõ record đang dính bảng/nghiệp vụ nào; FE phải có ConfirmModal cảnh báo rõ và toast/error panel hiển thị nguyên nhân xóa không được.
 [ ] 13. ROLE/PERMISSION GUARD PRECISION: Role/Permission dành cho dashboard BẮT BUỘC lọc `guard_name === 'api'`; KHÔNG lấy `web` vì `web` là guard nội bộ Backend
 [ ] 14. REAL CRUD NAVIGATION & ACTIONS: Nút Tạo/Sửa/Xóa/Lưu BẮT BUỘC navigate hoặc gọi API thật; CẤM toast placeholder kiểu "Tính năng đang phát triển"
 [ ] 15. GIT & MASTER BRANCH DEPLOY: Cả Backend và Frontend làm việc trực tiếp trên nhánh master, commit & push thẳng master để Vercel & Live LiteSpeed Server đồng bộ tức thì
@@ -198,7 +198,10 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
 * **Action column phải hoạt động thật**:
   * Edit icon phải mở đúng màn Edit.
   * Delete icon phải mở ConfirmModal và gọi API thật.
+  * Nếu là xóa master data, FE phải gọi endpoint xóa thật, không tự đổi nghĩa thành “tạm ngưng” trừ khi nghiệp vụ/backend chỉ định rõ.
   * Nếu là xóa cứng master data, ConfirmModal phải nói rõ dữ liệu sẽ bị xóa khỏi danh sách và Backend phải lưu snapshot audit trước khi xóa.
+  * Backend phải kiểm tra ràng buộc trước khi xóa: đếm các bản ghi đang tham chiếu theo từng nghiệp vụ quan trọng (ví dụ tuyến, chuyến, booking), trả HTTP `409 Conflict` với message tiếng Việt nêu rõ đang bị dính gì và số lượng bao nhiêu.
+  * FE phải hiển thị nguyên văn lỗi nghiệp vụ từ Backend khi xóa không được, ví dụ: “Không thể xóa bến tàu vì đang được sử dụng: 2 điểm dừng tuyến, 1 hành trình điểm đi.” Không được toast chung chung “Xóa thất bại”.
   * System/root record dùng Lock icon disabled kèm tooltip rõ lý do.
 
 ### 5.2. Màn Hình Tạo Mới & Chỉnh Sửa (Create & Edit Forms)

@@ -18,6 +18,14 @@ export async function getAdminLocations(params?: Record<string, any>): Promise<P
 }
 
 /**
+ * LOGIC: Lấy chi tiết một bến tàu cho màn chỉnh sửa quản trị
+ */
+export async function findAdminLocation(id: string | number): Promise<ApiResponse<Location>> {
+  const response = await api.get<ApiResponse<Location>>(`/admin/locations/${id}`);
+  return response.data;
+}
+
+/**
  * LOGIC: Tạo mới địa điểm / bến cảng
  */
 export async function createLocation(data: Partial<Location>): Promise<ApiResponse<Location>> {
@@ -29,7 +37,15 @@ export async function createLocation(data: Partial<Location>): Promise<ApiRespon
  * LOGIC: Cập nhật thông tin địa điểm / bến cảng
  */
 export async function updateLocation(id: string | number, data: Partial<Location>): Promise<ApiResponse<Location>> {
-  const response = await api.put<ApiResponse<Location>>(`/locations/${id}`, data);
+  const response = await api.patch<ApiResponse<Location>>(`/locations/${id}`, data);
+  return response.data;
+}
+
+/**
+ * LOGIC: Xóa bến tàu khỏi danh mục master data, backend sẽ trả 409 nếu đang bị ràng buộc bởi tuyến/chuyến
+ */
+export async function deleteLocation(id: string | number, data?: { reason?: string; tracking_id?: string }): Promise<{ message: string }> {
+  const response = await api.delete<{ message: string }>(`/locations/${id}`, { data });
   return response.data;
 }
 
@@ -72,8 +88,10 @@ export async function manageJourneys(data: Partial<Journey>): Promise<ApiRespons
 export default {
   getLocations,
   getAdminLocations,
+  findAdminLocation,
   createLocation,
   updateLocation,
+  deleteLocation,
   getJourneys,
   createJourney,
   updateJourney,

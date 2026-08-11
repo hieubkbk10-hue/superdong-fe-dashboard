@@ -1,217 +1,224 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { MapPin, ArrowLeft, Save, Phone, Compass } from 'lucide-react';
+import { MapPin, ArrowLeft, Save, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
-import { updateLocation } from '@/apis/journeys';
+import { findAdminLocation, updateLocation } from '@/apis/journeys';
 
 export const Route = createFileRoute('/_admin/locations/$locationId/edit')({
   component: LocationEditPage,
 });
 
+type LocationFormData = {
+  code: string;
+  name: string;
+  status: 'active' | 'inactive';
+};
+
+const emptyForm: LocationFormData = {
+  code: '',
+  name: '',
+  status: 'active',
+};
+
+function normalizeForm(data: any): LocationFormData {
+  return {
+    code: data?.code || '',
+    name: data?.name || '',
+    status: data?.status === 'inactive' || data?.is_active === false ? 'inactive' : 'active',
+  };
+}
+
 function LocationEditPage() {
   const { locationId } = Route.useParams();
   const navigate = useNavigate();
+  const draftKey = `superdong_locations_draft_edit_${locationId}`;
+  const cacheKey = `superdong_location_cache_${locationId}`;
 
-  const [formData, setFormData] = useState({
-    code: 'RG',
-    name: 'Bến tàu Rạch Giá',
-    province: 'Kiên Giang',
-    address: 'Đường Nguyễn Công Trứ, Phường Vĩnh Thanh, Thành phố Rạch Giá',
-    phone: '0297 3877 742',
-    coordinates: '10.0152° N, 105.0809° E',
-    status: 'active' as 'active' | 'maintenance' | 'inactive',
-    note: 'Khách hàng tập trung trước 45 phút tại nhà chờ để soát vé.',
-  });
+  const [formData, setFormData] = useState<LocationFormData>(emptyForm);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const hydrateLocation = async () => {
+    setLoading(true);
+    setApiError(null);
+    try {
+      const res = await findAdminLocation(locationId);
+      const serverForm = normalizeForm(res?.data);
+      let nextForm = serverForm;
+      try {
+        const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
+        if (draft) nextForm = { ...serverForm, ...draft };
+      } catch {}
+      setFormData(nextForm);
+      localStorage.setItem(cacheKey, JSON.stringify({ id: String(locationId), ...serverForm }));
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Không thể tải dữ liệu bến tàu';
+      setApiError(message);
+      toast.error(`Không tải được bến tàu. ${message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    hydrateLocation();
+  }, [locationId]);
+
+  useEffect(() => {
+    if (!loading && !apiError) {
+      localStorage.setItem(draftKey, JSON.stringify(formData));
+    }
+  }, [formData, loading, apiError, draftKey]);
+
+  const updateField = <K extends keyof LocationFormData>(field: K, value: LocationFormData[K]) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const validateForm = () => {
+    if (!formData.code.trim()) {
+      toast.error('Vui lòng nhập mã bến tàu');
+      return false;
+    }
+    if (!formData.name.trim()) {
+      toast.error('Vui lòng nhập tên bến tàu');
+      return false;
+    }
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    if (isSubmitting || !validateForm()) return;
 
-    if (isSubmitting) return;
     setIsSubmitting(true);
-
     try {
-      await updateLocation(locationId, {
-        code: formData.code,
-        name: formData.name,
-        city: formData.province,
-        address: formData.address,
-        is_active: formData.status === 'active',
+      const res = await updateLocation(locationId, {
+        code: formData.code.trim().toUpperCase(),
+        name: formData.name.trim(),
+        status: formData.status,
       });
-      toast.success(`Đã cập nhật thông tin bến tàu ${formData.name} thành công!`, { id: 'location-edit-toast' });
+      const serverForm = normalizeForm(res?.data);
+      setFormData(serverForm);
+      localStorage.removeItem(draftKey);
+      localStorage.setItem(cacheKey, JSON.stringify({ id: String(locationId), ...serverForm }));
+      toast.success(`Đã cập nhật bến tàu ${serverForm.name || serverForm.code}`);
+      await hydrateLocation();
     } catch (err: any) {
-      console.error('Update location error:', err);
-      const serverMsg = err?.response?.data?.message || err?.message || '';
-      toast.error(serverMsg || 'Có lỗi xảy ra khi cập nhật bến tàu trên Backend', { id: 'location-edit-toast' });
+      const message = err?.response?.data?.message || err?.message || 'Không thể cập nhật bến tàu';
+      toast.error(`Cập nhật bến tàu thất bại. ${message}`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-6 max-w-4xl font-sans">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 w-full font-sans">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Link
-            to={"/locations" as any}
+            to={'/locations' as any}
             className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
             title="Quay lại danh sách bến tàu"
+            onClick={() => localStorage.removeItem(draftKey)}
           >
             <ArrowLeft size={18} />
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <MapPin className="h-6 w-6 text-blue-600" />
-              Chỉnh Sửa Bến Tàu: {formData.name} ({formData.code})
+              Chỉnh sửa bến tàu
             </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              ID Bến tàu trong hệ thống: <span className="font-mono">{locationId}</span>
-            </p>
+            <p className="text-xs text-slate-500 mt-0.5">Cập nhật mã bến, tên bến và trạng thái sử dụng bằng dữ liệu thật từ hệ thống.</p>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={hydrateLocation}
+          disabled={loading}
+          className="h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 disabled:opacity-60"
+        >
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Đồng bộ
+        </button>
       </div>
 
-      {/* Main Form Card */}
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-6"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Mã Cảng (Port Code) <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.code}
-              onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-sm focus:border-blue-500 outline-none"
-              required
-            />
+      {apiError && !loading ? (
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-700 dark:text-rose-300 font-medium flex items-start gap-2.5">
+          <AlertTriangle size={18} className="shrink-0 text-rose-500" />
+          <span>Không tải được dữ liệu bến tàu. {apiError}</span>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+          <div className="px-5 py-3 bg-[#EBF7FA] border-b border-cyan-100 text-sm font-bold text-slate-800 uppercase">
+            I. Thông tin cơ bản
           </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Tên Bến Tàu Khách <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Địa phương / Tỉnh thành <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.province}
-              onChange={(e) => setFormData({ ...formData, province: e.target.value })}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-            >
-              <option value="Kiên Giang">Kiên Giang</option>
-              <option value="Sóc Trăng">Sóc Trăng</option>
-              <option value="Bà Rịa - Vũng Tàu">Bà Rịa - Vũng Tàu</option>
-              <option value="Bình Thuận">Bình Thuận</option>
-              <option value="Cà Mau">Cà Mau</option>
-              <option value="An Giang">An Giang</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Hotline Điện Thoại Phòng Vé Bến
-            </label>
-            <div className="relative">
-              <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Mã bến tàu <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
+                value={formData.code}
+                onChange={(e) => updateField('code', e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 32))}
+                disabled={loading}
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-sm focus:border-blue-500 outline-none disabled:opacity-60"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Tên bến tàu <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => updateField('name', e.target.value.slice(0, 120))}
+                disabled={loading}
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none disabled:opacity-60"
+                required
               />
             </div>
           </div>
 
-          <div className="md:col-span-2">
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Địa Chỉ Bến Chi Tiết <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-              required
-            />
+          <div className="px-5 py-3 bg-[#EBF7FA] border-y border-cyan-100 text-sm font-bold text-slate-800 uppercase">
+            II. Trạng thái sử dụng
           </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Tọa Độ / Vị Trí Bản Đồ (GPS)
-            </label>
-            <div className="relative">
-              <Compass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={formData.coordinates}
-                onChange={(e) => setFormData({ ...formData, coordinates: e.target.value })}
-                className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-              />
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Trạng thái</label>
+              <select
+                value={formData.status}
+                onChange={(e) => updateField('status', e.target.value as LocationFormData['status'])}
+                disabled={loading}
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none disabled:opacity-60"
+              >
+                <option value="active">Đang hoạt động</option>
+                <option value="inactive">Tạm ngưng</option>
+              </select>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Trạng Thái Vận Hành
-            </label>
-            <select
-              value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
+          <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+            <Link
+              to={'/locations' as any}
+              onClick={() => localStorage.removeItem(draftKey)}
+              className="px-5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
-              <option value="active">Đang hoạt động</option>
-              <option value="maintenance">Bảo trì / Sửa chữa bến</option>
-              <option value="inactive">Tạm ngưng đón trả khách</option>
-            </select>
+              Hủy bỏ
+            </Link>
+            <button
+              type="submit"
+              disabled={loading || isSubmitting}
+              className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60"
+            >
+              <Save size={16} />
+              {isSubmitting ? 'Đang lưu...' : 'Lưu thay đổi'}
+            </button>
           </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Ghi Chú Hướng Dẫn Hành Khách
-            </label>
-            <textarea
-              rows={3}
-              value={formData.note}
-              onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-              className="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
-          <Link
-            to={"/locations" as any}
-            className="px-5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-          >
-            Hủy bỏ
-          </Link>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <Save size={16} />
-            {isSubmitting ? 'Đang lưu...' : 'Lưu Thay Đổi'}
-          </button>
-        </div>
-      </form>
+        </form>
+      )}
     </div>
   );
 }
