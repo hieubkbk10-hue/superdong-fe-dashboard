@@ -54,10 +54,15 @@ export async function getSeatClasses(): Promise<ApiResponse<SeatClass[]>> {
   return response.data;
 }
 
+export async function findSeatClassById(id: string | number): Promise<ApiResponse<SeatClass>> {
+  const response = await api.get<ApiResponse<SeatClass>>(`/seat-classes/${id}`);
+  return response.data;
+}
+
 /**
  * LOGIC: Tạo mới phân hạng ghế
  */
-export async function createSeatClass(data: Partial<SeatClass>): Promise<ApiResponse<SeatClass>> {
+export async function createSeatClass(data: Record<string, any>): Promise<ApiResponse<SeatClass>> {
   const response = await api.post<ApiResponse<SeatClass>>('/seat-classes', data);
   return response.data;
 }
@@ -65,8 +70,13 @@ export async function createSeatClass(data: Partial<SeatClass>): Promise<ApiResp
 /**
  * LOGIC: Cập nhật phân hạng ghế
  */
-export async function updateSeatClass(id: string | number, data: Partial<SeatClass>): Promise<ApiResponse<SeatClass>> {
-  const response = await api.put<ApiResponse<SeatClass>>(`/seat-classes/${id}`, data);
+export async function updateSeatClass(id: string | number, data: Record<string, any>): Promise<ApiResponse<SeatClass>> {
+  const response = await api.patch<ApiResponse<SeatClass>>(`/seat-classes/${id}`, data);
+  return response.data;
+}
+
+export async function deactivateSeatClass(id: string | number, data: Record<string, any>): Promise<ApiResponse<SeatClass>> {
+  const response = await api.post<ApiResponse<SeatClass>>(`/seat-classes/${id}/deactivate`, data);
   return response.data;
 }
 
@@ -94,8 +104,10 @@ export default {
   deleteBoat,
   deactivateBoat,
   getSeatClasses,
+  findSeatClassById,
   createSeatClass,
   updateSeatClass,
+  deactivateSeatClass,
   getSeatMap,
   createSeatMap,
 };

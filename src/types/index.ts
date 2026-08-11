@@ -78,7 +78,12 @@ export interface SeatClass {
   id: string | number;
   name: string;
   code: string; // e.g. 'STANDARD', 'VIP', 'BUSINESS'
+  price?: number;
+  status?: 'active' | 'inactive';
   color?: string;
+  version?: number;
+  created_at?: string;
+  updated_at?: string;
   base_price_multiplier?: number;
   description?: string;
   is_active?: boolean;
