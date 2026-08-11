@@ -32,7 +32,8 @@ function RolesPage() {
         setLoading(true);
         const [rolesRes, permsRes] = await Promise.all([getRoles(), getPermissions()]);
         if (isMounted && rolesRes && rolesRes.data) {
-          const apiRoles: RoleItem[] = rolesRes.data.map((r: any) => ({
+          const apiOnlyData = rolesRes.data.filter((r: any) => !r.guard_name || r.guard_name.includes('api') || r.guard_name !== 'web');
+          const apiRoles: RoleItem[] = apiOnlyData.map((r: any) => ({
             id: String(r.id),
             name: r.name,
             guard_name: r.guard_name || 'api',
