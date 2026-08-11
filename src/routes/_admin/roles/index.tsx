@@ -10,6 +10,7 @@ import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { Column, DataTable } from '@/components/common/DataTable';
 import { PaginationBar } from '@/components/common/PaginationBar';
 import { SearchInput } from '@/components/common/SearchInput';
+import { getPermissionLabel, sortPermissionsForAdmin } from './-permission-ui';
 import { normalizeRolesResponse } from './-role-normalizer';
 
 export const Route = createFileRoute('/_admin/roles/')({
@@ -67,7 +68,7 @@ function RolesPage() {
             description: role.description || ROLE_DESCRIPTIONS[role.name] || 'Vai trò vận hành trong hệ thống',
             user_count: role.user_count || (role.name === 'admin' ? 1 : role.name === 'counter_staff' ? 1 : 0),
             is_system: role.name === 'admin',
-            permissions: role.permissions || [],
+            permissions: sortPermissionsForAdmin(role.permissions || []),
           });
         }
       });
@@ -172,7 +173,7 @@ function RolesPage() {
           {row.permissions.length > 0 ? row.permissions.slice(0, 10).map((permission, idx) => (
             <Badge key={`${permission.name}-${idx}`} variant="outline" className="text-[11px] font-medium">
               <Key size={10} className="text-slate-400" />
-              {permission.display_name || permission.name}
+              {getPermissionLabel(permission)}
             </Badge>
           )) : (
             <span className="text-xs text-slate-400">Chưa gán quyền API</span>

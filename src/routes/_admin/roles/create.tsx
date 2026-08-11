@@ -9,6 +9,7 @@ import { Button } from '@/components/common/Button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Permission } from '@/types';
+import { getPermissionGroupLabel, getPermissionLabel, sortPermissionsForAdmin } from './-permission-ui';
 import { normalizeApiatoCollection } from './-role-normalizer';
 
 export const Route = createFileRoute('/_admin/roles/create')({
@@ -59,7 +60,7 @@ function RoleCreatePage() {
       setLoadingPermissions(true);
       try {
         const res = await getPermissions();
-        if (isMounted) setPermissions(normalizePermissionList(res));
+        if (isMounted) setPermissions(sortPermissionsForAdmin(normalizePermissionList(res)));
       } catch (err: any) {
         console.error('Failed to fetch API permissions:', err);
         toast.error(err?.response?.data?.message || 'Không thể tải danh sách quyền API');
@@ -73,12 +74,17 @@ function RoleCreatePage() {
 
   const groupedPermissions = useMemo(() => {
     return permissions.reduce<Record<string, Permission[]>>((groups, permission) => {
-      const groupName = (permission.name || '').split('-')[0] || 'khac';
+      const groupName = getPermissionGroupLabel(permission.name || '');
       groups[groupName] = groups[groupName] || [];
       groups[groupName].push(permission);
       return groups;
     }, {});
   }, [permissions]);
+
+  const selectedPermissions = useMemo(() => {
+    const selectedSet = new Set(selectedPermissionIds.map(String));
+    return permissions.filter((permission) => selectedSet.has(String(permission.id)));
+  }, [permissions, selectedPermissionIds]);
 
   const updateForm = (patch: Partial<RoleFormData>) => setFormData((prev) => ({ ...prev, ...patch }));
 
@@ -191,6 +197,18 @@ function RoleCreatePage() {
             <p className="text-xs text-slate-500">Chỉ hiển thị quyền guard API, quyền web của Backend không dùng cho dashboard.</p>
             <Badge variant="blue">Đã chọn {selectedPermissionIds.length}</Badge>
           </div>
+          {selectedPermissions.length > 0 && (
+            <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-3 dark:border-blue-900 dark:bg-blue-950/30">
+              <div className="mb-2 text-xs font-bold text-blue-700 dark:text-blue-300">Quyền sẽ được gán</div>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedPermissions.map((permission) => (
+                  <Badge key={permission.id} variant="blue" className="text-[11px]">
+                    {getPermissionLabel(permission)}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
           {loadingPermissions ? (
             <div className="flex items-center gap-2 rounded-lg border border-slate-200 p-4 text-xs text-slate-500"><RefreshCw size={14} className="animate-spin" /> Đang tải quyền API...</div>
           ) : (
@@ -200,7 +218,7 @@ function RoleCreatePage() {
                 return (
                   <div key={group} className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 space-y-3">
                     <div className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-900 px-3 py-2">
-                      <div className="text-sm font-bold capitalize text-slate-900 dark:text-white">{group.replace(/_/g, ' ')}</div>
+                      <div className="text-sm font-bold text-slate-900 dark:text-white">{group}</div>
                       <button type="button" onClick={() => toggleGroup(items)} className="text-xs font-semibold text-blue-600 hover:underline">{allSelected ? 'Bỏ chọn nhóm' : 'Chọn nhóm'}</button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
@@ -210,7 +228,7 @@ function RoleCreatePage() {
                           <label key={permission.id} className={`flex cursor-pointer items-start gap-2 rounded-lg border p-2.5 text-xs transition-all ${checked ? 'border-blue-300 bg-blue-50/70 dark:border-blue-800 dark:bg-blue-950/30' : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950'}`}>
                             <input type="checkbox" checked={checked} onChange={() => togglePermission(permission.id)} className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                             <span>
-                              <span className="block font-semibold text-slate-800 dark:text-slate-100">{permission.display_name || permission.name}</span>
+                              <span className="block font-semibold text-slate-800 dark:text-slate-100">{getPermissionLabel(permission)}</span>
                               <span className="block font-mono text-[11px] text-slate-400">{permission.name}</span>
                             </span>
                           </label>

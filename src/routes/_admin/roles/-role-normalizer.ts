@@ -49,5 +49,7 @@ export function normalizeRolesResponse(response: unknown): NormalizedRoleItem[] 
     ? (response as { data?: unknown }).data
     : [];
 
-  return normalizeApiatoCollection<Record<string, any>>(data).map(normalizeRoleItem);
+  return normalizeApiatoCollection<Record<string, any>>(data)
+    .filter((role) => (role?.guard_name || 'api') === 'api')
+    .map(normalizeRoleItem);
 }
