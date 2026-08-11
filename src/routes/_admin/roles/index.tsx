@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { Shield, Plus, Search, Edit, Trash2, Lock, Users, Key } from 'lucide-react';
 import { toast } from 'sonner';
-import { getRoles, getPermissions } from '@/apis/users';
+import { getRoles } from '@/apis/users';
 import { Button } from '@/components/common/Button';
+import { normalizeRolesResponse } from './-role-normalizer';
 
 export const Route = createFileRoute('/_admin/roles/')({
   component: RolesPage,
@@ -23,19 +24,18 @@ interface RoleItem {
 function RolesPage() {
   const [roles, setRoles] = useState<RoleItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     let isMounted = true;
     async function loadData() {
       setLoading(true);
+      setApiError('');
       try {
-        const rolesRes = await getRoles().catch((e) => {
-          console.warn('getRoles API error:', e);
-          return null;
-        });
+        const rolesRes = await getRoles();
 
-        if (isMounted && rolesRes && rolesRes.data && Array.isArray(rolesRes.data)) {
+        if (isMounted) {
           const ROLE_DESCRIPTIONS: Record<string, string> = {
             admin: 'Administrator Role (Toàn quyền quản trị hệ thống Superdong)',
             counter_staff: 'Nhân viên bán vé trực tiếp tại quầy bến tàu',
@@ -45,7 +45,7 @@ function RolesPage() {
           };
 
           const uniqueRolesMap = new Map<string, RoleItem>();
-          rolesRes.data.forEach((r: any) => {
+          normalizeRolesResponse(rolesRes).forEach((r: any) => {
             const key = r.name || r.display_name;
             if (!uniqueRolesMap.has(key)) {
               uniqueRolesMap.set(key, {
@@ -56,10 +56,7 @@ function RolesPage() {
                 description: r.description || ROLE_DESCRIPTIONS[r.name] || `Vai trò ${r.display_name || r.name} trong hệ thống`,
                 user_count: r.user_count || (r.name === 'admin' ? 1 : r.name === 'counter_staff' ? 1 : 0),
                 is_system: r.name === 'admin',
-                permissions: (r.permissions || []).map((p: any) => ({
-                  name: p.name || p,
-                  display_name: p.display_name || p.name || p,
-                })),
+                permissions: r.permissions || [],
               });
             }
           });
@@ -68,6 +65,11 @@ function RolesPage() {
         }
       } catch (err) {
         console.error('Failed to fetch roles:', err);
+        if (isMounted) {
+          const message = (err as any)?.response?.data?.message || (err as any)?.message || 'Không thể tải danh sách vai trò từ Backend API.';
+          setApiError(message);
+          setRoles([]);
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -143,6 +145,18 @@ function RolesPage() {
                   <div className="flex items-center justify-center gap-2">
                     <div className="h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                     <span>Đang tải danh sách vai trò thực tế từ Backend API...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : apiError ? (
+              <tr>
+                <td colSpan={6} className="p-8 text-center">
+                  <div className="space-y-2">
+                    <div className="font-semibold text-rose-600 dark:text-rose-400">Không tải được dữ liệu vai trò từ Backend.</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">{apiError}</div>
+                    <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                      Làm mới trang
+                    </Button>
                   </div>
                 </td>
               </tr>
