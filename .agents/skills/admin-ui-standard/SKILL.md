@@ -62,8 +62,8 @@ Mọi màn hình CRUD tiêu chuẩn BẮT BUỘC có đầy đủ các bộ đi�
 
 ### 2.2. Controls Trong Màn Hình Tạo Mới & Chỉnh Sửa (Edit / Create Forms)
 
-1. **Discount Type Select Dropdown (Loại Giảm Giá)**:
-   * Tùy chọn: `Theo Phần Trăm (%)` hoặc `Số Tiền Cố Định (VND)`.
+1. **Discount Type Select Dropdown (Loại Giảm Giá / Vai Trò Hệ Thống)**:
+   * Dropdown `<select>` chuẩn font `text-sm h-9 bg-white border-slate-200`.
 
 2. **DateBox Control (Ô Chọn Ngày Chuẩn Newmoon)**:
    * Sử dụng `<DateBox>` ([DateBox.tsx](file:///E:/cty/superdong-fe-dashboard/src/components/common/DateBox.tsx)).
@@ -71,7 +71,7 @@ Mọi màn hình CRUD tiêu chuẩn BẮT BUỘC có đầy đủ các bộ đi�
    * Chứa đúng **1 Icon Lịch duy nhất (`CalendarIcon`)** bên góc phải, kích hoạt chọn ngày mượt mà khi nhấp vào.
 
 3. **Status Checkbox / Toggle (Trạng Thái Kích Hoạt)**:
-   * Checkbox `Kích hoạt sử dụng mã coupon ngay lập tức`.
+   * Checkbox `Kích hoạt sử dụng ngay lập tức`.
 
 ---
 
@@ -85,9 +85,9 @@ Mọi màn hình CRUD tiêu chuẩn BẮT BUỘC có đầy đủ các bộ đi�
    * Click 1 $\rightarrow$ Tăng dần (`asc`), Click 2 $\rightarrow$ Giảm dần (`desc`), Click 3 $\rightarrow$ Trở về ban đầu (`none`).
 
 3. **Định Dạng Ô Dữ Liệu (Cell Formatting)**:
-   * **Mã Code**: Font mono `text-blue-600 bg-blue-50 border-blue-200 px-2 py-0.5 rounded`.
+   * **Mã Code / ID**: Font mono `text-blue-600 bg-blue-50 border-blue-200 px-2 py-0.5 rounded`.
    * **Tiền Tệ / phần trăm**: Tiền tệ VND dùng `formatCurrency` sạch không dùng icon $ (`Giảm 100.000 đ`), phần trăm dùng `Percent` icon (`Giảm 15%`).
-   * **Hạn Dùng**: Icon `Calendar` kèm định dạng `YYYY-MM-DD ➔ YYYY-MM-DD`.
+   * **Hạn Dùng / Ngày Tháng**: Icon `Calendar` / `Mail` / `Phone` định dạng chuẩn.
    * **Trạng Thái**: Badge `<Badge variant="success">` (`CheckCircle2`) cho Kích hoạt, `<Badge variant="danger">` (`XCircle`) cho Đã khóa.
 
 4. **Trạng Thái Loading & Empty**:
@@ -151,6 +151,12 @@ Mọi màn hình CRUD tiêu chuẩn BẮT BUỘC có đầy đủ các bộ đi�
 </form>
 ```
 
+### 4.1. Quy Trình Xử Lý Sau Khi Lưu (Post-Save Re-sync & F5 State Synchronization)
+* Mọi màn hình Edit/Create sau khi lưu thành công BẮT BUỘC thực hiện luồng:
+  1. Hiển thị thông báo thành công `toast.success(...)`.
+  2. **Tự động Re-fetch dữ liệu mới nhất**: Gọi lại API đọc chi tiết (ví dụ `findUserById` / `findCouponById`) để cập nhật state `setFormData(...)` bằng dữ liệu chuẩn từ Backend Server.
+  3. **Đồng bộ hóa F5 (Reload Safe)**: Khi người dùng bấm **F5 (Reload trang)** hoặc tiếp tục chỉnh sửa, state dữ liệu trên giao diện luôn khớp $100\%$ với Backend API mà không bao giờ bị trôi dữ liệu cũ hoặc xung đột phiên bản!
+
 ---
 
 ## 🛠️ 5. Danh Sách Common Components Chuẩn (Golden Component Registry)
@@ -169,6 +175,6 @@ Mọi màn hình CRUD tiêu chuẩn BẮT BUỘC có đầy đủ các bộ đi�
 
 ## 📂 6. Danh Sách File Mẫu Chuẩn Mực (Golden Reference Source Files)
 
-* **Danh Sách (List View)**: [coupons/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/index.tsx)
-* **Tạo Mới (Create Form)**: [coupons/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/create.tsx)
-* **Chỉnh Sửa (Edit Form)**: [coupons/$couponId.edit.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/$couponId.edit.tsx)
+* **Danh Sách (List View)**: [coupons/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/index.tsx), [users/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/users/index.tsx)
+* **Tạo Mới (Create Form)**: [coupons/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/create.tsx), [users/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/users/create.tsx)
+* **Chỉnh Sửa (Edit Form)**: [coupons/$couponId.edit.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/$couponId.edit.tsx), [users/$userId.edit.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/users/$userId.edit.tsx)

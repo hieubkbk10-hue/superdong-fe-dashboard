@@ -32,30 +32,29 @@ function UserEditPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let isMounted = true;
-    const fetchUserDetails = async () => {
-      setLoading(true);
-      try {
-        const res = await findUserById(userId);
-        if (isMounted && res && res.data) {
-          const user = res.data;
-          setFormData((prev) => ({
-            ...prev,
-            name: user.name || prev.name,
-            email: user.email || prev.email,
-            phone: user.phone || prev.phone,
-            is_active: user.status ? user.status === 'active' : true,
-          }));
-        }
-      } catch (err: any) {
-        console.warn('Fetch user details error:', err);
-      } finally {
-        if (isMounted) setLoading(false);
+  const fetchUserDetails = async () => {
+    setLoading(true);
+    try {
+      const res = await findUserById(userId);
+      if (res && res.data) {
+        const user = res.data;
+        setFormData((prev) => ({
+          ...prev,
+          name: user.name || prev.name,
+          email: user.email || prev.email,
+          phone: user.phone || prev.phone,
+          is_active: user.status ? user.status === 'active' : true,
+        }));
       }
-    };
+    } catch (err: any) {
+      console.warn('Fetch user details error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (userId) fetchUserDetails();
-    return () => { isMounted = false; };
   }, [userId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,6 +75,23 @@ function UserEditPage() {
         status: formData.is_active ? 'active' : 'inactive',
       });
       toast.success(`Đã cập nhật thông tin tài khoản ${formData.name} thành công!`, { id: 'user-edit-toast' });
+
+      // LOGIC CHUẨN COUPON: Tự động re-fetch dữ liệu mới nhất từ Server Backend để đồng bộ state
+      if (userId) {
+        try {
+          const fresh = await findUserById(userId);
+          if (fresh && fresh.data) {
+            const user = fresh.data;
+            setFormData((prev) => ({
+              ...prev,
+              name: user.name || prev.name,
+              email: user.email || prev.email,
+              phone: user.phone || prev.phone,
+              is_active: user.status ? user.status === 'active' : true,
+            }));
+          }
+        } catch (_) {}
+      }
     } catch (err: any) {
       console.error('Update user error:', err);
       const serverMsg = err?.response?.data?.message || err?.message || '';
@@ -88,10 +104,6 @@ function UserEditPage() {
   const handleResetPassword = () => {
     toast.success(`Đã gửi email hướng dẫn khôi phục mật khẩu tới ${formData.email}`, { id: 'user-edit-toast' });
   };
-
-  const initials = formData.name
-    ? formData.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
-    : 'NV';
 
   return (
     <div className="space-y-4 w-full font-sans pb-10 text-slate-800 dark:text-slate-200">
