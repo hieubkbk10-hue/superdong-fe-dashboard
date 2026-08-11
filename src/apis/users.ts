@@ -18,20 +18,30 @@ export async function findUserById(id: string | number): Promise<ApiResponse<Use
 }
 
 /**
- * LOGIC: Tạo tài khoản người dùng / nhân viên mới (Smart Fallback: Thử /users, nếu Server ném 405/404 tự động fallback /register)
+ * LOGIC: Tạo tài khoản người dùng / nhân viên mới (Hỗ trợ tự động điền verification_url và Smart Fallback sang /register)
  */
 export async function createUser(data: Record<string, any>): Promise<ApiResponse<User>> {
+  const defaultVerificationUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/login`
+    : 'https://superdong-fe-dashboard.vercel.app/login';
+
+  const payload = {
+    name: data.name,
+    email: data.email,
+    password: data.password || 'Superdong@2026',
+    verification_url: data.verification_url || defaultVerificationUrl,
+    phone: data.phone || '',
+    status: data.status || 'active',
+    ...data,
+  };
+
   try {
-    const response = await api.post<ApiResponse<User>>('/users', data);
+    const response = await api.post<ApiResponse<User>>('/users', payload);
     return response.data;
   } catch (err: any) {
     try {
       // Fallback sang endpoint /register trong Apiato Authentication container
-      const response = await api.post<ApiResponse<User>>('/register', {
-        name: data.name,
-        email: data.email,
-        password: data.password || 'Superdong@2026',
-      });
+      const response = await api.post<ApiResponse<User>>('/register', payload);
       return response.data;
     } catch (_) {
       throw err;
