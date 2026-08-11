@@ -14,9 +14,9 @@ Bộ quy chuẩn thiết kế và lập trình **Full-Stack Frontend & Backend**
 Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edit), AI Agent **BẮT BUỘC** phải rà soát qua 6 nhóm tiêu chí bên dưới trước khi bàn giao cho anh Hiếu:
 
 ```
-[ ] 1. BACKEND INTEGRITY: Migration table, Model $fillable, Request rules(), Action sanitizeInput(), Transformer transform()
-[ ] 2. FRONTEND INPUT FILTER: Lọc ký tự SĐT (replace /[^0-9]/g), Email regex, Tiền tệ VND không có icon $
-[ ] 3. F5 & PERSISTENCE: Post-Save Re-sync (refetch API), List Cache Merge (List View merge cache SĐT/Data), localStorage Column Visibility + Form Cache Fallback
+[ ] 1. BACKEND INTEGRITY: Migration table, Model $fillable, Request rules(), Action sanitizeInput(), Transformer transform() đầy đủ TẤT CẢ các trường
+[ ] 2. FRONTEND INPUT FILTER & VALIDATION: Lọc live theo kiểu dữ liệu (chỉ nhập số cho SĐT/Tiền tệ/Phần trăm, Regex Email, Regex SĐT 9-11 chữ số, Ngày DD/MM/YYYY)
+[ ] 3. F5 & UNIVERSAL STATE SYNC: Re-sync API + Map-Merge TẤT CẢ các trường dữ liệu (Name, Email, Phone, Code, Status, Value...) vào LocalStorage Cache cho cả màn Edit và màn List
 [ ] 4. DOMAIN & DESIGN: 1 Card liền mạch, w-full, CẤM cột ID nội bộ DB thô, Banner Cyan (#EBF7FA) Số La Mã (I, II, III, IV), DateBox DD/MM/YYYY 1 icon
 [ ] 5. BRAND COLOR & BADGES: Blue (#2B7FFF / blue-600) chủ đạo, Badge 4 màu chuẩn (Emerald, Rose, Amber, Blue)
 [ ] 6. SECURITY GUARDS: Khóa hành động xóa/giáng cấp tài khoản Super Admin root gốc
@@ -29,7 +29,7 @@ Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edi
 Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSection/<Domain>/`):
 
 1. **Migration Schema (`Data/Migrations/`)**:
-   * Kiểm tra bảng Database BẮT BUỘC có đầy đủ các cột dữ liệu cần lưu (`phone`, `status`, `effective_from`, `effective_to`, `reason`, `version`...).
+   * Kiểm tra bảng Database BẮT BUỘC có đầy đủ các cột dữ liệu cần lưu (`name`, `email`, `phone`, `status`, `effective_from`, `effective_to`, `reason`, `version`...).
    * **NGHIÊM CẤM** thiếu cột trên Database dẫn đến gửi payload từ Frontend mà Backend không thể lưu được.
 
 2. **Model (`Models/<Entity>.php`)**:
@@ -46,7 +46,7 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
    * Mảng `$request->sanitizeInput([...])` BẮT BUỘC liệt kê đầy đủ TẤT CẢ các trường dữ liệu được phép cập nhật. **NGHIÊM CẤM** bỏ sót trường làm Backend tự động nuốt/bỏ qua dữ liệu Frontend gửi lên.
 
 5. **Transformer Contract (`UI/API/Transformers/<Entity>Transformer.php`)**:
-   * Phương thức `transform()` BẮT BUỘC trả về đầy đủ các trường thông tin cho Frontend (`phone`, `status`, `roles`...).
+   * Phương thức `transform()` BẮT BUỘC trả về đầy đủ TẤT CẢ các trường thông tin cho Frontend (`name`, `email`, `phone`, `status`, `roles`...).
 
 ---
 
@@ -65,18 +65,20 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
 
 ---
 
-## 🔄 3. Cơ Chế Lưu Dữ Liệu & Chống Mất State Khi F5 (F5 Persistence Safe)
+## 🔄 3. Cơ Chế Đồng Bộ Dữ Liệu Tổng Quát & Chống Mất State Khi F5 (Universal State Synchronization)
 
-1. **Post-Save Re-sync (Đồng Bộ State Sau Khi Lưu)**:
+Quy chuẩn này áp dụng cho **TẤT CẢ CÁC TRƯỜNG DỮ LIỆU** (Tên, Email, Số điện thoại, Mã Code, Số tiền giảm, Phần trăm, Ngày hiệu lực, Giới hạn sử dụng, Trạng thái, Vai trò, Ghi chú...):
+
+1. **Post-Save Re-sync (Đồng Bộ Dữ Liệu Sau Khi Lưu)**:
    * Ngay sau khi gọi API cập nhật thành công và hiển thị `toast.success(...)`, Frontend BẮT BUỘC thực hiện re-fetch lại dữ liệu mới nhất từ Server (ví dụ `findUserById(id)` / `findCouponById(id)`) và cập nhật lại state `setFormData(...)`.
 
-2. **LocalStorage Cache Fallback (Bảo Vệ Dữ Liệu Khỏi F5)**:
+2. **LocalStorage Cache Fallback Cho Màn Edit (F5 Protection)**:
    * **Column Visibility**: Cài đặt ẩn/hiện cột bảng BẮT BUỘC lưu vào `localStorage` (`superdong_<entity>_visible_columns`).
-   * **Form Data Cache**: Dữ liệu vừa chỉnh sửa được tự động backup vào `localStorage` (`superdong_<entity>_cache_${id}`). Khi người dùng bấm **F5 (Reload trang)**, hệ thống đọc lại cache để giữ nguyên trạng thái mới nhất $100\%$, không bao giờ bị trôi về dữ liệu cũ.
+   * **Form Data Cache**: BẤT KỲ trường dữ liệu nào vừa chỉnh sửa BẮT BUỘC được tự động backup vào `localStorage` (`superdong_<entity>_cache_${id}`). Khi người dùng bấm **F5 (Reload trang)**, hệ thống đọc lại cache để giữ nguyên trạng thái mới nhất 100%, không bao giờ bị trôi về dữ liệu cũ.
 
-3. **List View Cache Merge (Đồng Bộ Dữ Liệu Màn Danh Sách)**:
-   * Mọi trang Danh Sách (List View) khi fetch mảng dữ liệu từ API BẮT BUỘC phải map-merge với `localStorage` cache fallback (`superdong_<entity>_cache_${id}`) của từng dòng.
-   * Điều này đảm bảo khi người dùng vừa chỉnh sửa SĐT (như `0903111221`) ở màn Edit rồi quay lại trang List (hoặc F5), SĐT và mọi thông tin vừa chỉnh sửa BẮT BUỘC phải hiển thị đồng bộ $100\%$, tuyệt đối KHÔNG bị 'Chưa cập nhật'!
+3. **List View Cache Merge (Đồng Bộ Dữ Liệu Cho Màn Danh Sách)**:
+   * Mọi trang Danh Sách (List View) khi fetch mảng dữ liệu từ API BẮT BUỘC phải map-merge mảng kết quả với `localStorage` cache fallback (`superdong_<entity>_cache_${item.id}`) của từng dòng.
+   * Điều này đảm bảo khi người dùng vừa chỉnh sửa BẤT KỲ trường dữ liệu nào ở màn Edit rồi quay lại trang List (hoặc F5), TẤT CẢ các trường dữ liệu vừa chỉnh sửa BẮT BUỘC phải hiển thị đồng bộ 100%, tuyệt đối KHÔNG bị dính dữ liệu cũ hay "Chưa cập nhật"!
 
 ---
 
