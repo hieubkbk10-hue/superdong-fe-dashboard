@@ -87,7 +87,7 @@ function UserEditPage() {
     if (isSubmitting) return;
 
     if (!formData.name.trim() || !formData.email.trim()) {
-      toast.error('Vui lòng điền Họ tên và Email nhân viên!', { id: 'user-edit-toast' });
+      toast.error('Vui lòng điền Họ tên và Email tài khoản!', { id: 'user-edit-toast' });
       return;
     }
 
@@ -122,7 +122,7 @@ function UserEditPage() {
     } catch (err: any) {
       console.error('Update user error:', err);
       const serverMsg = err?.response?.data?.message || err?.message || '';
-      toast.error(serverMsg || 'Có lỗi xảy ra khi cập nhật thông tin nhân viên', { id: 'user-edit-toast' });
+      toast.error(serverMsg || 'Có lỗi xảy ra khi cập nhật thông tin tài khoản', { id: 'user-edit-toast' });
     } finally {
       setIsSubmitting(false);
     }
@@ -145,10 +145,12 @@ function UserEditPage() {
           <div>
             <h1 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <UserCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              Chỉnh sửa tài khoản nhân viên: {loading ? '...' : formData.name}
+              {isSuperAdmin
+                ? `Chỉnh sửa tài khoản quản trị: ${loading ? '...' : formData.name}`
+                : `Chỉnh sửa tài khoản người dùng: ${loading ? '...' : formData.name}`}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              ID nhân viên hệ thống: <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">#{userId}</span>
+              ID tài khoản hệ thống: <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">#{userId}</span>
             </p>
           </div>
         </div>
@@ -180,7 +182,7 @@ function UserEditPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
             <div className="space-y-1">
               <Label htmlFor="user-name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Họ và Tên Nhân Viên <span className="text-rose-500 font-bold">*</span>
+                Họ và Tên <span className="text-rose-500 font-bold">*</span>
               </Label>
               <Input
                 id="user-name"

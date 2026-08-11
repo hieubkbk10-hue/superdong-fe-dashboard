@@ -33,7 +33,7 @@ function UserCreatePage() {
     e.preventDefault();
 
     if (!formData.name.trim() || !formData.email.trim()) {
-      toast.error('Vui lòng điền Họ tên và Email nhân viên!', { id: 'user-create-toast' });
+      toast.error('Vui lòng điền Họ tên và Email tài khoản!', { id: 'user-create-toast' });
       return;
     }
 
@@ -48,12 +48,12 @@ function UserCreatePage() {
         password: formData.password || undefined,
         status: formData.is_active ? 'active' : 'inactive',
       } as any);
-      toast.success(`Đã tạo tài khoản nhân viên ${formData.name} thành công trên Backend`, { id: 'user-create-toast' });
+      toast.success(`Đã tạo tài khoản ${formData.name} thành công trên Backend`, { id: 'user-create-toast' });
       navigate({ to: '/users' as any });
     } catch (err: any) {
       console.error('Create user error:', err);
       const serverMsg = err?.response?.data?.message || err?.message || '';
-      toast.error(serverMsg || 'Không thể tạo nhân viên trên Backend API', { id: 'user-create-toast' });
+      toast.error(serverMsg || 'Không thể tạo tài khoản trên Backend API', { id: 'user-create-toast' });
     } finally {
       setIsSubmitting(false);
     }
@@ -72,10 +72,10 @@ function UserCreatePage() {
           <div>
             <h1 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <UserCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              Tạo tài khoản nhân viên mới
+              Tạo tài khoản người dùng mới
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Tạo tài khoản cán bộ nhân viên và cấp quyền truy cập hệ thống Superdong
+              Khởi tạo tài khoản và cấp quyền truy cập hệ thống Superdong
             </p>
           </div>
         </div>
@@ -97,7 +97,7 @@ function UserCreatePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
             <div className="space-y-1">
               <Label htmlFor="user-name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Họ và Tên Nhân Viên <span className="text-rose-500 font-bold">*</span>
+                Họ và Tên <span className="text-rose-500 font-bold">*</span>
               </Label>
               <Input
                 id="user-name"

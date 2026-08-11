@@ -105,7 +105,7 @@ function UsersPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const columnOptions = [
-    { key: 'id', label: 'ID Nhân Viên' },
+    { key: 'id', label: 'ID Tài Khoản' },
     { key: 'user_info', label: 'Họ Tên & Email' },
     { key: 'phone', label: 'Số Điện Thoại' },
     { key: 'role', label: 'Vai Trò / Phân Quyền' },
@@ -274,7 +274,7 @@ function UsersPage() {
   const columns: Column<User>[] = [
     {
       id: 'id',
-      header: 'ID Nhân Viên',
+      header: 'ID Tài Khoản',
       accessor: 'id',
       width: 'w-[140px]',
       sortable: true,
