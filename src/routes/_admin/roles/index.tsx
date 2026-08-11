@@ -36,8 +36,6 @@ function RolesPage() {
         });
 
         if (isMounted && rolesRes && rolesRes.data && Array.isArray(rolesRes.data)) {
-          const apiOnlyData = rolesRes.data.filter((r: any) => !r.guard_name || r.guard_name.includes('api') || r.guard_name !== 'web');
-
           const ROLE_DESCRIPTIONS: Record<string, string> = {
             admin: 'Administrator Role (Toàn quyền quản trị hệ thống Superdong)',
             counter_staff: 'Nhân viên bán vé trực tiếp tại quầy bến tàu',
@@ -46,20 +44,27 @@ function RolesPage() {
             checkin_staff: 'Nhân viên kiểm tra soát vé mã QR tại cổng bến tàu',
           };
 
-          const apiRoles: RoleItem[] = apiOnlyData.map((r: any) => ({
-            id: String(r.id),
-            name: r.name,
-            guard_name: r.guard_name || 'api',
-            display_name: r.display_name || r.name,
-            description: r.description || ROLE_DESCRIPTIONS[r.name] || `Vai trò ${r.display_name || r.name} trong hệ thống`,
-            user_count: r.user_count || (r.name === 'admin' ? 1 : r.name === 'counter_staff' ? 1 : 0),
-            is_system: r.name === 'admin',
-            permissions: (r.permissions || []).map((p: any) => ({
-              name: p.name || p,
-              display_name: p.display_name || p.name || p,
-            })),
-          }));
-          setRoles(apiRoles);
+          const uniqueRolesMap = new Map<string, RoleItem>();
+          rolesRes.data.forEach((r: any) => {
+            const key = r.name || r.display_name;
+            if (!uniqueRolesMap.has(key)) {
+              uniqueRolesMap.set(key, {
+                id: String(r.id),
+                name: r.name,
+                guard_name: r.guard_name || 'api',
+                display_name: r.display_name || r.name,
+                description: r.description || ROLE_DESCRIPTIONS[r.name] || `Vai trò ${r.display_name || r.name} trong hệ thống`,
+                user_count: r.user_count || (r.name === 'admin' ? 1 : r.name === 'counter_staff' ? 1 : 0),
+                is_system: r.name === 'admin',
+                permissions: (r.permissions || []).map((p: any) => ({
+                  name: p.name || p,
+                  display_name: p.display_name || p.name || p,
+                })),
+              });
+            }
+          });
+
+          setRoles(Array.from(uniqueRolesMap.values()));
         }
       } catch (err) {
         console.error('Failed to fetch roles:', err);
