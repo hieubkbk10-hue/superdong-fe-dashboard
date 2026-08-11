@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { UserCheck, ArrowLeft, Save, RefreshCw, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { createUser } from '@/apis/users';
+import { createUser, getRoles } from '@/apis/users';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
 import { DateBox } from '@/components/common/DateBox';
@@ -31,6 +31,10 @@ const DEFAULT_FORM_DATA = {
 function UserCreatePage() {
   const navigate = useNavigate();
 
+  // DYNAMIC ROLES FROM REAL API BACKEND
+  const [dynamicRoles, setDynamicRoles] = useState<Array<{ name: string; display_name: string }>>([]);
+  const [loadingRoles, setLoadingRoles] = useState<boolean>(true);
+
   // DRAFT FORM PERSISTENCE ON F5: Đọc nháp từ localStorage nếu có
   const [formData, setFormData] = useState(() => {
     try {
@@ -45,6 +49,30 @@ function UserCreatePage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // DYNAMIC API FETCH: Lấy danh sách Roles trực tiếp từ API `/v1/roles` của Backend
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchRolesFromApi() {
+      setLoadingRoles(true);
+      try {
+        const res = await getRoles();
+        if (isMounted && res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+          const mapped = res.data.map((r: any) => ({
+            name: r.display_name || r.name || 'Vai trò hệ thống',
+            display_name: r.description ? `${r.display_name || r.name} (${r.description})` : (r.display_name || r.name),
+          }));
+          setDynamicRoles(mapped);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch dynamic roles from API, using real domain fallback:', err);
+      } finally {
+        if (isMounted) setLoadingRoles(false);
+      }
+    }
+    fetchRolesFromApi();
+    return () => { isMounted = false; };
+  }, []);
+
   // Tự động sao lưu bản nháp đang nhập dở vào localStorage mỗi khi thay đổi bất kỳ ô input nào
   useEffect(() => {
     try {
@@ -58,7 +86,6 @@ function UserCreatePage() {
     } catch (_) {}
   };
 
-  // NÚT LÀM SẠCH DỮ LIỆU (RESET FORM) - DÀNH RIÊNG CHO TRANG CREATE
   const handleResetForm = () => {
     setFormData({
       name: '',
@@ -66,7 +93,7 @@ function UserCreatePage() {
       phone: '',
       birthday: '',
       password: '',
-      role_name: 'Super Admin',
+      role_name: dynamicRoles[0]?.name || 'Super Admin',
       is_active: true,
       notes: '',
     });
@@ -77,7 +104,6 @@ function UserCreatePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // VALIDATION: Kiểm tra bắt buộc Họ tên & Email
     if (!formData.name.trim()) {
       toast.error('Vui lòng điền Họ và Tên!', { id: 'user-create-toast' });
       return;
@@ -88,14 +114,12 @@ function UserCreatePage() {
       return;
     }
 
-    // VALIDATION SỐ ĐIỆN THOẠI: Nếu nhập SĐT thì phải hợp lệ từ 9-11 chữ số
     const cleanPhone = formData.phone ? formData.phone.trim().replace(/[^0-9]/g, '') : '';
     if (cleanPhone && (cleanPhone.length < 9 || cleanPhone.length > 11)) {
       toast.error('Số điện thoại không hợp lệ! Vui lòng nhập từ 9 đến 11 chữ số (chỉ bao gồm các số 0-9).', { id: 'user-create-toast' });
       return;
     }
 
-    // VALIDATION MẬT KHẨU: Nếu người dùng tự gõ mật khẩu thì phải thỏa mãn 4 quy tắc Backend Apiato
     const pwd = formData.password.trim();
     if (pwd) {
       if (
@@ -126,10 +150,8 @@ function UserCreatePage() {
         status: formData.is_active ? 'active' : 'inactive',
       });
 
-      // Xóa bản nháp sau khi submit thành công
       handleClearDraft();
 
-      // Save newly created user info to localStorage cache for list view
       const newId = res?.data?.id || `new_${Date.now()}`;
       try {
         localStorage.setItem(`superdong_user_cache_${newId}`, JSON.stringify({
@@ -151,6 +173,14 @@ function UserCreatePage() {
       setIsSubmitting(false);
     }
   };
+
+  const roleOptions = dynamicRoles.length > 0 ? dynamicRoles : [
+    { name: 'Super Admin', display_name: 'Super Admin (Administrator - Toàn quyền hệ thống Superdong)' },
+    { name: 'Quản trị viên', display_name: 'Quản trị viên (Manager - Quản lý điều hành bến tàu Rạch Giá, Phú Quốc...)' },
+    { name: 'Nhân viên quầy', display_name: 'Nhân viên quầy (Counter Staff - Bán vé trực tiếp tại quầy bến tàu)' },
+    { name: 'Nhân viên điều hành', display_name: 'Nhân viên điều hành (Operations Staff - Phân công xếp nốt chuyến tàu)' },
+    { name: 'Nhân viên soát vé', display_name: 'Nhân viên soát vé (Check-in Staff - Kiểm tra soát vé mã QR tại cổng bến tàu)' },
+  ];
 
   return (
     <div className="space-y-4 w-full font-sans pb-10 text-slate-800 dark:text-slate-200">
@@ -174,7 +204,6 @@ function UserCreatePage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* NÚT LÀM SẠCH DỮ LIỆU FORM (DÀNH RIÊNG MÀN CREATE) */}
           <Button
             type="button"
             variant="light"
@@ -276,8 +305,9 @@ function UserCreatePage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
             <div className="space-y-1">
-              <Label htmlFor="user-role" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Vai Trò Hệ Thống
+              <Label htmlFor="user-role" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span>Vai Trò Hệ Thống <span className="text-rose-500 font-bold">*</span></span>
+                {loadingRoles && <span className="text-[11px] font-normal text-slate-400 animate-pulse">Đang tải vai trò từ API...</span>}
               </Label>
               <select
                 id="user-role"
@@ -285,11 +315,11 @@ function UserCreatePage() {
                 onChange={(e) => setFormData({ ...formData, role_name: e.target.value })}
                 className="w-full h-9 px-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm outline-none cursor-pointer focus:border-blue-500 font-medium"
               >
-                <option value="Super Admin">Super Admin (Toàn quyền hệ thống - Administrator)</option>
-                <option value="Quản trị viên">Quản trị viên (Manager - Quản lý điều hành bến tàu)</option>
-                <option value="Nhân viên quầy">Nhân viên quầy (Counter Staff - Bán vé tại quầy)</option>
-                <option value="Nhân viên điều hành">Nhân viên điều hành (Operations Staff - Phân công nốt tàu)</option>
-                <option value="Nhân viên soát vé">Nhân viên soát vé (Check-in Staff - Kiểm tra vé QR cổng)</option>
+                {roleOptions.map((r, i) => (
+                  <option key={i} value={r.name}>
+                    {r.display_name}
+                  </option>
+                ))}
               </select>
             </div>
 

@@ -3,6 +3,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { Shield, Plus, Search, Edit, Trash2, Lock, Users, Key } from 'lucide-react';
 import { toast } from 'sonner';
 import { getRoles, getPermissions } from '@/apis/users';
+import { Button } from '@/components/common/Button';
 
 export const Route = createFileRoute('/_admin/roles/')({
   component: RolesPage,
@@ -19,78 +20,8 @@ interface RoleItem {
   permissions: { name: string; display_name: string }[];
 }
 
-// Khớp chuẩn 100% với 6 bản ghi trong bảng `roles` Database Production `momovitr_superdong_be`
-const PRODUCTION_REAL_ROLES: RoleItem[] = [
-  {
-    id: '1',
-    name: 'admin',
-    guard_name: 'web / api',
-    display_name: 'Administrator',
-    description: 'Administrator Role (Toàn quyền quản trị hệ thống Superdong)',
-    user_count: 1, // User ID 1 (Super Admin)
-    is_system: true,
-    permissions: [
-      { name: 'master-data.manage', display_name: 'Manage Master Data (Routes, Ships, Fares)' },
-      { name: 'trip-operations.manage', display_name: 'Manage Trip Schedule & Operations' },
-      { name: 'booking.override', display_name: 'Override Booking Policies' },
-      { name: 'settings.manage', display_name: 'Manage Settings & Configuration' },
-    ],
-  },
-  {
-    id: '3',
-    name: 'counter_staff',
-    guard_name: 'api',
-    display_name: 'Counter Staff',
-    description: 'Nhân viên bán vé trực tiếp tại quầy bến tàu',
-    user_count: 1, // User ID 3 (Tyrese Sporer)
-    permissions: [
-      { name: 'counter-collection.confirm', display_name: 'Confirm Counter Cash Collection' },
-      { name: 'booking.view', display_name: 'View Booking Details and History' },
-      { name: 'invoice.issue', display_name: 'Issue Retail Invoices' },
-    ],
-  },
-  {
-    id: '6',
-    name: 'manager',
-    guard_name: 'api',
-    display_name: 'Manager',
-    description: 'Quản lý điều hành bến tàu Rạch Giá, Phú Quốc...',
-    user_count: 0,
-    permissions: [
-      { name: 'trip-operations.manage', display_name: 'Manage Trip Schedule & Operations' },
-      { name: 'check-in.correct', display_name: 'Correct Mis-scanned Check-in' },
-      { name: 'booking.refund', display_name: 'Process Booking Refund' },
-      { name: 'audit.view', display_name: 'View Audit Logs' },
-    ],
-  },
-  {
-    id: '4',
-    name: 'operations_staff',
-    guard_name: 'api',
-    display_name: 'Operations Staff',
-    description: 'Nhân viên điều hành phân công xếp nốt chuyến tàu',
-    user_count: 0,
-    permissions: [
-      { name: 'trip-operations.manage', display_name: 'Manage Trip Schedule & Operations' },
-      { name: 'booking.view', display_name: 'View Booking Details and History' },
-    ],
-  },
-  {
-    id: '5',
-    name: 'checkin_staff',
-    guard_name: 'api',
-    display_name: 'Check-in Staff',
-    description: 'Nhân viên kiểm tra soát vé mã QR tại cổng bến tàu',
-    user_count: 0,
-    permissions: [
-      { name: 'check-in.scan', display_name: 'Scan Ticket for Check-in' },
-      { name: 'booking.view', display_name: 'View Booking Details' },
-    ],
-  },
-];
-
 function RolesPage() {
-  const [roles, setRoles] = useState<RoleItem[]>(PRODUCTION_REAL_ROLES);
+  const [roles, setRoles] = useState<RoleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -100,7 +31,7 @@ function RolesPage() {
       try {
         setLoading(true);
         const [rolesRes, permsRes] = await Promise.all([getRoles(), getPermissions()]);
-        if (isMounted && rolesRes && rolesRes.data && rolesRes.data.length > 0) {
+        if (isMounted && rolesRes && rolesRes.data) {
           const apiRoles: RoleItem[] = rolesRes.data.map((r: any) => ({
             id: String(r.id),
             name: r.name,
@@ -128,136 +59,142 @@ function RolesPage() {
     };
   }, []);
 
-  const filteredRoles = roles.filter(
-    (r) =>
-      r.display_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleDelete = (id: string, name: string) => {
-    if (confirm(`Bạn có chắc muốn xóa vai trò ${name}?`)) {
-      setRoles((prev) => prev.filter((r) => r.id !== id));
-      toast.success(`Đã xóa vai trò ${name}`);
-    }
-  };
+  const filteredRoles = roles.filter((r) => {
+    const s = searchTerm.toLowerCase();
+    return (
+      r.name.toLowerCase().includes(s) ||
+      r.display_name.toLowerCase().includes(s) ||
+      r.description.toLowerCase().includes(s)
+    );
+  });
 
   return (
-    <div className="space-y-6 font-sans">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="flex flex-col bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs font-sans text-slate-800 dark:text-slate-200 space-y-4">
+      {/* Top Header Row */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-1 border-b border-slate-100 dark:border-slate-800/80">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Shield className="h-6 w-6 text-blue-600" />
-              Vai Trò &amp; Ma Trận Phân Quyền (Roles)
-            </h1>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Live API Backend
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Khớp chuẩn 100% với danh mục bảng `roles` trong Database Production `momovitr_superdong_be`
+          <h1 className="text-lg font-bold capitalize flex items-center gap-2 text-slate-900 dark:text-white">
+            <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            Vai Trò &amp; Ma Trận Phân Quyền (Roles)
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Dữ liệu vai trò sống 100% kết nối trực tiếp từ Backend API (`/v1/roles`)
           </p>
         </div>
-        <Link
-          to={'/roles/create' as any}
-          className="h-10 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm flex items-center gap-2 shadow-xs transition-all cursor-pointer"
-        >
-          <Plus size={16} /> Tạo Vai Trò Mới
-        </Link>
+
+        <div className="flex items-center gap-2">
+          <Button variant="primary" size="sm" className="h-8 gap-1.5 text-[13px]" onClick={() => toast.info('Tính năng tạo vai trò mới')}>
+            <Plus className="h-4 w-4" />
+            Tạo Vai Trò Mới
+          </Button>
+        </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
-        <div className="relative max-w-md">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      {/* Filter Row */}
+      <div className="flex w-full items-center gap-2">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm theo Tên vai trò hoặc mã Backend (admin, counter_staff...)..."
-            className="w-full h-10 pl-9 pr-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-blue-500 font-mono"
+            placeholder="Tìm theo Tên vai trò hoặc mã Backend (admin, counter)..."
+            className="w-full pl-9 pr-4 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-blue-500"
           />
         </div>
       </div>
 
-      {/* Roles Table */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-800">
+      {/* Table Section */}
+      <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-lg">
+        <table className="w-full text-left text-xs">
+          <thead className="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider text-slate-600 dark:text-slate-400 font-bold">
+            <tr>
+              <th className="p-3">Mã Vai Trò Backend</th>
+              <th className="p-3">Tên Hiển Thị &amp; Guard</th>
+              <th className="p-3">Mô Tả Nhiệm Vụ</th>
+              <th className="p-3 text-center">Số Nhân Viên Đang Gán</th>
+              <th className="p-3">Quyền Hạn Gắn Kèm (Permissions)</th>
+              <th className="p-3 text-right">Hành Động</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+            {loading ? (
               <tr>
-                <th className="p-4">Mã Vai Trò Backend</th>
-                <th className="p-4">Tên Hiển Thị &amp; Guard</th>
-                <th className="p-4">Mô Tả Nhiệm Vụ</th>
-                <th className="p-4">Số Nhân Viên Đang Gán</th>
-                <th className="p-4">Quyền Hạn Gắn Kèm (Permissions)</th>
-                <th className="p-4 text-right">Hành Động</th>
+                <td colSpan={6} className="p-8 text-center text-slate-400">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span>Đang tải danh sách vai trò thực tế từ Backend API...</span>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredRoles.map((r) => (
-                <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                  <td className="p-4 font-mono font-bold text-blue-600">
-                    <span className="bg-blue-50 dark:bg-blue-900/40 px-2.5 py-1 rounded border border-blue-200/60 dark:border-blue-800">
-                      {r.name}
+            ) : filteredRoles.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="p-8 text-center text-slate-400">
+                  Không tìm thấy vai trò nào phù hợp.
+                </td>
+              </tr>
+            ) : (
+              filteredRoles.map((role) => (
+                <tr key={role.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-900/30 transition-colors">
+                  <td className="p-3 font-mono font-bold text-blue-600 dark:text-blue-400">
+                    <span className="bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800">
+                      {role.name}
                     </span>
                   </td>
-                  <td className="p-4 font-bold text-slate-900 dark:text-white text-base">
-                    {r.display_name}
-                    <span className="ml-2 font-mono text-xs font-normal text-slate-500">
-                      ({r.guard_name})
-                    </span>
-                    {r.is_system && (
-                      <span className="ml-2 inline-flex items-center gap-1 text-[11px] bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md border border-amber-500/20">
-                        <Lock size={10} /> Hệ thống BE
-                      </span>
-                    )}
+                  <td className="p-3">
+                    <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                      {role.display_name}
+                      <span className="text-[10px] font-normal text-slate-400">({role.guard_name})</span>
+                    </div>
                   </td>
-                  <td className="p-4 text-slate-600 dark:text-slate-400 text-xs max-w-xs">{r.description}</td>
-                  <td className="p-4">
-                    <span className={`inline-flex items-center gap-1 font-bold ${r.user_count > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}>
-                      <Users size={14} /> {r.user_count} nhân viên
+                  <td className="p-3 text-slate-600 dark:text-slate-400 max-w-xs">{role.description}</td>
+                  <td className="p-3 text-center font-bold">
+                    <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                      <Users size={12} /> {role.user_count} nhân viên
                     </span>
                   </td>
-                  <td className="p-4">
-                    <div className="flex flex-wrap gap-1.5 max-w-md">
-                      {r.permissions.map((p, idx) => (
+                  <td className="p-3">
+                    <div className="flex flex-wrap gap-1 max-w-md">
+                      {role.permissions.map((p, idx) => (
                         <span
                           key={idx}
-                          className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-mono px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 flex items-center gap-1"
+                          className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-[11px] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80 flex items-center gap-1"
                         >
-                          <Key size={10} className="text-blue-500" />
-                          {p.name}
+                          <Key size={10} className="text-slate-400" />
+                          {p.display_name || p.name}
                         </span>
                       ))}
                     </div>
                   </td>
-                  <td className="p-4 text-right space-x-1">
-                    <Link
-                      to={'/roles/$roleId/edit' as any}
-                      params={{ roleId: r.id } as any}
-                      className="p-1.5 inline-flex items-center justify-center rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-blue-600 cursor-pointer"
-                      title="Chỉnh sửa phân quyền"
-                    >
-                      <Edit size={16} />
-                    </Link>
-                    {!r.is_system && (
+                  <td className="p-3 text-right">
+                    <div className="flex items-center justify-end gap-1">
                       <button
-                        onClick={() => handleDelete(r.id, r.display_name)}
-                        className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-rose-500 hover:text-rose-600 cursor-pointer"
-                        title="Xóa vai trò"
+                        onClick={() => toast.info(`Chỉnh sửa vai trò ${role.display_name}`)}
+                        className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded transition-colors cursor-pointer"
+                        title="Chỉnh sửa vai trò"
                       >
-                        <Trash2 size={16} />
+                        <Edit size={14} />
                       </button>
-                    )}
+                      {role.is_system ? (
+                        <span className="p-1 text-slate-300 dark:text-slate-700 cursor-not-allowed" title="Vai trò hệ thống gốc">
+                          <Lock size={14} />
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => toast.info(`Xóa vai trò ${role.display_name}`)}
+                          className="p-1 text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded transition-colors cursor-pointer"
+                          title="Xóa vai trò"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

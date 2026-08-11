@@ -18,7 +18,7 @@ import {
 import { toast } from 'sonner';
 
 import { User } from '@/types';
-import { getUsers, deleteUser } from '@/apis/users';
+import { getUsers, deleteUser, getRoles } from '@/apis/users';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
 import { SearchInput } from '@/components/common/SearchInput';
@@ -69,6 +69,27 @@ function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dynamicRoles, setDynamicRoles] = useState<Array<{ name: string; display_name: string }>>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchRolesFromApi() {
+      try {
+        const res = await getRoles();
+        if (isMounted && res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+          const mapped = res.data.map((r: any) => ({
+            name: r.display_name || r.name || 'Vai trò hệ thống',
+            display_name: r.display_name || r.name,
+          }));
+          setDynamicRoles(mapped);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch dynamic roles from API in index page:', err);
+      }
+    }
+    fetchRolesFromApi();
+    return () => { isMounted = false; };
+  }, []);
 
   // Confirmation Modal state
   const [deleteTarget, setDeleteTarget] = useState<{ id: string | number; name: string } | null>(null);
@@ -480,12 +501,22 @@ function UsersPage() {
             onChange={(e) => setRoleFilter(e.target.value)}
             className="h-9 px-3 text-[13px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-md text-slate-800 dark:text-slate-200 outline-none cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 font-medium"
           >
-            <option value="all">Tất cả vai trò (5 vai trò)</option>
-            <option value="Super Admin">Super Admin</option>
-            <option value="Quản trị viên">Quản trị viên (Manager)</option>
-            <option value="Nhân viên quầy">Nhân viên quầy (Counter Staff)</option>
-            <option value="Nhân viên điều hành">Nhân viên điều hành (Operations Staff)</option>
-            <option value="Nhân viên soát vé">Nhân viên soát vé (Check-in Staff)</option>
+            <option value="all">Tất cả vai trò ({dynamicRoles.length || 5} vai trò API)</option>
+            {dynamicRoles.length > 0 ? (
+              dynamicRoles.map((r, i) => (
+                <option key={i} value={r.name}>
+                  {r.display_name}
+                </option>
+              ))
+            ) : (
+              <>
+                <option value="Super Admin">Super Admin</option>
+                <option value="Quản trị viên">Quản trị viên (Manager)</option>
+                <option value="Nhân viên quầy">Nhân viên quầy (Counter Staff)</option>
+                <option value="Nhân viên điều hành">Nhân viên điều hành (Operations Staff)</option>
+                <option value="Nhân viên soát vé">Nhân viên soát vé (Check-in Staff)</option>
+              </>
+            )}
           </select>
         </div>
 

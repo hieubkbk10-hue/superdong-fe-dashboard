@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { UserCheck, ArrowLeft, Save, RefreshCw, KeyRound, Lock, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { updateUser, findUserById } from '@/apis/users';
+import { updateUser, findUserById, getRoles } from '@/apis/users';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
 import { DateBox } from '@/components/common/DateBox';
@@ -27,10 +27,11 @@ const getUserRoleName = (user: any, cachedRole?: string): string => {
     return 'Super Admin';
   }
   if (user.roles?.data && Array.isArray(user.roles.data) && user.roles.data.length > 0) {
-    return user.roles.data[0].name || 'Nhân viên quầy';
+    return user.roles.data[0].name || user.roles.data[0].display_name || 'Nhân viên quầy';
   }
   if (user.roles && Array.isArray(user.roles) && user.roles.length > 0) {
-    return typeof user.roles[0] === 'string' ? user.roles[0] : (user.roles[0].name || 'Nhân viên quầy');
+    const r = user.roles[0];
+    return typeof r === 'string' ? r : (r.display_name || r.name || 'Nhân viên quầy');
   }
   if (typeof user.role === 'string' && user.role) {
     return user.role;
@@ -44,8 +45,11 @@ function UserEditPage() {
 
   const cacheKey = `superdong_user_cache_${userId}`;
 
+  // DYNAMIC ROLES FROM REAL BACKEND API `/v1/roles`
+  const [dynamicRoles, setDynamicRoles] = useState<Array<{ name: string; display_name: string }>>([]);
+  const [loadingRoles, setLoadingRoles] = useState<boolean>(true);
+
   const [formData, setFormData] = useState(() => {
-    // PERSISTENCE FALLBACK: Đọc dữ liệu từ localStorage cache nếu có
     try {
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
@@ -68,6 +72,30 @@ function UserEditPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // FETCH REAL ROLES DIRECTLY FROM BACKEND API `/v1/roles`
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchRolesFromApi() {
+      setLoadingRoles(true);
+      try {
+        const res = await getRoles();
+        if (isMounted && res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+          const mapped = res.data.map((r: any) => ({
+            name: r.display_name || r.name || 'Vai trò hệ thống',
+            display_name: r.description ? `${r.display_name || r.name} (${r.description})` : (r.display_name || r.name),
+          }));
+          setDynamicRoles(mapped);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch dynamic roles from API in edit page:', err);
+      } finally {
+        if (isMounted) setLoadingRoles(false);
+      }
+    }
+    fetchRolesFromApi();
+    return () => { isMounted = false; };
+  }, []);
+
   const fetchUserDetails = async () => {
     setLoading(true);
     try {
@@ -75,7 +103,6 @@ function UserEditPage() {
       if (res && res.data) {
         const user = res.data;
 
-        // Merge dữ liệu từ API và cache localStorage
         let cachedData: any = {};
         try {
           const cachedStr = localStorage.getItem(cacheKey);
@@ -116,7 +143,6 @@ function UserEditPage() {
     e.preventDefault();
     if (isSubmitting) return;
 
-    // VALIDATION: Kiểm tra bắt buộc Họ tên & Email
     if (!formData.name.trim()) {
       toast.error('Vui lòng điền Họ và Tên!', { id: 'user-edit-toast' });
       return;
@@ -127,7 +153,6 @@ function UserEditPage() {
       return;
     }
 
-    // VALIDATION SỐ ĐIỆN THOẠI: Nếu nhập SĐT thì phải hợp lệ từ 9-11 chữ số
     const cleanPhone = formData.phone ? formData.phone.trim().replace(/[^0-9]/g, '') : '';
     if (cleanPhone && (cleanPhone.length < 9 || cleanPhone.length > 11)) {
       toast.error('Số điện thoại không hợp lệ! Vui lòng nhập từ 9 đến 11 chữ số (chỉ bao gồm các số 0-9).', { id: 'user-edit-toast' });
@@ -141,7 +166,6 @@ function UserEditPage() {
       phone: cleanPhone,
     };
 
-    // Save to localStorage FIRST (Guarantee F5 reload safe!)
     try {
       localStorage.setItem(cacheKey, JSON.stringify(updatedFormData));
     } catch (_) {}
@@ -155,7 +179,6 @@ function UserEditPage() {
       });
       toast.success(`Đã cập nhật thông tin tài khoản ${formData.name} thành công!`, { id: 'user-edit-toast' });
 
-      // LOGIC CHUẨN COUPON: Tự động re-fetch dữ liệu mới nhất từ Server Backend để đồng bộ state
       if (userId) {
         try {
           const fresh = await findUserById(userId);
@@ -191,6 +214,14 @@ function UserEditPage() {
   const handleResetPassword = () => {
     toast.success(`Đã gửi email hướng dẫn khôi phục mật khẩu tới ${formData.email}`, { id: 'user-edit-toast' });
   };
+
+  const roleOptions = dynamicRoles.length > 0 ? dynamicRoles : [
+    { name: 'Super Admin', display_name: 'Super Admin (Administrator - Toàn quyền hệ thống Superdong)' },
+    { name: 'Quản trị viên', display_name: 'Quản trị viên (Manager - Quản lý điều hành bến tàu Rạch Giá, Phú Quốc...)' },
+    { name: 'Nhân viên quầy', display_name: 'Nhân viên quầy (Counter Staff - Bán vé trực tiếp tại quầy bến tàu)' },
+    { name: 'Nhân viên điều hành', display_name: 'Nhân viên điều hành (Operations Staff - Phân công xếp nốt chuyến tàu)' },
+    { name: 'Nhân viên soát vé', display_name: 'Nhân viên soát vé (Check-in Staff - Kiểm tra soát vé mã QR tại cổng bến tàu)' },
+  ];
 
   return (
     <div className="space-y-4 w-full font-sans pb-10 text-slate-800 dark:text-slate-200">
@@ -320,8 +351,11 @@ function UserEditPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
             <div className="space-y-1">
-              <Label htmlFor="user-role" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                Vai Trò Hệ Thống {isSuperAdmin && <Lock size={12} className="text-slate-400" />}
+              <Label htmlFor="user-role" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  Vai Trò Hệ Thống {isSuperAdmin && <Lock size={12} className="text-slate-400" />}
+                </span>
+                {loadingRoles && <span className="text-[11px] font-normal text-slate-400 animate-pulse">Đang tải vai trò từ API...</span>}
               </Label>
               <select
                 id="user-role"
@@ -333,11 +367,11 @@ function UserEditPage() {
                 }`}
                 title={isSuperAdmin ? 'Tài khoản Super Admin gốc hệ thống không thể giáng cấp vai trò' : ''}
               >
-                <option value="Super Admin">Super Admin (Toàn quyền hệ thống - Administrator)</option>
-                <option value="Quản trị viên">Quản trị viên (Manager - Quản lý điều hành bến tàu)</option>
-                <option value="Nhân viên quầy">Nhân viên quầy (Counter Staff - Bán vé tại quầy)</option>
-                <option value="Nhân viên điều hành">Nhân viên điều hành (Operations Staff - Phân công nốt tàu)</option>
-                <option value="Nhân viên soát vé">Nhân viên soát vé (Check-in Staff - Kiểm tra vé QR cổng)</option>
+                {roleOptions.map((r, i) => (
+                  <option key={i} value={r.name}>
+                    {r.display_name}
+                  </option>
+                ))}
               </select>
             </div>
 

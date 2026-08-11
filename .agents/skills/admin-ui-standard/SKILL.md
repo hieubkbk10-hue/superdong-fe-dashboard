@@ -11,10 +11,10 @@ Bộ quy chuẩn thiết kế và lập trình **Full-Stack Frontend & Backend**
 
 ## 📋 CHECKLIST TỰ KIỂM TRÁ BẮT BUỘC KHÔNG ĐƯỢC BỎ BƯỚC (FULL-STACK DEFINITION OF DONE)
 
-Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edit), AI Agent **BẮT BUỘC** phải rà soát qua 9 nhóm tiêu chí bên dưới trước khi bàn giao cho anh Hiếu (NGHIÊM CẤM BỎ BƯỚC / SKIP):
+Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edit), AI Agent **BẮT BUỘC** phải rà soát qua 9 nhóm tiêu chí bên dưới trước khi bàn giao cho anh Hiếu (NGHIÊM CẤM HARDCODE DỮ LIỆU GIẢ / SKIP):
 
 ```
-[ ] 1. SYSTEM DOMAIN INTEGRITY AUDIT: AI Agent tự đối soát thủ công 100% danh mục vai trò/dữ liệu thực tế ở trang /roles (5 vai trò: Super Admin, Quản trị viên, Nhân viên quầy, Nhân viên điều hành, Nhân viên soát vé). NGHIÊM CẤM khai báo thiếu dropdown
+[ ] 1. DYNAMIC API DATA FETCHING (CẤM HARDCODE): BẮT BUỘC gọi API trực tiếp từ Backend (ví dụ `getRoles()` từ `/v1/roles`) để render dynamic options cho ô Select/Dropdown ở cả màn Create, Edit và List Filter
 [ ] 2. BACKEND INTEGRITY: Migration table, Model $fillable, Request rules(), Action sanitizeInput(), Transformer transform() đầy đủ TẤT CẢ các trường
 [ ] 3. INPUT & ROLE DATA PRECISION: AI Agent tự kiểm tra thủ công tính chính xác của từng ô input, option value select và role_name. Giá trị chọn thế nào giữ nguyên 100% không bị trôi role
 [ ] 4. CREATE PAGE CLEAR DATA BUTTON: Màn Create BẮT BUỘC có nút nhỏ gọn 'Làm sạch dữ liệu' (Clear Form) reset toàn bộ input và xóa bản nháp (CẤM thêm ở màn Edit)
@@ -54,17 +54,12 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
 
 ---
 
-## 🛡️ 2. Quy Chuẩn Frontend Filter, Input Precision & Role Handling
+## 🛡️ 2. Quy Chuẩn Dynamic API Fetching & Input Precision
 
-1. **Đối Soát Danh Mục Vai Trò Hệ Thống Khớp 100% Với Trang `/roles` (System Domain Role Audit)**:
-   * AI Agent BẮT BUỘC phải kiểm tra thủ công danh sách vai trò hệ thống hiển thị ở màn `/roles` trước khi khai báo bất kỳ dropdown select nào.
-   * **Danh sách 5 vai trò chuẩn mực**:
-     1. `Super Admin`: Administrator (Toàn quyền quản trị hệ thống)
-     2. `Quản trị viên`: Manager (Quản lý điều hành bến tàu Rạch Giá, Phú Quốc...)
-     3. `Nhân viên quầy`: Counter Staff (Bán vé trực tiếp tại quầy bến tàu)
-     4. `Nhân viên điều hành`: Operations Staff (Điều hành phân công xếp nốt chuyến tàu)
-     5. `Nhân viên soát vé`: Check-in Staff (Kiểm tra soát vé mã QR tại cổng bến tàu)
-   * **NGHIÊM CẤM** tự ý rút gọn còn 3 vai trò hoặc bỏ sót bất kỳ vai trò nào có trong ma trận phân quyền.
+1. **Tuyệt Đối KHÔNG Hardcode Dữ Liệu - Bắt Buộc Gọi API Thật (`Dynamic API Data Fetching`)**:
+   * **QUY TẮC BẮT BUỘC**: AI Agent tuyệt đối **KHÔNG ĐƯỢC HARDCODE** mảng tĩnh làm giá trị mặc định cho ô Select/Dropdown (như danh sách Roles, Danh mục, Bến tàu, Tuyến tàu).
+   * BẮT BUỘC phải sử dụng `useEffect` gọi API thực tế từ Backend (như `getRoles()` từ endpoint `/v1/roles`) để nạp mảng dữ liệu sống trực tiếp từ Database.
+   * Chỉ dùng mảng fallback domain thực tế khi kết nối mạng hoặc Backend API bị ngắt.
 
 2. **Lọc Ký Tự Trực Tiếp Trên Ô Nhập (Live Input Filter)**:
    * **Số điện thoại**: BẮT BUỘC lọc sạch các ký tự không phải chữ số ngay khi người dùng gõ:
