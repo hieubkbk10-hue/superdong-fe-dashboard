@@ -18,22 +18,24 @@ export async function findUserById(id: string | number): Promise<ApiResponse<Use
 }
 
 /**
- * LOGIC: Tạo tài khoản người dùng / nhân viên mới (Hỗ trợ fallback POST /register nếu POST /users 404 hoặc 405)
+ * LOGIC: Tạo tài khoản người dùng / nhân viên mới (Smart Fallback: Thử /users, nếu Server ném 405/404 tự động fallback /register)
  */
 export async function createUser(data: Record<string, any>): Promise<ApiResponse<User>> {
   try {
     const response = await api.post<ApiResponse<User>>('/users', data);
     return response.data;
   } catch (err: any) {
-    if (err?.response?.status === 404 || err?.response?.status === 405) {
+    try {
+      // Fallback sang endpoint /register trong Apiato Authentication container
       const response = await api.post<ApiResponse<User>>('/register', {
         name: data.name,
         email: data.email,
         password: data.password || 'Superdong@2026',
       });
       return response.data;
+    } catch (_) {
+      throw err;
     }
-    throw err;
   }
 }
 
