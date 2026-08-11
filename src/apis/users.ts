@@ -74,6 +74,14 @@ export async function getRoles(): Promise<ApiResponse<Role[]>> {
 }
 
 /**
+ * LOGIC: Tìm vai trò theo ID để nạp form chỉnh sửa
+ */
+export async function findRoleById(id: string | number): Promise<ApiResponse<Role>> {
+  const response = await api.get<ApiResponse<Role>>(`/roles/${id}`);
+  return response.data;
+}
+
+/**
  * LOGIC: Lấy danh sách tất cả các quyền (permissions) chi tiết
  */
 export async function getPermissions(): Promise<ApiResponse<Permission[]>> {
@@ -104,7 +112,29 @@ export async function createRole(data: Partial<Role>): Promise<ApiResponse<Role>
  * LOGIC: Cập nhật vai trò
  */
 export async function updateRole(id: string | number, data: Partial<Role>): Promise<ApiResponse<Role>> {
-  const response = await api.put<ApiResponse<Role>>(`/roles/${id}`, data);
+  const response = await api.patch<ApiResponse<Role>>(`/roles/${id}`, data);
+  return response.data;
+}
+
+/**
+ * LOGIC: Xóa vai trò khỏi hệ thống phân quyền
+ */
+export async function deleteRole(id: string | number): Promise<ApiResponse<void>> {
+  const response = await api.delete<ApiResponse<void>>(`/roles/${id}`);
+  return response.data;
+}
+
+/**
+ * QUYỀN: Đồng bộ toàn bộ quyền API đang gán cho vai trò
+ */
+export async function syncRolePermissions(
+  roleId: string | number,
+  permissionIds: Array<string | number>
+): Promise<ApiResponse<Role>> {
+  const response = await api.post<ApiResponse<Role>>('/permissions/sync', {
+    role_id: roleId,
+    permissions_ids: permissionIds,
+  });
   return response.data;
 }
 
@@ -115,8 +145,11 @@ export default {
   updateUser,
   deleteUser,
   getRoles,
+  findRoleById,
   createRole,
   updateRole,
+  deleteRole,
+  syncRolePermissions,
   getPermissions,
   assignRoles,
 };

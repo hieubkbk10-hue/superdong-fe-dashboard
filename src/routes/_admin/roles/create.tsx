@@ -1,267 +1,234 @@
-import React, { useState } from 'react';
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { Shield, ArrowLeft, Save } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { ArrowLeft, RefreshCw, RotateCcw, Save, Shield } from 'lucide-react';
 import { toast } from 'sonner';
-import { createRole } from '@/apis/users';
+
+import { createRole, getPermissions, syncRolePermissions } from '@/apis/users';
+import { Badge } from '@/components/common/Badge';
+import { Button } from '@/components/common/Button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Permission } from '@/types';
+import { normalizeApiatoCollection } from './-role-normalizer';
 
 export const Route = createFileRoute('/_admin/roles/create')({
   component: RoleCreatePage,
 });
 
-interface PermissionGroup {
-  group_name: string;
-  items: { id: string; name: string; label: string }[];
+const DRAFT_KEY = 'superdong_role_draft_create';
+
+interface RoleFormData {
+  name: string;
+  display_name: string;
+  description: string;
 }
 
-const PERMISSION_GROUPS: PermissionGroup[] = [
-  {
-    group_name: 'Quản Lý Đơn Vé & Hành Khách',
-    items: [
-      { id: 'p1', name: 'bookings.view', label: 'Xem danh sách đơn vé' },
-      { id: 'p2', name: 'bookings.create', label: 'Tạo đơn đặt vé mới' },
-      { id: 'p3', name: 'bookings.edit', label: 'Chỉnh sửa thông tin đơn vé' },
-      { id: 'p4', name: 'bookings.cancel', label: 'Hủy đơn vé & xử lý đổi trả' },
-    ],
-  },
-  {
-    group_name: 'Quản Lý Đội Tàu & Lịch Chạy',
-    items: [
-      { id: 'p5', name: 'boats.manage', label: 'Cấu hình danh sách tàu' },
-      { id: 'p6', name: 'schedules.manage', label: 'Cài đặt lịch trình chạy tàu' },
-      { id: 'p7', name: 'trips.manage', label: 'Tạo & Đóng chuyến tàu' },
-      { id: 'p8', name: 'seatmaps.manage', label: 'Thiết kế & Chỉnh sửa sơ đồ ghế' },
-    ],
-  },
-  {
-    group_name: 'Soát Vé & Check-In',
-    items: [
-      { id: 'p9', name: 'checkin.scan', label: 'Quét mã QR soát vé cổng' },
-      { id: 'p10', name: 'checkin.revert', label: 'Hủy trạng thái check-in' },
-      { id: 'p11', name: 'passengers.export', label: 'Xuất danh sách hành khách rời cảng' },
-    ],
-  },
-  {
-    group_name: 'Tài Chính & Mã Khuyến Mãi',
-    items: [
-      { id: 'p12', name: 'coupons.manage', label: 'Tạo mã voucher & coupon' },
-      { id: 'p13', name: 'payments.confirm', label: 'Thu tiền & xác nhận thanh toán' },
-      { id: 'p14', name: 'reports.finance', label: 'Xem báo cáo doanh thu & đối soát' },
-    ],
-  },
-  {
-    group_name: 'Quản Trị Hệ Thống',
-    items: [
-      { id: 'p15', name: 'users.manage', label: 'Quản lý tài khoản nhân viên' },
-      { id: 'p16', name: 'roles.manage', label: 'Tạo vai trò & Phân quyền' },
-      { id: 'p17', name: 'settings.manage', label: 'Cấu hình thông tin công ty & cổng thanh toán' },
-      { id: 'p18', name: 'audit.view', label: 'Xem nhật ký thao tác (Audit logs)' },
-    ],
-  },
-];
+const DEFAULT_FORM: RoleFormData = {
+  name: '',
+  display_name: '',
+  description: '',
+};
+
+function normalizePermissionList(response: unknown): Permission[] {
+  const data = response && typeof response === 'object' ? (response as { data?: unknown }).data : [];
+  return normalizeApiatoCollection<Permission>(data).filter((permission) => (permission.guard_name || 'api') === 'api');
+}
 
 function RoleCreatePage() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    code: '',
-    display_name: '',
-    description: '',
+  const [formData, setFormData] = useState<RoleFormData>(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      return saved ? { ...DEFAULT_FORM, ...JSON.parse(saved) } : DEFAULT_FORM;
+    } catch (_) {
+      return DEFAULT_FORM;
+    }
   });
-
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([
-    'p1', 'p2', 'p9'
-  ]);
-
+  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [selectedPermissionIds, setSelectedPermissionIds] = useState<Array<string | number>>([]);
+  const [loadingPermissions, setLoadingPermissions] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const togglePermission = (id: string) => {
-    setSelectedPermissions((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
-    );
+  useEffect(() => {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(formData));
+  }, [formData]);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchPermissions() {
+      setLoadingPermissions(true);
+      try {
+        const res = await getPermissions();
+        if (isMounted) setPermissions(normalizePermissionList(res));
+      } catch (err: any) {
+        console.error('Failed to fetch API permissions:', err);
+        toast.error(err?.response?.data?.message || 'Không thể tải danh sách quyền API');
+      } finally {
+        if (isMounted) setLoadingPermissions(false);
+      }
+    }
+    fetchPermissions();
+    return () => { isMounted = false; };
+  }, []);
+
+  const groupedPermissions = useMemo(() => {
+    return permissions.reduce<Record<string, Permission[]>>((groups, permission) => {
+      const groupName = (permission.name || '').split('-')[0] || 'khac';
+      groups[groupName] = groups[groupName] || [];
+      groups[groupName].push(permission);
+      return groups;
+    }, {});
+  }, [permissions]);
+
+  const updateForm = (patch: Partial<RoleFormData>) => setFormData((prev) => ({ ...prev, ...patch }));
+
+  const clearForm = () => {
+    setFormData(DEFAULT_FORM);
+    setSelectedPermissionIds([]);
+    localStorage.removeItem(DRAFT_KEY);
+    toast.success('Đã làm sạch dữ liệu nhập');
   };
 
-  const toggleGroup = (group: PermissionGroup) => {
-    const groupIds = group.items.map((i) => i.id);
-    const allSelected = groupIds.every((id) => selectedPermissions.includes(id));
+  const togglePermission = (id: string | number) => {
+    setSelectedPermissionIds((prev) => prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]);
+  };
 
-    if (allSelected) {
-      setSelectedPermissions((prev) => prev.filter((id) => !groupIds.includes(id)));
-    } else {
-      setSelectedPermissions((prev) => Array.from(new Set([...prev, ...groupIds])));
-    }
+  const toggleGroup = (items: Permission[]) => {
+    const ids = items.map((item) => item.id);
+    const allSelected = ids.every((id) => selectedPermissionIds.includes(id));
+    setSelectedPermissionIds((prev) => allSelected
+      ? prev.filter((id) => !ids.includes(id))
+      : Array.from(new Set([...prev, ...ids])));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
-    if (!formData.code.trim() || !formData.display_name.trim()) {
-      toast.error('Vui lòng nhập Mã vai trò và Tên hiển thị!', { id: 'role-create-toast' });
+    const roleName = formData.name.trim().toLowerCase();
+    if (!roleName || !formData.display_name.trim()) {
+      toast.error('Vui lòng nhập mã vai trò và tên vai trò', { id: 'role-create-toast' });
+      return;
+    }
+    if (!/^[a-z0-9_]+$/.test(roleName)) {
+      toast.error('Mã vai trò chỉ dùng chữ thường, số và dấu gạch dưới, ví dụ: shift_manager', { id: 'role-create-toast' });
+      return;
+    }
+    if (roleName.length > 20) {
+      toast.error('Mã vai trò tối đa 20 ký tự theo chuẩn Backend', { id: 'role-create-toast' });
       return;
     }
 
-    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await createRole({
-        name: formData.code,
-        display_name: formData.display_name,
-        description: formData.description,
+      const created = await createRole({
+        name: roleName,
+        display_name: formData.display_name.trim(),
+        description: formData.description.trim(),
       } as any);
-      toast.success(`Đã tạo thành công vai trò ${formData.display_name}`, { id: 'role-create-toast' });
+
+      const roleId = created.data.id;
+      if (selectedPermissionIds.length > 0) {
+        await syncRolePermissions(roleId, selectedPermissionIds);
+      }
+
+      localStorage.removeItem(DRAFT_KEY);
+      toast.success(`Đã tạo vai trò ${formData.display_name.trim()} thành công`, { id: 'role-create-toast' });
       navigate({ to: '/roles' as any });
     } catch (err: any) {
       console.error('Failed to create role:', err);
-      const serverMsg = err?.response?.data?.message || err?.message || '';
-      toast.error(serverMsg || 'Không thể tạo vai trò mới trên Backend Server', { id: 'role-create-toast' });
+      toast.error(err?.response?.data?.message || err?.message || 'Không thể tạo vai trò trên Backend API', { id: 'role-create-toast' });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-6 max-w-4xl font-sans pb-12">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link
-          to={'/roles' as any}
-          className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-          title="Quay lại danh sách"
-        >
-          <ArrowLeft size={18} />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Shield className="h-6 w-6 text-blue-600" />
-            Tạo Vai Trò Mới &amp; Phân Quyền
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">Thiết lập tên vai trò và tích chọn Ma trận quyền hạn chi tiết</p>
+    <div className="space-y-4 w-full font-sans pb-10 text-slate-800 dark:text-slate-200">
+      <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-3">
+          <Button variant="light" size="icon" className="h-8 w-8" asChild>
+            <Link to={'/roles' as any} title="Quay lại danh sách"><ArrowLeft size={16} /></Link>
+          </Button>
+          <div>
+            <h1 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              Tạo vai trò mới
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Tạo vai trò nhân viên và gán quyền API được phép truy cập</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="light" size="sm" className="h-8 gap-1.5" onClick={clearForm}>
+            <RotateCcw size={14} /> Làm sạch dữ liệu
+          </Button>
+          <Badge variant="blue" className="px-3 py-1 text-xs">Vai trò mới</Badge>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Info Card */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Mã Vai Trò (ROLE CODE) <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                placeholder="VD: SHIFT_SUPERVISOR"
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-blue-600 font-mono font-bold text-sm outline-none focus:border-blue-500 uppercase"
-                required
-              />
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5">
+        <div className="space-y-3">
+          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">I. Thông tin cơ bản</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className="space-y-1">
+              <Label htmlFor="role-name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">Mã vai trò <span className="text-rose-500 font-bold">*</span></Label>
+              <Input id="role-name" value={formData.name} onChange={(e) => updateForm({ name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 20) })} placeholder="vd: shift_manager" className="text-blue-600 dark:text-blue-400 font-mono font-bold text-sm h-9 rounded-lg" required />
             </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Tên Hiển Thị Vai Trò <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.display_name}
-                onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                placeholder="VD: Trưởng ca điều hành bến"
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-blue-500"
-                required
-              />
+            <div className="space-y-1">
+              <Label htmlFor="role-display-name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">Tên vai trò <span className="text-rose-500 font-bold">*</span></Label>
+              <Input id="role-display-name" value={formData.display_name} onChange={(e) => updateForm({ display_name: e.target.value })} placeholder="vd: Trưởng ca vận hành" className="text-sm h-9 rounded-lg" required />
             </div>
           </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Mô Tả Chức Năng &amp; Trách Nhiệm
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={2}
-              placeholder="VD: Giám sát toàn bộ hoạt động xuất cảng, giải quyết khiếu nại đổi trả vé..."
-              className="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-blue-500"
-            />
+          <div className="space-y-1">
+            <Label htmlFor="role-description" className="text-xs font-semibold text-slate-700 dark:text-slate-300">Mô tả nhiệm vụ</Label>
+            <textarea id="role-description" value={formData.description} onChange={(e) => updateForm({ description: e.target.value.slice(0, 255) })} rows={3} placeholder="Mô tả ngắn vai trò này phụ trách việc gì..." className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 text-sm outline-none focus:border-blue-500" />
           </div>
         </div>
 
-        {/* Permissions Checklist Matrix */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-6">
-          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
-            <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">Ma Trận Quyền Hạn Thực Thi</h2>
-              <p className="text-xs text-slate-500">Tích chọn các quyền mà vai trò này được phép truy cập</p>
+        <div className="space-y-3">
+          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">II. Quyền API được gán</div>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-slate-500">Chỉ hiển thị quyền guard API, quyền web của Backend không dùng cho dashboard.</p>
+            <Badge variant="blue">Đã chọn {selectedPermissionIds.length}</Badge>
+          </div>
+          {loadingPermissions ? (
+            <div className="flex items-center gap-2 rounded-lg border border-slate-200 p-4 text-xs text-slate-500"><RefreshCw size={14} className="animate-spin" /> Đang tải quyền API...</div>
+          ) : (
+            <div className="space-y-3">
+              {Object.entries(groupedPermissions).map(([group, items]) => {
+                const allSelected = items.every((item) => selectedPermissionIds.includes(item.id));
+                return (
+                  <div key={group} className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 space-y-3">
+                    <div className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-900 px-3 py-2">
+                      <div className="text-sm font-bold capitalize text-slate-900 dark:text-white">{group.replace(/_/g, ' ')}</div>
+                      <button type="button" onClick={() => toggleGroup(items)} className="text-xs font-semibold text-blue-600 hover:underline">{allSelected ? 'Bỏ chọn nhóm' : 'Chọn nhóm'}</button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+                      {items.map((permission) => {
+                        const checked = selectedPermissionIds.includes(permission.id);
+                        return (
+                          <label key={permission.id} className={`flex cursor-pointer items-start gap-2 rounded-lg border p-2.5 text-xs transition-all ${checked ? 'border-blue-300 bg-blue-50/70 dark:border-blue-800 dark:bg-blue-950/30' : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950'}`}>
+                            <input type="checkbox" checked={checked} onChange={() => togglePermission(permission.id)} className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                            <span>
+                              <span className="block font-semibold text-slate-800 dark:text-slate-100">{permission.display_name || permission.name}</span>
+                              <span className="block font-mono text-[11px] text-slate-400">{permission.name}</span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <span className="text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/40 px-3 py-1 rounded-full">
-              Đã chọn: {selectedPermissions.length} quyền
-            </span>
-          </div>
-
-          <div className="space-y-6">
-            {PERMISSION_GROUPS.map((group, idx) => {
-              const groupIds = group.items.map((i) => i.id);
-              const allSelected = groupIds.every((id) => selectedPermissions.includes(id));
-
-              return (
-                <div key={idx} className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
-                  <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-lg">
-                    <h3 className="font-bold text-sm text-slate-900 dark:text-white">{group.group_name}</h3>
-                    <button
-                      type="button"
-                      onClick={() => toggleGroup(group)}
-                      className="text-xs text-blue-600 font-semibold hover:underline cursor-pointer"
-                    >
-                      {allSelected ? 'Bỏ chọn nhóm' : 'Chọn toàn bộ nhóm'}
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    {group.items.map((item) => {
-                      const checked = selectedPermissions.includes(item.id);
-                      return (
-                        <label
-                          key={item.id}
-                          className={`flex items-center gap-3 p-3 rounded-lg border text-xs cursor-pointer transition-all ${
-                            checked
-                              ? 'bg-blue-50/60 dark:bg-blue-950/30 border-blue-300 dark:border-blue-800 font-semibold text-slate-900 dark:text-white'
-                              : 'bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => togglePermission(item.id)}
-                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                          />
-                          <div>
-                            <div>{item.label}</div>
-                            <div className="text-[11px] font-mono text-slate-400 mt-0.5">{item.name}</div>
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          )}
         </div>
 
-        {/* Action buttons */}
-        <div className="flex items-center justify-end gap-3">
-          <Link
-            to={'/roles' as any}
-            className="px-5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-          >
-            Hủy Bỏ
-          </Link>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <Save size={16} />
-            {isSubmitting ? 'Đang lưu...' : 'Tạo Vai Trò Mới'}
-          </button>
+        <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-200 dark:border-slate-800">
+          <Button variant="outline" type="button" asChild className="px-5 h-9 text-xs"><Link to={'/roles' as any}>Hủy Bỏ</Link></Button>
+          <Button type="submit" variant="primary" disabled={isSubmitting} className="px-6 h-9 text-xs gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg">
+            {isSubmitting ? <><RefreshCw size={14} className="animate-spin" /> Đang lưu...</> : <><Save size={14} /> Tạo vai trò</>}
+          </Button>
         </div>
       </form>
     </div>

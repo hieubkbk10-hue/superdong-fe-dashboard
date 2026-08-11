@@ -48,6 +48,7 @@ export interface Permission {
 export interface Role {
   id: string | number;
   name: string;
+  guard_name?: string;
   display_name?: string;
   description?: string;
   permissions?: Permission[];

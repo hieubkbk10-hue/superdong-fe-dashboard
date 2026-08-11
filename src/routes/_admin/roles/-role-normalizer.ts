@@ -1,6 +1,9 @@
 export interface NormalizedPermissionItem {
+  id: string | number;
   name: string;
   display_name: string;
+  description?: string;
+  guard_name: string;
 }
 
 export interface NormalizedRoleItem {
@@ -32,9 +35,12 @@ export function normalizeRoleItem(role: Record<string, any>): NormalizedRoleItem
     user_count: Number(role?.user_count ?? 0),
     is_system: role?.name === 'admin',
     permissions: normalizeApiatoCollection<any>(role?.permissions).map((permission) => ({
+      id: permission?.id,
       name: permission?.name || permission,
       display_name: permission?.display_name || permission?.name || permission,
-    })),
+      description: permission?.description,
+      guard_name: permission?.guard_name || 'api',
+    })).filter((permission) => permission.guard_name === 'api'),
   };
 }
 
