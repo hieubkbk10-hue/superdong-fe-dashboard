@@ -89,7 +89,17 @@ export async function deleteSeatClass(id: string | number, data?: Record<string,
  * LOGIC: Lấy sơ đồ ghế chi tiết của một tàu
  */
 export async function getSeatMap(boatId: string | number): Promise<ApiResponse<SeatMap>> {
-  const response = await api.get<ApiResponse<SeatMap>>(`/boats/${boatId}/seat-map`);
+  const response = await api.get<ApiResponse<SeatMap>>(`/seat-maps/${boatId}`);
+  return response.data;
+}
+
+export async function getSeatMaps(params?: Record<string, any>): Promise<PaginatedResponse<SeatMap>> {
+  const response = await api.get<PaginatedResponse<SeatMap>>('/seat-maps', { params });
+  return response.data;
+}
+
+export async function findSeatMapForEdit(id: string | number): Promise<ApiResponse<SeatMap>> {
+  const response = await api.get<ApiResponse<SeatMap>>(`/seat-maps/${id}/edit`);
   return response.data;
 }
 
@@ -97,7 +107,17 @@ export async function getSeatMap(boatId: string | number): Promise<ApiResponse<S
  * LOGIC: Tạo sơ đồ ghế mới cho tàu
  */
 export async function createSeatMap(boatId: string | number, data: Partial<SeatMap>): Promise<ApiResponse<SeatMap>> {
-  const response = await api.post<ApiResponse<SeatMap>>(`/boats/${boatId}/seat-map`, data);
+  const response = await api.post<ApiResponse<SeatMap>>(`/boats/${boatId}/seat-maps`, data);
+  return response.data;
+}
+
+export async function updateSeatMap(id: string | number, data: Record<string, any>): Promise<ApiResponse<SeatMap>> {
+  const response = await api.patch<ApiResponse<SeatMap>>(`/seat-maps/${id}`, data);
+  return response.data;
+}
+
+export async function deleteSeatMap(id: string | number, data: Record<string, any>): Promise<ApiResponse<{ message: string }>> {
+  const response = await api.delete<ApiResponse<{ message: string }>>(`/seat-maps/${id}`, { data });
   return response.data;
 }
 
@@ -114,6 +134,10 @@ export default {
   updateSeatClass,
   deactivateSeatClass,
   deleteSeatClass,
+  getSeatMaps,
   getSeatMap,
+  findSeatMapForEdit,
   createSeatMap,
+  updateSeatMap,
+  deleteSeatMap,
 };

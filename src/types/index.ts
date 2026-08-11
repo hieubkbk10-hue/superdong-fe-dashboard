@@ -129,12 +129,18 @@ export interface Deck {
 
 export interface SeatMap {
   id: string | number;
-  boat_id: string | number;
+  boat_id?: string | number;
+  boat?: {
+    id: string | number;
+    code: string;
+    name: string;
+  };
   boat_name?: string;
   name: string;
-  version?: string;
+  version?: string | number;
+  status?: 'active' | 'inactive';
   decks: Deck[];
-  total_seats: number;
+  total_seats?: number;
   is_active?: boolean;
   created_at?: string;
   updated_at?: string;

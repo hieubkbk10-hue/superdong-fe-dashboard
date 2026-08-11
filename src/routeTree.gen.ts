@@ -34,6 +34,7 @@ import { Route as AdminSchedulesCreateRouteImport } from './routes/_admin/schedu
 import { Route as AdminSeatClassesIndexRouteImport } from './routes/_admin/seat-classes/index'
 import { Route as AdminSeatClassesCreateRouteImport } from './routes/_admin/seat-classes/create'
 import { Route as AdminSeatMapsIndexRouteImport } from './routes/_admin/seat-maps/index'
+import { Route as AdminSeatMapsCreateRouteImport } from './routes/_admin/seat-maps/create'
 import { Route as AdminSettingsIndexRouteImport } from './routes/_admin/settings/index'
 import { Route as AdminTravelerTypesIndexRouteImport } from './routes/_admin/traveler-types/index'
 import { Route as AdminTravelerTypesCreateRouteImport } from './routes/_admin/traveler-types/create'
@@ -49,6 +50,7 @@ import { Route as AdminLocationsLocationIdEditRouteImport } from './routes/_admi
 import { Route as AdminRolesRoleIdEditRouteImport } from './routes/_admin/roles/$roleId.edit'
 import { Route as AdminSchedulesScheduleIdEditRouteImport } from './routes/_admin/schedules/$scheduleId.edit'
 import { Route as AdminSeatClassesClassIdEditRouteImport } from './routes/_admin/seat-classes/$classId.edit'
+import { Route as AdminSeatMapsSeatMapIdEditRouteImport } from './routes/_admin/seat-maps/$seatMapId.edit'
 import { Route as AdminTravelerTypesTypeIdEditRouteImport } from './routes/_admin/traveler-types/$typeId.edit'
 import { Route as AdminTripsTripIdEditRouteImport } from './routes/_admin/trips/$tripId.edit'
 import { Route as AdminUsersUserIdEditRouteImport } from './routes/_admin/users/$userId.edit'
@@ -178,6 +180,11 @@ const AdminSeatMapsIndexRoute = AdminSeatMapsIndexRouteImport.update({
   path: '/seat-maps/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSeatMapsCreateRoute = AdminSeatMapsCreateRouteImport.update({
+  id: '/seat-maps/create',
+  path: '/seat-maps/create',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminSettingsIndexRoute = AdminSettingsIndexRouteImport.update({
   id: '/settings/',
   path: '/settings/',
@@ -260,6 +267,12 @@ const AdminSeatClassesClassIdEditRoute =
     path: '/seat-classes/$classId/edit',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminSeatMapsSeatMapIdEditRoute =
+  AdminSeatMapsSeatMapIdEditRouteImport.update({
+    id: '/seat-maps/$seatMapId/edit',
+    path: '/seat-maps/$seatMapId/edit',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminTravelerTypesTypeIdEditRoute =
   AdminTravelerTypesTypeIdEditRouteImport.update({
     id: '/traveler-types/$typeId/edit',
@@ -288,6 +301,7 @@ export interface FileRoutesByFullPath {
   '/roles/create': typeof AdminRolesCreateRoute
   '/schedules/create': typeof AdminSchedulesCreateRoute
   '/seat-classes/create': typeof AdminSeatClassesCreateRoute
+  '/seat-maps/create': typeof AdminSeatMapsCreateRoute
   '/traveler-types/create': typeof AdminTravelerTypesCreateRoute
   '/trips/create': typeof AdminTripsCreateRoute
   '/users/create': typeof AdminUsersCreateRoute
@@ -317,6 +331,7 @@ export interface FileRoutesByFullPath {
   '/roles/$roleId/edit': typeof AdminRolesRoleIdEditRoute
   '/schedules/$scheduleId/edit': typeof AdminSchedulesScheduleIdEditRoute
   '/seat-classes/$classId/edit': typeof AdminSeatClassesClassIdEditRoute
+  '/seat-maps/$seatMapId/edit': typeof AdminSeatMapsSeatMapIdEditRoute
   '/traveler-types/$typeId/edit': typeof AdminTravelerTypesTypeIdEditRoute
   '/trips/$tripId/edit': typeof AdminTripsTripIdEditRoute
   '/users/$userId/edit': typeof AdminUsersUserIdEditRoute
@@ -332,6 +347,7 @@ export interface FileRoutesByTo {
   '/roles/create': typeof AdminRolesCreateRoute
   '/schedules/create': typeof AdminSchedulesCreateRoute
   '/seat-classes/create': typeof AdminSeatClassesCreateRoute
+  '/seat-maps/create': typeof AdminSeatMapsCreateRoute
   '/traveler-types/create': typeof AdminTravelerTypesCreateRoute
   '/trips/create': typeof AdminTripsCreateRoute
   '/users/create': typeof AdminUsersCreateRoute
@@ -361,6 +377,7 @@ export interface FileRoutesByTo {
   '/roles/$roleId/edit': typeof AdminRolesRoleIdEditRoute
   '/schedules/$scheduleId/edit': typeof AdminSchedulesScheduleIdEditRoute
   '/seat-classes/$classId/edit': typeof AdminSeatClassesClassIdEditRoute
+  '/seat-maps/$seatMapId/edit': typeof AdminSeatMapsSeatMapIdEditRoute
   '/traveler-types/$typeId/edit': typeof AdminTravelerTypesTypeIdEditRoute
   '/trips/$tripId/edit': typeof AdminTripsTripIdEditRoute
   '/users/$userId/edit': typeof AdminUsersUserIdEditRoute
@@ -378,6 +395,7 @@ export interface FileRoutesById {
   '/_admin/roles/create': typeof AdminRolesCreateRoute
   '/_admin/schedules/create': typeof AdminSchedulesCreateRoute
   '/_admin/seat-classes/create': typeof AdminSeatClassesCreateRoute
+  '/_admin/seat-maps/create': typeof AdminSeatMapsCreateRoute
   '/_admin/traveler-types/create': typeof AdminTravelerTypesCreateRoute
   '/_admin/trips/create': typeof AdminTripsCreateRoute
   '/_admin/users/create': typeof AdminUsersCreateRoute
@@ -407,6 +425,7 @@ export interface FileRoutesById {
   '/_admin/roles/$roleId/edit': typeof AdminRolesRoleIdEditRoute
   '/_admin/schedules/$scheduleId/edit': typeof AdminSchedulesScheduleIdEditRoute
   '/_admin/seat-classes/$classId/edit': typeof AdminSeatClassesClassIdEditRoute
+  '/_admin/seat-maps/$seatMapId/edit': typeof AdminSeatMapsSeatMapIdEditRoute
   '/_admin/traveler-types/$typeId/edit': typeof AdminTravelerTypesTypeIdEditRoute
   '/_admin/trips/$tripId/edit': typeof AdminTripsTripIdEditRoute
   '/_admin/users/$userId/edit': typeof AdminUsersUserIdEditRoute
@@ -424,6 +443,7 @@ export interface FileRouteTypes {
     | '/roles/create'
     | '/schedules/create'
     | '/seat-classes/create'
+    | '/seat-maps/create'
     | '/traveler-types/create'
     | '/trips/create'
     | '/users/create'
@@ -453,6 +473,7 @@ export interface FileRouteTypes {
     | '/roles/$roleId/edit'
     | '/schedules/$scheduleId/edit'
     | '/seat-classes/$classId/edit'
+    | '/seat-maps/$seatMapId/edit'
     | '/traveler-types/$typeId/edit'
     | '/trips/$tripId/edit'
     | '/users/$userId/edit'
@@ -468,6 +489,7 @@ export interface FileRouteTypes {
     | '/roles/create'
     | '/schedules/create'
     | '/seat-classes/create'
+    | '/seat-maps/create'
     | '/traveler-types/create'
     | '/trips/create'
     | '/users/create'
@@ -497,6 +519,7 @@ export interface FileRouteTypes {
     | '/roles/$roleId/edit'
     | '/schedules/$scheduleId/edit'
     | '/seat-classes/$classId/edit'
+    | '/seat-maps/$seatMapId/edit'
     | '/traveler-types/$typeId/edit'
     | '/trips/$tripId/edit'
     | '/users/$userId/edit'
@@ -513,6 +536,7 @@ export interface FileRouteTypes {
     | '/_admin/roles/create'
     | '/_admin/schedules/create'
     | '/_admin/seat-classes/create'
+    | '/_admin/seat-maps/create'
     | '/_admin/traveler-types/create'
     | '/_admin/trips/create'
     | '/_admin/users/create'
@@ -542,6 +566,7 @@ export interface FileRouteTypes {
     | '/_admin/roles/$roleId/edit'
     | '/_admin/schedules/$scheduleId/edit'
     | '/_admin/seat-classes/$classId/edit'
+    | '/_admin/seat-maps/$seatMapId/edit'
     | '/_admin/traveler-types/$typeId/edit'
     | '/_admin/trips/$tripId/edit'
     | '/_admin/users/$userId/edit'
@@ -729,6 +754,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSeatMapsIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_admin/seat-maps/create': {
+      id: '/_admin/seat-maps/create'
+      path: '/seat-maps/create'
+      fullPath: '/seat-maps/create'
+      preLoaderRoute: typeof AdminSeatMapsCreateRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/settings/': {
       id: '/_admin/settings/'
       path: '/settings'
@@ -834,6 +866,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSeatClassesClassIdEditRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_admin/seat-maps/$seatMapId/edit': {
+      id: '/_admin/seat-maps/$seatMapId/edit'
+      path: '/seat-maps/$seatMapId/edit'
+      fullPath: '/seat-maps/$seatMapId/edit'
+      preLoaderRoute: typeof AdminSeatMapsSeatMapIdEditRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/traveler-types/$typeId/edit': {
       id: '/_admin/traveler-types/$typeId/edit'
       path: '/traveler-types/$typeId/edit'
@@ -868,6 +907,7 @@ interface AdminRouteChildren {
   AdminRolesCreateRoute: typeof AdminRolesCreateRoute
   AdminSchedulesCreateRoute: typeof AdminSchedulesCreateRoute
   AdminSeatClassesCreateRoute: typeof AdminSeatClassesCreateRoute
+  AdminSeatMapsCreateRoute: typeof AdminSeatMapsCreateRoute
   AdminTravelerTypesCreateRoute: typeof AdminTravelerTypesCreateRoute
   AdminTripsCreateRoute: typeof AdminTripsCreateRoute
   AdminUsersCreateRoute: typeof AdminUsersCreateRoute
@@ -897,6 +937,7 @@ interface AdminRouteChildren {
   AdminRolesRoleIdEditRoute: typeof AdminRolesRoleIdEditRoute
   AdminSchedulesScheduleIdEditRoute: typeof AdminSchedulesScheduleIdEditRoute
   AdminSeatClassesClassIdEditRoute: typeof AdminSeatClassesClassIdEditRoute
+  AdminSeatMapsSeatMapIdEditRoute: typeof AdminSeatMapsSeatMapIdEditRoute
   AdminTravelerTypesTypeIdEditRoute: typeof AdminTravelerTypesTypeIdEditRoute
   AdminTripsTripIdEditRoute: typeof AdminTripsTripIdEditRoute
   AdminUsersUserIdEditRoute: typeof AdminUsersUserIdEditRoute
@@ -912,6 +953,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRolesCreateRoute: AdminRolesCreateRoute,
   AdminSchedulesCreateRoute: AdminSchedulesCreateRoute,
   AdminSeatClassesCreateRoute: AdminSeatClassesCreateRoute,
+  AdminSeatMapsCreateRoute: AdminSeatMapsCreateRoute,
   AdminTravelerTypesCreateRoute: AdminTravelerTypesCreateRoute,
   AdminTripsCreateRoute: AdminTripsCreateRoute,
   AdminUsersCreateRoute: AdminUsersCreateRoute,
@@ -941,6 +983,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRolesRoleIdEditRoute: AdminRolesRoleIdEditRoute,
   AdminSchedulesScheduleIdEditRoute: AdminSchedulesScheduleIdEditRoute,
   AdminSeatClassesClassIdEditRoute: AdminSeatClassesClassIdEditRoute,
+  AdminSeatMapsSeatMapIdEditRoute: AdminSeatMapsSeatMapIdEditRoute,
   AdminTravelerTypesTypeIdEditRoute: AdminTravelerTypesTypeIdEditRoute,
   AdminTripsTripIdEditRoute: AdminTripsTripIdEditRoute,
   AdminUsersUserIdEditRoute: AdminUsersUserIdEditRoute,

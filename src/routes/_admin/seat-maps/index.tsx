@@ -1,54 +1,67 @@
-import React, { useState, useEffect } from 'react';
-import { createFileRoute } from '@tanstack/react-router';
-import { Layers, Ship, Plus, CheckCircle2, RefreshCw, AlertTriangle } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { Layers, Plus, Edit, Trash2, Search, RefreshCw, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { getBoats, getSeatMap } from '@/apis/boats';
-import { Boat } from '@/types';
+import { deleteSeatMap, getSeatMaps } from '@/apis/boats';
+import { SeatMap } from '@/types';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
+import { PaginationBar } from '@/components/common/PaginationBar';
 
 export const Route = createFileRoute('/_admin/seat-maps/')({
   component: SeatMapsPage,
 });
 
-interface SeatMapItem {
+type SeatMapRow = {
   id: string;
+  name: string;
   boatName: string;
   boatCode: string;
+  version: number;
+  status: 'active' | 'inactive';
   decks: number;
-  totalSeats: number;
-}
+  seats: number;
+  updatedAt?: string;
+};
+
+const normalizeSeatMap = (item: SeatMap): SeatMapRow => {
+  const decks = item.decks || [];
+  const seats = decks.reduce((total: number, deck: any) => total + (deck.zones || []).reduce((zoneTotal: number, zone: any) => zoneTotal + (zone.seats || []).length, 0), 0);
+  const boat = (item as any).boat;
+  return {
+    id: String(item.id),
+    name: item.name || '',
+    boatName: boat?.name || item.boat_name || '',
+    boatCode: boat?.code || '',
+    version: Number(item.version || 1),
+    status: (item as any).status === 'inactive' || item.is_active === false ? 'inactive' : 'active',
+    decks: decks.length,
+    seats,
+    updatedAt: item.updated_at,
+  };
+};
 
 function SeatMapsPage() {
-  const [activeDeck, setActiveDeck] = useState<number>(1);
-  const [boatList, setBoatList] = useState<SeatMapItem[]>([]);
-  const [selectedSeatMap, setSelectedSeatMap] = useState<SeatMapItem | null>(null);
+  const [seatMaps, setSeatMaps] = useState<SeatMapRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [deleteTarget, setDeleteTarget] = useState<SeatMapRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchSeatMaps = async () => {
     setLoading(true);
     setApiError(null);
     try {
-      const res = await getBoats();
-      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-        const mapped: SeatMapItem[] = res.data.map((b: Boat) => ({
-          id: String(b.id),
-          boatName: b.name || 'Superdong',
-          boatCode: b.code || '',
-          decks: 2,
-          totalSeats: b.capacity || 306,
-        }));
-        setBoatList(mapped);
-        setSelectedSeatMap(mapped[0]);
-      } else {
-        setBoatList([]);
-        setSelectedSeatMap(null);
-      }
+      const res = await getSeatMaps({ limit: 100 });
+      setSeatMaps(Array.isArray(res.data) ? res.data.map(normalizeSeatMap) : []);
     } catch (err: any) {
-      console.error('Fetch seat maps error:', err);
-      setBoatList([]);
-      setSelectedSeatMap(null);
-      setApiError(err?.response?.data?.message || err?.message || 'Không thể kết nối với Backend API');
-      toast.error('Không thể lấy dữ liệu sơ đồ ghế từ Backend API');
+      const message = err?.response?.data?.message || err?.message || 'Không thể tải danh sách sơ đồ ghế';
+      setSeatMaps([]);
+      setApiError(message);
+      toast.error(`Không tải được sơ đồ ghế. ${message}`);
     } finally {
       setLoading(false);
     }
@@ -58,187 +71,108 @@ function SeatMapsPage() {
     fetchSeatMaps();
   }, []);
 
-  const rows = Array.from({ length: 10 }, (_, r) => r + 1);
+  const filtered = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    return seatMaps.filter((item) => {
+      const matchesSearch = !keyword || item.name.toLowerCase().includes(keyword) || item.boatName.toLowerCase().includes(keyword) || item.boatCode.toLowerCase().includes(keyword);
+      const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [seatMaps, searchTerm, statusFilter]);
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage, pageSize]);
+
+  const executeDelete = async () => {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
+    try {
+      await deleteSeatMap(deleteTarget.id, {
+        expected_version: deleteTarget.version,
+        reason: `Xóa sơ đồ ghế ${deleteTarget.name} từ dashboard vận hành`,
+      });
+      toast.success(`Đã xóa sơ đồ ghế ${deleteTarget.name}`);
+      setDeleteTarget(null);
+      await fetchSeatMaps();
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Không thể xóa sơ đồ ghế';
+      toast.error(`Xóa sơ đồ ghế thất bại. ${message}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
-    <div className="space-y-6 font-sans">
-      {/* Page Header */}
+    <div className="space-y-4 font-sans">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Layers className="h-6 w-6 text-blue-600" />
-              Sơ Đồ Ghế Tàu 2D Live
-            </h1>
-            {!apiError && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                <CheckCircle2 size={13} /> Live API Backend
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Bố cục khoang ghế và vị trí tàu thực tế từ Server Backend Superdong
-          </p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Layers className="h-6 w-6 text-blue-600" />
+            Quản lý sơ đồ ghế
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">Tạo, chỉnh sửa và quản lý layout tầng, khu vực, ghế và tiện ích của từng tàu.</p>
         </div>
-
         <div className="flex items-center gap-2">
-          <button
-            onClick={fetchSeatMaps}
-            disabled={loading}
-            className="h-10 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            Làm mới
+          <button onClick={fetchSeatMaps} disabled={loading} className="h-10 px-3.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-xs">
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Làm mới
           </button>
+          <Link to={'/seat-maps/create' as any} className="h-10 px-4 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm flex items-center gap-2 shadow-xs">
+            <Plus size={16} /> Thêm sơ đồ ghế
+          </Link>
         </div>
       </div>
 
-      {/* API Error Alert */}
-      {apiError && (
-        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2.5">
-          <AlertTriangle size={18} className="shrink-0 text-rose-500" />
-          <span>⚠️ Không thể lấy dữ liệu từ Backend API: {apiError}. Vui lòng kiểm tra lại Server Backend!</span>
-        </div>
-      )}
+      {apiError && <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-medium flex items-center gap-2.5"><AlertTriangle size={18} />Không tải được dữ liệu sơ đồ ghế. {apiError}</div>}
 
-      {loading ? (
-        <div className="p-12 text-center text-slate-500 font-medium">
-          <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-600" />
-          Đang tải dữ liệu sơ đồ ghế tàu từ Backend API...
+      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="relative w-full md:w-96">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Tìm theo tên sơ đồ, mã tàu hoặc tên tàu..." className="w-full h-10 pl-9 pr-3 text-sm bg-slate-50 border border-slate-200 rounded-md outline-none focus:border-blue-500" />
         </div>
-      ) : boatList.length === 0 ? (
-        <div className="p-12 text-center text-slate-500 font-medium bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-          ⚠️ Chưa có dữ liệu tàu hoặc không thể kết nối API.
+        <div className="flex items-center gap-3">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="h-10 px-3 text-sm bg-slate-50 border border-slate-200 rounded-md outline-none focus:border-blue-500">
+            <option value="all">Tất cả trạng thái</option>
+            <option value="active">Đang áp dụng</option>
+            <option value="inactive">Tạm ngưng</option>
+          </select>
+          <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))} className="h-10 px-3 text-sm bg-slate-50 border border-slate-200 rounded-md outline-none focus:border-blue-500">
+            {[5, 10, 20, 50].map((size) => <option key={size} value={size}>{size} dòng/trang</option>)}
+          </select>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left Column: Seat Maps List */}
-          <div className="space-y-3">
-            <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">Chọn Sơ đồ Tàu Live</h3>
-            {boatList.map((sm) => (
-              <div
-                key={sm.id}
-                onClick={() => setSelectedSeatMap(sm)}
-                className={`p-4 rounded-xl border transition-all cursor-pointer ${
-                  selectedSeatMap?.id === sm.id
-                    ? 'border-blue-500 bg-blue-500/5 shadow-xs'
-                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
-                    <Ship className="h-4 w-4 text-blue-600" /> {sm.boatName} ({sm.boatCode})
-                  </span>
-                  {selectedSeatMap?.id === sm.id && <CheckCircle2 className="h-4 w-4 text-blue-600" />}
-                </div>
-                <div className="text-xs text-slate-500 mt-2 space-y-1">
-                  <div>Số tầng: {sm.decks} tầng</div>
-                  <div>Tổng ghế: <span className="font-semibold text-slate-700 dark:text-slate-200">{sm.totalSeats} ghế</span></div>
-                </div>
-              </div>
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white shadow-xs overflow-hidden">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-[#F9FAFB] text-slate-600 font-bold uppercase text-xs border-b border-slate-200">
+            <tr><th className="p-4">Tên sơ đồ</th><th className="p-4">Tàu</th><th className="p-4">Phiên bản</th><th className="p-4">Số tầng</th><th className="p-4">Số ghế</th><th className="p-4">Trạng thái</th><th className="p-4 text-right">Thao tác</th></tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {loading ? (
+              <tr><td colSpan={7} className="p-8 text-center text-slate-500"><RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-blue-600" />Đang tải sơ đồ ghế...</td></tr>
+            ) : paginated.length === 0 ? (
+              <tr><td colSpan={7} className="p-8 text-center text-slate-500">Chưa có sơ đồ ghế nào.</td></tr>
+            ) : paginated.map((item) => (
+              <tr key={item.id} className="hover:bg-slate-50">
+                <td className="p-4 font-bold text-slate-900">{item.name || 'Chưa cập nhật'}</td>
+                <td className="p-4"><div className="font-semibold">{item.boatName || 'Chưa cập nhật'}</div><div className="text-xs font-mono text-blue-600">{item.boatCode}</div></td>
+                <td className="p-4 font-mono text-xs">v{item.version}</td>
+                <td className="p-4">{item.decks}</td>
+                <td className="p-4 font-semibold">{item.seats}</td>
+                <td className="p-4">{item.status === 'active' ? <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"><CheckCircle2 size={12} /> Đang áp dụng</span> : <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200"><XCircle size={12} /> Tạm ngưng</span>}</td>
+                <td className="p-4 text-right space-x-1">
+                  <Link to={'/seat-maps/$seatMapId/edit' as any} params={{ seatMapId: item.id } as any} className="p-1.5 inline-flex rounded-md hover:bg-slate-100 text-blue-600" title="Chỉnh sửa sơ đồ ghế"><Edit size={16} /></Link>
+                  <button type="button" onClick={() => setDeleteTarget(item)} className="p-1.5 inline-flex rounded-md hover:bg-rose-50 text-rose-600" title="Xóa sơ đồ ghế"><Trash2 size={16} /></button>
+                </td>
+              </tr>
             ))}
-          </div>
+          </tbody>
+        </table>
+      </div>
 
-          {/* Right Column: Interactive 2D Map Grid */}
-          {selectedSeatMap && (
-            <div className="lg:col-span-3 space-y-4">
-              <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-                  <div>
-                    <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                      Sơ đồ: {selectedSeatMap.boatName}
-                    </h3>
-                    <p className="text-xs text-slate-500">Mô phỏng vị trí từng khoang ghế theo tầng</p>
-                  </div>
-
-                  {/* Deck Switcher Tabs */}
-                  <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-semibold">
-                    <button
-                      onClick={() => setActiveDeck(1)}
-                      className={`px-3 py-1.5 rounded-md transition-colors ${
-                        activeDeck === 1
-                          ? 'bg-blue-600 text-white shadow-xs'
-                          : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                      }`}
-                    >
-                      Tầng 1 (Khoang chính)
-                    </button>
-                    <button
-                      onClick={() => setActiveDeck(2)}
-                      className={`px-3 py-1.5 rounded-md transition-colors ${
-                        activeDeck === 2
-                          ? 'bg-blue-600 text-white shadow-xs'
-                          : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
-                      }`}
-                    >
-                      Tầng 2 (Khoang VIP)
-                    </button>
-                  </div>
-                </div>
-
-                {/* Simulated Boat Hull Grid */}
-                <div className="p-6 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col items-center">
-                  <div className="w-32 py-1.5 bg-blue-600 text-white text-[11px] font-bold text-center rounded-t-full mb-6 uppercase tracking-wider">
-                    Mũi Tàu
-                  </div>
-
-                  <div className="grid gap-3 max-w-lg w-full">
-                    {rows.map((r) => (
-                      <div key={r} className="flex items-center justify-center gap-2">
-                        <span className="w-6 text-xs text-slate-400 font-bold text-center">{r}</span>
-
-                        {['A', 'B', 'C'].map((col) => {
-                          const seatCode = `${col}${r < 10 ? '0' + r : r}`;
-                          const isVip = r <= 2;
-                          return (
-                            <button
-                              key={seatCode}
-                              onClick={() => toast.info(`Ghế: ${seatCode} (${isVip ? 'VIP' : 'Thường'})`)}
-                              className={`w-10 h-10 rounded-lg text-xs font-bold transition-transform hover:scale-105 cursor-pointer border ${
-                                isVip
-                                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
-                                  : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-                              }`}
-                            >
-                              {seatCode}
-                            </button>
-                          );
-                        })}
-
-                        <div className="w-8 h-10 flex items-center justify-center text-[10px] text-slate-400 font-bold">
-                          Lối đi
-                        </div>
-
-                        {['D', 'E', 'F'].map((col) => {
-                          const seatCode = `${col}${r < 10 ? '0' + r : r}`;
-                          const isVip = r <= 2;
-                          return (
-                            <button
-                              key={seatCode}
-                              onClick={() => toast.info(`Ghế: ${seatCode} (${isVip ? 'VIP' : 'Thường'})`)}
-                              className={`w-10 h-10 rounded-lg text-xs font-bold transition-transform hover:scale-105 cursor-pointer border ${
-                                isVip
-                                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
-                                  : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-                              }`}
-                            >
-                              {seatCode}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="w-48 py-2 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold text-center rounded-b-xl mt-6">
-                    Đuôi Tàu &amp; Hành Lý
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      <PaginationBar currentPage={currentPage} totalItems={filtered.length} pageSize={pageSize} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
+      <ConfirmModal open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)} title="Xóa sơ đồ ghế" description={deleteTarget ? `Bạn chắc chắn muốn xóa sơ đồ ghế "${deleteTarget.name}"? Backend sẽ lưu snapshot audit trước khi xóa.` : ''} confirmLabel="Xóa sơ đồ" loading={deleting} variant="destructive" onConfirm={executeDelete} />
     </div>
   );
 }
