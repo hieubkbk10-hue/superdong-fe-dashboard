@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { Layers, Plus, Edit, Search, CheckCircle2, XCircle, RefreshCw, AlertTriangle, Ban, Columns3 } from 'lucide-react';
+import { Layers, Plus, Edit, Search, CheckCircle2, XCircle, RefreshCw, AlertTriangle, Ban, Columns3, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { deactivateSeatClass, getSeatClasses } from '@/apis/boats';
+import { deactivateSeatClass, deleteSeatClass, getSeatClasses } from '@/apis/boats';
 import { SeatClass } from '@/types';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { PaginationBar } from '@/components/common/PaginationBar';
@@ -64,7 +64,9 @@ function SeatClassesPage() {
     }
   });
   const [deactivateTarget, setDeactivateTarget] = useState<SeatClassItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SeatClassItem | null>(null);
   const [deactivating, setDeactivating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchSeatClasses = async () => {
     setLoading(true);
@@ -125,6 +127,25 @@ function SeatClassesPage() {
       toast.error(`Tạm ngưng hạng ghế thất bại. ${message}`);
     } finally {
       setDeactivating(false);
+    }
+  };
+
+  const executeDelete = async () => {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
+    try {
+      await deleteSeatClass(deleteTarget.id, {
+        expected_version: deleteTarget.version,
+        reason: `Xóa cứng hạng ghế ${deleteTarget.name} từ dashboard vận hành`,
+      });
+      toast.success(`Đã xóa hạng ghế ${deleteTarget.name}`);
+      setDeleteTarget(null);
+      await fetchSeatClasses();
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Không thể xóa hạng ghế';
+      toast.error(`Xóa hạng ghế thất bại. ${message}`);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -328,6 +349,14 @@ function SeatClassesPage() {
                       >
                         <Ban size={16} />
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTarget(sc)}
+                        className="p-1.5 inline-flex items-center justify-center rounded-md hover:bg-rose-50 text-rose-600 cursor-pointer"
+                        title="Xóa cứng hạng ghế"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </td>
                   )}
                 </tr>
@@ -354,6 +383,17 @@ function SeatClassesPage() {
         loading={deactivating}
         variant="destructive"
         onConfirm={executeDeactivate}
+      />
+
+      <ConfirmModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Xóa cứng hạng ghế"
+        description={deleteTarget ? `Bạn chắc chắn muốn xóa cứng hạng ghế "${deleteTarget.name}"? Hệ thống sẽ lưu snapshot audit trước khi xóa. Nếu hạng ghế đang được sơ đồ ghế sử dụng, Backend có thể từ chối để tránh hỏng dữ liệu vận hành.` : ''}
+        confirmLabel="Xóa cứng"
+        loading={deleting}
+        variant="destructive"
+        onConfirm={executeDelete}
       />
     </div>
   );

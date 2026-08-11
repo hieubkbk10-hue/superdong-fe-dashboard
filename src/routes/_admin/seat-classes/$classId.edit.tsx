@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { Layers, ArrowLeft, Save, Palette, WalletCards, RefreshCw, AlertTriangle } from 'lucide-react';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { Layers, ArrowLeft, Save, WalletCards, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { findSeatClassById, updateSeatClass } from '@/apis/boats';
 import { SeatClass } from '@/types';
+import { ColorPickerInput } from '@/components/common/ColorPickerInput';
 
 export const Route = createFileRoute('/_admin/seat-classes/$classId/edit')({
   component: SeatClassEditPage,
@@ -41,7 +42,6 @@ const mapSeatClassToForm = (seatClass: SeatClass): FormData => ({
 
 function SeatClassEditPage() {
   const { classId } = Route.useParams();
-  const navigate = useNavigate();
   const draftKey = `superdong_seat_class_draft_edit_${classId}`;
   const [formData, setFormData] = useState<FormData>(emptyFormData);
   const [loading, setLoading] = useState(true);
@@ -95,11 +95,6 @@ function SeatClassEditPage() {
       toast.error('Vui lòng nhập giá cơ sở hợp lệ cho hạng ghế', { id: 'seat-class-edit-toast' });
       return;
     }
-    if (!formData.reason.trim()) {
-      toast.error('Vui lòng nhập lý do chỉnh sửa để lưu vết vận hành', { id: 'seat-class-edit-toast' });
-      return;
-    }
-
     if (isSubmitting) return;
     setIsSubmitting(true);
 
@@ -111,8 +106,8 @@ function SeatClassEditPage() {
         status: formData.status,
         color: formData.color.trim() || null,
         expected_version: formData.version,
-        reason: formData.reason.trim(),
       };
+      if (formData.reason.trim()) payload.reason = formData.reason.trim();
 
       await updateSeatClass(classId, payload);
       localStorage.removeItem(draftKey);
@@ -221,16 +216,10 @@ function SeatClassEditPage() {
 
           <div>
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Màu nhận diện</label>
-            <div className="relative">
-              <Palette size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={formData.color}
-                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                placeholder="VD: #0284c7"
-                className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-              />
-            </div>
+            <ColorPickerInput
+              value={formData.color}
+              onChange={(color) => setFormData({ ...formData, color })}
+            />
           </div>
         </div>
 
@@ -249,14 +238,13 @@ function SeatClassEditPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Lý do chỉnh sửa <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Lý do chỉnh sửa</label>
             <input
               type="text"
               value={formData.reason}
               onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-              placeholder="VD: Cập nhật giá cơ sở theo quyết định vận hành"
+              placeholder="Không bắt buộc, VD: Cập nhật giá cơ sở theo quyết định vận hành"
               className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-              required
             />
           </div>
         </div>

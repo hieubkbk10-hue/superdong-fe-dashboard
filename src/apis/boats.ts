@@ -80,6 +80,11 @@ export async function deactivateSeatClass(id: string | number, data: Record<stri
   return response.data;
 }
 
+export async function deleteSeatClass(id: string | number, data?: Record<string, any>): Promise<ApiResponse<{ message: string }>> {
+  const response = await api.delete<ApiResponse<{ message: string }>>(`/seat-classes/${id}`, { data });
+  return response.data;
+}
+
 /**
  * LOGIC: Lấy sơ đồ ghế chi tiết của một tàu
  */
@@ -108,6 +113,7 @@ export default {
   createSeatClass,
   updateSeatClass,
   deactivateSeatClass,
+  deleteSeatClass,
   getSeatMap,
   createSeatMap,
 };

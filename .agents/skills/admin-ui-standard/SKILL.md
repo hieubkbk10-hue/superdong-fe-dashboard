@@ -24,9 +24,11 @@ Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edi
 [ ] 8. BRAND COLOR & BADGES: Blue (#2B7FFF / blue-600) chủ đạo, Badge 4 màu chuẩn (Emerald, Rose, Amber, Blue)
 [ ] 9. ADMIN-READABLE COPYWRITING: Tên cột, label, toast, badge BẮT BUỘC viết cho Admin vận hành đọc, CẤM wording dev như "Backend", "Guard", "Permissions" nếu không thật sự cần
 [ ] 10. NO FAKE FALLBACK DATA: List/Edit/Create CẤM bịa fallback dữ liệu nghiệp vụ (`28 hải lý/giờ`, `306 ghế`, email/sđt mẫu). Nếu API rỗng thì hiển thị `Chưa cập nhật` hoặc để input trống.
-[ ] 11. ROLE/PERMISSION GUARD PRECISION: Role/Permission dành cho dashboard BẮT BUỘC lọc `guard_name === 'api'`; KHÔNG lấy `web` vì `web` là guard nội bộ Backend
-[ ] 12. REAL CRUD NAVIGATION & ACTIONS: Nút Tạo/Sửa/Xóa/Lưu BẮT BUỘC navigate hoặc gọi API thật; CẤM toast placeholder kiểu "Tính năng đang phát triển"
-[ ] 13. GIT & MASTER BRANCH DEPLOY: Cả Backend và Frontend làm việc trực tiếp trên nhánh master, commit & push thẳng master để Vercel & Live LiteSpeed Server đồng bộ tức thì
+[ ] 11. OPTIONAL UX FIELDS: Trường optional như `color`, `reason`, `note` KHÔNG được ép nhập. Nếu có `color`, ưu tiên dùng common color picker/preview thay vì chỉ text input.
+[ ] 12. HARD DELETE WITH SNAPSHOT: Nếu module cho phép xóa cứng master data, Backend BẮT BUỘC lưu audit snapshot `before_json` trước khi xóa; FE phải có ConfirmModal cảnh báo rõ.
+[ ] 13. ROLE/PERMISSION GUARD PRECISION: Role/Permission dành cho dashboard BẮT BUỘC lọc `guard_name === 'api'`; KHÔNG lấy `web` vì `web` là guard nội bộ Backend
+[ ] 14. REAL CRUD NAVIGATION & ACTIONS: Nút Tạo/Sửa/Xóa/Lưu BẮT BUỘC navigate hoặc gọi API thật; CẤM toast placeholder kiểu "Tính năng đang phát triển"
+[ ] 15. GIT & MASTER BRANCH DEPLOY: Cả Backend và Frontend làm việc trực tiếp trên nhánh master, commit & push thẳng master để Vercel & Live LiteSpeed Server đồng bộ tức thì
 ```
 
 ---
@@ -100,6 +102,19 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
        2. `✓ Chữ hoa (A-Z) & chữ thường (a-z)`
        3. `✓ Chữ số (0-9)`
        4. `✓ Ký tự đặc biệt (!@#$%...)`
+
+5. **Trường Optional Không Được Ép Nhập**:
+   * Các trường như `reason`, `note`, `description`, `color` chỉ được bắt buộc khi nghiệp vụ hoặc Backend bắt buộc thật sự.
+   * Nếu `reason` chỉ để audit/log, ưu tiên optional. Khi để trống, Backend tự ghi lý do mặc định rõ nghĩa, ví dụ `Cập nhật hạng ghế từ dashboard vận hành`.
+   * Label optional không có dấu `*`, placeholder phải nói rõ "Không bắt buộc" nếu dễ gây hiểu nhầm.
+
+6. **Color Picker Cho Trường Màu Nhận Diện**:
+   * Nếu form có field `color`, ưu tiên tìm và dùng common component từ `E:\cty\Newmoon-Admin` trước.
+   * Nếu không có component phù hợp, tạo common component nội bộ dùng được lại, gồm:
+     * Native `<input type="color">` để chọn màu nhanh.
+     * Ô text hex để nhập tay.
+     * Preview màu hiện tại.
+   * Không chỉ để text input trống trơn cho `color`, vì Admin khó biết đang chọn màu gì.
 
 ---
 
@@ -183,6 +198,7 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
 * **Action column phải hoạt động thật**:
   * Edit icon phải mở đúng màn Edit.
   * Delete icon phải mở ConfirmModal và gọi API thật.
+  * Nếu là xóa cứng master data, ConfirmModal phải nói rõ dữ liệu sẽ bị xóa khỏi danh sách và Backend phải lưu snapshot audit trước khi xóa.
   * System/root record dùng Lock icon disabled kèm tooltip rõ lý do.
 
 ### 5.2. Màn Hình Tạo Mới & Chỉnh Sửa (Create & Edit Forms)

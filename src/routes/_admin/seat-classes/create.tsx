@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { Layers, ArrowLeft, Save, Palette, RotateCcw, WalletCards } from 'lucide-react';
+import { Layers, ArrowLeft, Save, RotateCcw, WalletCards } from 'lucide-react';
 import { toast } from 'sonner';
 import { createSeatClass } from '@/apis/boats';
+import { ColorPickerInput } from '@/components/common/ColorPickerInput';
 
 export const Route = createFileRoute('/_admin/seat-classes/create')({
   component: SeatClassCreatePage,
@@ -49,11 +50,6 @@ function SeatClassCreatePage() {
       toast.error('Vui lòng nhập giá cơ sở hợp lệ cho hạng ghế');
       return;
     }
-    if (!formData.reason.trim()) {
-      toast.error('Vui lòng nhập lý do tạo hạng ghế để lưu vết vận hành');
-      return;
-    }
-
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
@@ -62,9 +58,9 @@ function SeatClassCreatePage() {
         name: formData.name.trim(),
         price: Number(formData.price),
         status: formData.status,
-        reason: formData.reason.trim(),
       };
       if (formData.color.trim()) payload.color = formData.color.trim();
+      if (formData.reason.trim()) payload.reason = formData.reason.trim();
 
       await createSeatClass(payload);
       localStorage.removeItem(draftKey);
@@ -155,16 +151,10 @@ function SeatClassCreatePage() {
 
           <div>
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Màu nhận diện</label>
-            <div className="relative">
-              <Palette size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={formData.color}
-                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                placeholder="VD: #0284c7"
-                className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-              />
-            </div>
+            <ColorPickerInput
+              value={formData.color}
+              onChange={(color) => setFormData({ ...formData, color })}
+            />
           </div>
         </div>
 
@@ -183,14 +173,13 @@ function SeatClassCreatePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Lý do tạo hạng ghế <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Lý do tạo hạng ghế</label>
             <input
               type="text"
               value={formData.reason}
               onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-              placeholder="VD: Bổ sung hạng ghế cho tuyến mới"
+              placeholder="Không bắt buộc, VD: Bổ sung hạng ghế cho tuyến mới"
               className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-              required
             />
           </div>
         </div>
