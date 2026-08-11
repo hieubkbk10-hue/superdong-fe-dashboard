@@ -20,7 +20,7 @@ export async function findUserById(id: string | number): Promise<ApiResponse<Use
 /**
  * LOGIC: Tạo tài khoản người dùng / nhân viên mới (Hỗ trợ fallback POST /register nếu POST /users 404)
  */
-export async function createUser(data: Partial<User>): Promise<ApiResponse<User>> {
+export async function createUser(data: Record<string, any>): Promise<ApiResponse<User>> {
   try {
     const response = await api.post<ApiResponse<User>>('/users', data);
     return response.data;
@@ -69,3 +69,43 @@ export async function getPermissions(): Promise<ApiResponse<Permission[]>> {
   const response = await api.get<ApiResponse<Permission[]>>('/permissions');
   return response.data;
 }
+
+/**
+ * QUYỀN: Gán danh sách vai trò cho người dùng
+ */
+export async function assignRoles(
+  userId: string | number,
+  roleIds: Array<string | number>
+): Promise<ApiResponse<User>> {
+  const response = await api.post<ApiResponse<User>>(`/users/${userId}/assign-roles`, { role_ids: roleIds });
+  return response.data;
+}
+
+/**
+ * LOGIC: Tạo vai trò mới
+ */
+export async function createRole(data: Partial<Role>): Promise<ApiResponse<Role>> {
+  const response = await api.post<ApiResponse<Role>>('/roles', data);
+  return response.data;
+}
+
+/**
+ * LOGIC: Cập nhật vai trò
+ */
+export async function updateRole(id: string | number, data: Partial<Role>): Promise<ApiResponse<Role>> {
+  const response = await api.put<ApiResponse<Role>>(`/roles/${id}`, data);
+  return response.data;
+}
+
+export default {
+  getUsers,
+  findUserById,
+  createUser,
+  updateUser,
+  deleteUser,
+  getRoles,
+  createRole,
+  updateRole,
+  getPermissions,
+  assignRoles,
+};
