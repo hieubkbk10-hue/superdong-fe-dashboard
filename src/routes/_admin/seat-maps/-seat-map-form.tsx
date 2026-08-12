@@ -505,6 +505,9 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
               <option value="active">Đang áp dụng</option>
               <option value="inactive">Tạm ngưng</option>
             </select>
+            <p className="text-[11px] leading-4 text-slate-500 dark:text-slate-400">
+              Mỗi tàu chỉ có tối đa 1 sơ đồ ghế đang áp dụng. Khi lưu trạng thái “Đang áp dụng”, hệ thống sẽ tự tạm ngưng sơ đồ active cũ của cùng tàu.
+            </p>
           </div>
 
           <div className="space-y-1">

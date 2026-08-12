@@ -85,6 +85,19 @@ function SeatMapsPage() {
     return filtered.slice(start, start + pageSize);
   }, [filtered, currentPage, pageSize]);
 
+  const boatsWithMultipleActiveSeatMaps = useMemo(() => {
+    const activeByBoat = new Map<string, SeatMapRow[]>();
+    seatMaps.forEach((item) => {
+      if (item.status !== 'active') return;
+      const key = item.boatCode || item.boatName || 'unknown';
+      activeByBoat.set(key, [...(activeByBoat.get(key) || []), item]);
+    });
+
+    return Array.from(activeByBoat.entries())
+      .filter(([, maps]) => maps.length > 1)
+      .map(([boat, maps]) => `${boat}: ${maps.map((map) => `${map.name} v${map.version}`).join(', ')}`);
+  }, [seatMaps]);
+
   const executeDelete = async () => {
     if (!deleteTarget || deleting) return;
     setDeleting(true);
@@ -125,6 +138,18 @@ function SeatMapsPage() {
       </div>
 
       {apiError && <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-medium flex items-center gap-2.5"><AlertTriangle size={18} />Không tải được dữ liệu sơ đồ ghế. {apiError}</div>}
+      {boatsWithMultipleActiveSeatMaps.length > 0 && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-medium flex items-start gap-2.5">
+          <AlertTriangle size={18} className="shrink-0" />
+          <div>
+            <p className="font-bold">Có tàu đang có nhiều hơn 1 sơ đồ ghế “Đang áp dụng”.</p>
+            <p className="mt-1">Nghiệp vụ hiện tại chỉ cho phép tối đa 1 sơ đồ ghế active trên mỗi tàu. Khi tạo/cập nhật một sơ đồ sang “Đang áp dụng”, backend sẽ tự tạm ngưng các sơ đồ active cũ của cùng tàu.</p>
+            <ul className="mt-2 list-disc pl-4 space-y-0.5">
+              {boatsWithMultipleActiveSeatMaps.map((item) => <li key={item}>{item}</li>)}
+            </ul>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="relative w-full md:w-96">
