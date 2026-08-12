@@ -76,7 +76,8 @@ const SUPERDONG_BACKEND_NAV: SidebarGroup[] = [
         icon: RouteIcon,
         subItems: [
           { label: 'Bến tàu & Cảng', href: '/locations' },
-          { label: 'Tuyến hải trình', href: '/journeys' },
+          { label: 'Luồng tuyến', href: '/routes' },
+          { label: 'Hành trình bán vé', href: '/journeys' },
           { label: 'Lịch chạy định kỳ', href: '/schedules' },
           { label: 'Chuyến tàu thực tế', href: '/trips' },
         ],

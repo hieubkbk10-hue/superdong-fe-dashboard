@@ -1,6 +1,10 @@
 import api from '../constants/api';
 import { ApiResponse, PaginatedResponse, Location, Journey, Route } from '../types';
 
+type RouteMutationPayload = Partial<Omit<Route, 'stops'>> & {
+  stops?: Array<{ location_id: string | number; stop_order: number }>;
+};
+
 /**
  * LOGIC: Lấy danh sách điểm đến/bến cảng công khai
  */
@@ -85,6 +89,49 @@ export async function getRoutes(params?: Record<string, any>): Promise<Paginated
 }
 
 /**
+ * LOGIC: Tìm một luồng tuyến từ API danh sách hiện có, không tự bịa endpoint detail khi backend chưa có.
+ */
+export async function findRoute(id: string | number): Promise<Route | null> {
+  let page = 1;
+  let totalPages = 1;
+
+  do {
+    const response = await getRoutes({ limit: 100, page });
+    const found = response.data?.find((route) => String(route.id) === String(id));
+    if (found) return found;
+
+    totalPages = response.meta?.pagination?.total_pages || page;
+    page += 1;
+  } while (page <= totalPages);
+
+  return null;
+}
+
+/**
+ * LOGIC: Tạo mới luồng tuyến và các điểm dừng theo thứ tự thật.
+ */
+export async function createRoute(data: RouteMutationPayload): Promise<ApiResponse<Route>> {
+  const response = await api.post<ApiResponse<Route>>('/routes', data);
+  return response.data;
+}
+
+/**
+ * LOGIC: Cập nhật luồng tuyến và thay thế danh sách điểm dừng nếu có gửi stops.
+ */
+export async function updateRoute(id: string | number, data: RouteMutationPayload): Promise<ApiResponse<Route>> {
+  const response = await api.patch<ApiResponse<Route>>(`/routes/${id}`, data);
+  return response.data;
+}
+
+/**
+ * LOGIC: Xóa luồng tuyến khỏi master data. Backend trả 409 nếu đang dính hành trình/lịch/chuyến.
+ */
+export async function deleteRoute(id: string | number, data?: { reason?: string; tracking_id?: string }): Promise<{ message: string }> {
+  const response = await api.delete<{ message: string }>(`/routes/${id}`, { data });
+  return response.data;
+}
+
+/**
  * LOGIC: Tạo mới hành trình / tuyến đường
  */
 export async function createJourney(data: Partial<Journey>): Promise<ApiResponse<Journey>> {
@@ -130,6 +177,10 @@ export default {
   getJourneys,
   findJourney,
   getRoutes,
+  findRoute,
+  createRoute,
+  updateRoute,
+  deleteRoute,
   createJourney,
   updateJourney,
   deleteJourney,
