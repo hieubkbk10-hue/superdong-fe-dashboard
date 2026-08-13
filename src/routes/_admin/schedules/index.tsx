@@ -39,17 +39,29 @@ function SchedulesPage() {
     setLoading(true);
     setApiError(null);
     try {
-      const res = await getSchedules();
+      const res = await getSchedules({ limit: 100 });
       if (res && res.data && Array.isArray(res.data)) {
-        const mapped: ScheduleItem[] = res.data.map((s: Schedule) => ({
-          id: String(s.id),
-          code: `SCH-${s.id}`,
-          journey: s.journey?.name || (s.route?.origin_location?.name ? `${s.route.origin_location.name} ➔ ${s.route.destination_location?.name}` : 'Tuyến hải trình'),
-          departureTime: s.departure_time || s.start_time || '07:30 sáng',
-          boatName: s.boat?.name ? `${s.boat.name} (${s.boat.code})` : 'Tàu Superdong',
-          operatingDays: s.recurrence === 'daily' || s.days_of_week?.length === 7 ? 'Tất cả các ngày' : 'Thứ 2 - Chủ Nhật',
-          status: s.is_active || s.status === 'active' ? 'active' : 'inactive',
-        }));
+        const mapped: ScheduleItem[] = res.data.map((s: any) => {
+          const daysArr = Array.isArray(s.days_of_week) ? s.days_of_week : [];
+          const daysText =
+            daysArr.length === 7
+              ? 'Tất cả các ngày'
+              : daysArr.length > 0
+              ? daysArr.map((d: string) => String(d).toUpperCase()).join(', ')
+              : 'Tất cả các ngày';
+
+          const journeyName = s.name || s.journey?.name || (s.route?.name ? s.route.name : 'Tuyến hải trình Superdong');
+
+          return {
+            id: String(s.id),
+            code: s.code || `SCH-${s.id}`,
+            journey: journeyName,
+            departureTime: s.start_time || s.departure_time || '07:30',
+            boatName: s.boat?.name ? `${s.boat.name} (${s.boat.code})` : (s.boat_id ? `Tàu #${s.boat_id}` : 'Tàu Superdong'),
+            operatingDays: daysText,
+            status: s.status === 'active' || s.is_active === true ? 'active' : 'inactive',
+          };
+        });
         setSchedules(mapped);
       } else {
         setSchedules([]);

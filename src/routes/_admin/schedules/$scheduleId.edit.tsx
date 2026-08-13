@@ -140,17 +140,24 @@ function ScheduleEditPage() {
     setIsSubmitting(true);
 
     try {
+      const selectedRoute = routes.find((r) => String(r.id) === formData.route_id);
+      const name = formData.code.trim().toUpperCase() + (selectedRoute ? ` - ${selectedRoute.name || selectedRoute.code}` : '');
+      const startTime = formData.departureTime.length === 5 ? `${formData.departureTime}:00` : formData.departureTime;
+
       await updateSchedule(scheduleId, {
+        name,
         code: formData.code.trim().toUpperCase(),
         route_id: formData.route_id || undefined,
         boat_id: formData.boat_id || undefined,
-        departure_time: formData.departureTime,
-        arrival_time: '10:00',
-        recurrence: formData.days.length === 7 ? 'daily' : 'weekly',
+        start_time: startTime,
+        end_time: '10:00:00',
+        days_of_week: formData.days.map((d) => d.toLowerCase()),
+        status: formData.status,
         is_active: formData.status === 'active',
         effective_from: formData.validFrom || undefined,
         effective_to: formData.validTo || undefined,
-      });
+        reason: `Cập nhật lịch chạy định kỳ ${formData.code} từ dashboard`,
+      } as any);
 
       localStorage.removeItem(draftKey);
       toast.success(`Đã lưu thay đổi cho lịch chạy ${formData.code} thành công!`);

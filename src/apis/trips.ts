@@ -13,7 +13,7 @@ export async function getTrips(params?: Record<string, any>): Promise<PaginatedR
  * LOGIC: Lấy danh sách lịch trình cố định
  */
 export async function getSchedules(params?: Record<string, any>): Promise<PaginatedResponse<Schedule>> {
-  const response = await api.get<PaginatedResponse<Schedule>>('/schedules', { params });
+  const response = await api.get<PaginatedResponse<Schedule>>('/trip-schedules', { params });
   return response.data;
 }
 
@@ -21,7 +21,7 @@ export async function getSchedules(params?: Record<string, any>): Promise<Pagina
  * LOGIC: Tạo lịch trình khởi hành cố định
  */
 export async function createSchedule(data: Partial<Schedule>): Promise<ApiResponse<Schedule>> {
-  const response = await api.post<ApiResponse<Schedule>>('/schedules', data);
+  const response = await api.post<ApiResponse<Schedule>>('/trip-schedules', data);
   return response.data;
 }
 
@@ -100,7 +100,7 @@ export async function completeTrip(id: string | number): Promise<ApiResponse<Tri
  * LOGIC: Cập nhật lịch trình cố định
  */
 export async function updateSchedule(id: string | number, data: Partial<Schedule>): Promise<ApiResponse<Schedule>> {
-  const response = await api.put<ApiResponse<Schedule>>(`/schedules/${id}`, data);
+  const response = await api.put<ApiResponse<Schedule>>(`/trip-schedules/${id}`, data);
   return response.data;
 }
 
@@ -113,12 +113,12 @@ export async function updateTrip(id: string | number, data: Partial<Trip>): Prom
 }
 
 export async function findSchedule(id: string | number): Promise<Schedule> {
-  const response = await api.get<ApiResponse<Schedule>>(`/schedules/${id}`);
+  const response = await api.get<ApiResponse<Schedule>>(`/trip-schedules/${id}`);
   return response.data.data;
 }
 
 export async function deleteSchedule(id: string | number): Promise<ApiResponse<any>> {
-  const response = await api.delete<ApiResponse<any>>(`/schedules/${id}`);
+  const response = await api.delete<ApiResponse<any>>(`/trip-schedules/${id}`);
   return response.data;
 }
 
