@@ -256,17 +256,21 @@ export interface Journey {
 
 export interface Schedule {
   id: string | number;
-  route_id: string | number;
+  code?: string;
+  route_id?: string | number;
   route?: Route;
   journey_id?: string | number;
   journey?: Journey;
-  boat_id: string | number;
+  boat_id?: string | number;
   boat?: Boat;
-  departure_time: string;
-  arrival_time: string;
-  days_of_week?: number[]; // [1, 2, 3, 4, 5, 6, 0] (1=Monday ... 0=Sunday)
+  departure_time?: string;
+  arrival_time?: string;
+  start_time?: string;
+  end_time?: string;
+  days_of_week?: number[] | string[];
   recurrence?: 'daily' | 'weekly' | 'weekdays' | 'weekends' | 'none';
-  is_active: boolean;
+  is_active?: boolean;
+  status?: string;
   effective_from?: string;
   effective_to?: string;
   created_at?: string;

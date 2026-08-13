@@ -112,11 +112,23 @@ export async function updateTrip(id: string | number, data: Partial<Trip>): Prom
   return response.data;
 }
 
+export async function findSchedule(id: string | number): Promise<Schedule> {
+  const response = await api.get<ApiResponse<Schedule>>(`/schedules/${id}`);
+  return response.data.data;
+}
+
+export async function deleteSchedule(id: string | number): Promise<ApiResponse<any>> {
+  const response = await api.delete<ApiResponse<any>>(`/schedules/${id}`);
+  return response.data;
+}
+
 export default {
   getTrips,
   getSchedules,
+  findSchedule,
   createSchedule,
   updateSchedule,
+  deleteSchedule,
   createTrip,
   updateTrip,
   cancelTrip,
