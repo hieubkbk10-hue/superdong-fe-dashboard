@@ -100,6 +100,8 @@ function ScheduleEditPage() {
 
         setFormData(nextForm);
         localStorage.setItem(cacheKey, JSON.stringify({ id: String(scheduleId), ...serverForm }));
+      } else {
+        setApiError('Dữ liệu lịch chạy có thể đã bị xóa hoặc không còn tồn tại trên Server');
       }
     } catch (err: any) {
       console.error('Hydrate schedule error:', err);

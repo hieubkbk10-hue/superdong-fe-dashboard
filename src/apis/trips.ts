@@ -112,9 +112,21 @@ export async function updateTrip(id: string | number, data: Partial<Trip>): Prom
   return response.data;
 }
 
-export async function findSchedule(id: string | number): Promise<Schedule> {
-  const response = await api.get<ApiResponse<Schedule>>(`/trip-schedules/${id}`);
-  return response.data.data;
+export async function findSchedule(id: string | number): Promise<Schedule | null> {
+  try {
+    const res = await getSchedules({ limit: 100 });
+    const found = res?.data?.find((s: any) => String(s.id) === String(id));
+    if (found) return found;
+  } catch (e) {}
+
+  const cachedStr = localStorage.getItem(`superdong_schedule_cache_${id}`);
+  if (cachedStr) {
+    try {
+      return JSON.parse(cachedStr);
+    } catch (e) {}
+  }
+
+  return null;
 }
 
 export async function deleteSchedule(id: string | number): Promise<ApiResponse<any>> {
