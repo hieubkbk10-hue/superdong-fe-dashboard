@@ -1,17 +1,17 @@
 ---
 name: admin-ui-standard
-description: Quy chuẩn thiết kế và phát triển giao diện Admin Dashboard (React, TanStack Router, TailwindCSS, Shadcn, Lucide React) chuẩn Newmoon-Admin và Superdong. Sử dụng Module Coupon & User làm tham chiếu mẫu chuẩn mực cho mọi màn hình Full-Stack List, Create, Edit.
+description: Quy chuẩn thiết kế và phát triển giao diện Admin Dashboard (React, TanStack Router, TailwindCSS, Shadcn, Lucide React) chuẩn Newmoon-Admin và Superdong. Sử dụng Module Coupon & User và bộ công cụ TableUtilities.tsx làm tham chiếu mẫu chuẩn mực cho mọi màn hình Full-Stack List, Create, Edit.
 ---
 
 # Admin UI Standard - Quy Chuẩn Thiết Kế & Phát Triển Full-Stack Admin Dashboard
 
-Bộ quy chuẩn thiết kế và lập trình **Full-Stack Frontend & Backend** được đúc kết từ hai module mẫu **Coupon (`src/routes/_admin/coupons/`)** và **User (`src/routes/_admin/users/`)**, tuân thủ 100% triết lý UI/UX từ `Newmoon-Admin` và kiến trúc Porto/Apiato Backend.
+Bộ quy chuẩn thiết kế và lập trình **Full-Stack Frontend & Backend** được đúc kết từ hai module mẫu **Coupon (`src/routes/_admin/coupons/`)**, **User (`src/routes/_admin/users/`)** và bộ tiện ích master **`TableUtilities.tsx` (`src/components/common/TableUtilities.tsx`)**, tuân thủ 100% triết lý UI/UX từ `system-vietadmin-nextjs` và kiến trúc Porto/Apiato Backend.
 
 ---
 
 ## 📋 CHECKLIST TỰ KIỂM TRÁ BẮT BUỘC KHÔNG ĐƯỢC BỎ BƯỚC (FULL-STACK DEFINITION OF DONE)
 
-Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edit), AI Agent **BẮT BUỘC** phải rà soát qua 12 nhóm tiêu chí bên dưới trước khi bàn giao cho anh Hiếu (NGHIÊM CẤM HARDCODE DỮ LIỆU GIẢ / SKIP):
+Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edit), AI Agent **BẮT BUỘC** phải rà soát qua 16 nhóm tiêu chí bên dưới trước khi bàn giao cho anh Hiếu (NGHIÊM CẤM HARDCODE DỮ LIỆU GIẢ / SKIP):
 
 ```
 [ ] 1. DYNAMIC API DATA FETCHING (CẤM HARDCODE): BẮT BUỘC gọi API trực tiếp từ Backend (ví dụ `getRoles()` từ `/v1/roles`) để render dynamic options cho ô Select/Dropdown ở cả màn Create, Edit và List Filter
@@ -29,6 +29,7 @@ Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edi
 [ ] 13. ROLE/PERMISSION GUARD PRECISION: Role/Permission dành cho dashboard BẮT BUỘC lọc `guard_name === 'api'`; KHÔNG lấy `web` vì `web` là guard nội bộ Backend
 [ ] 14. REAL CRUD NAVIGATION & ACTIONS: Nút Tạo/Sửa/Xóa/Lưu BẮT BUỘC navigate hoặc gọi API thật; CẤM toast placeholder kiểu "Tính năng đang phát triển"
 [ ] 15. GIT & MASTER BRANCH DEPLOY: Cả Backend và Frontend làm việc trực tiếp trên nhánh master, commit & push thẳng master để Vercel & Live LiteSpeed Server đồng bộ tức thì
+[ ] 16. TABLEUTILITIES & LIST PAGE ARCHITECTURE: Mọi trang Danh sách BẮT BUỘC sử dụng Master Component `<AdminTablePage>` từ `TableUtilities.tsx`. Top-Right Actions (`Làm mới`, `+ Thêm mới`), Nút Sắp xếp CHỈ hiển thị khi `sortable: true`, Phân trang nút pill `[1] [2] [3]`, Spacing lề trái `pl-6 pr-4` cho cột đầu tiên, và KHÔNG có badge thừa ở tiêu đề.
 ```
 
 ---
@@ -146,21 +147,6 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
    * Mọi trang Danh Sách (List View) khi fetch mảng dữ liệu từ API BẮT BUỘC phải map-merge mảng kết quả với `localStorage` cache fallback (`superdong_<entity>_cache_${item.id}`) của từng dòng.
    * Cache chỉ được merge dữ liệu người dùng vừa lưu thật. **CẤM** dùng cache/fallback để bịa số liệu nghiệp vụ.
 
-6. **List/Edit Không Được Bịa Fallback Dữ Liệu**:
-   * Nếu API trả `null`, `''`, hoặc `0` cho dữ liệu nghiệp vụ chưa biết, UI phải hiển thị `Chưa cập nhật` hoặc để input trống.
-   * **CẤM** fallback kiểu:
-     * `speed || '28 hải lý/giờ'`
-     * `capacity || 306`
-     * `phone || '090...'`
-     * `email || 'demo@example.com'`
-   * Placeholder ví dụ được phép, nhưng placeholder không được trở thành value hoặc payload.
-   * Edit form với dữ liệu thiếu phải bắt Admin nhập giá trị thật trước khi lưu nếu field là required.
-
-7. **Not Found & API Error UX**:
-   * Khi Edit page không tìm thấy record, toast phải nêu rõ hành động thất bại, ví dụ: `Không tải được vai trò. Dữ liệu có thể đã bị xóa hoặc ID không thuộc guard API.`
-   * Không hiển thị form trắng gây hiểu nhầm. Phải có loading state, error state, hoặc redirect về List.
-   * Toast lỗi phải lấy `err.response.data.message` nếu có, nhưng phải bọc bằng câu tiếng Việt có ngữ cảnh nghiệp vụ.
-
 ---
 
 ## 🎨 4. Quy Chuẩn Màu Sắc & Nhận Diện Thương Hiệu (Brand Theme)
@@ -181,28 +167,26 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
 
 ## 📐 5. Cấu Trúc Bố Cục Màn Hình (Layout Architecture)
 
-### 5.1. Màn Hình Danh Sách (List Page - `index.tsx`)
-* **CẤM HIỂN THỊ CỘT ID NỘI BỘ DB THÔ**: Tuyệt đối **KHÔNG** hiển thị cột ID băm/ID số nội bộ DB (như `#mEGx1djKqo3ABbOn`) làm cột riêng trong Bảng Danh Sách List View. Bảng chỉ hiển thị các cột thông tin có ý nghĩa nghiệp vụ cho người dùng Admin (Họ tên & Email, Mã Code Khuyến Mãi `SUMMER2026`, SĐT, Vai Trò, Trạng Thái, Hành Động).
-* **Tên cột cho Admin đọc, không cho Dev đọc**:
-  * Dùng `Vai trò`, `Mô tả`, `Nhân viên`, `Quyền API`, `Thao tác`.
-  * Tránh `Tên Hiển Thị & Guard`, `Mã Backend`, `Permissions`, `Backend ID`, hoặc các thuật ngữ kỹ thuật không cần thiết.
-  * Nếu bắt buộc hiển thị mã kỹ thuật, đặt dưới dạng badge phụ, không làm cột chính.
-* **Top Header Bar**: Icon đại diện + Tiêu đề + Nút `Làm mới` (spinner animation) + Nút `+ Tạo mới`.
-* **Filter Bar Đầy Đủ 4 Dropdown**:
-  1. `<SearchInput>`: Ô tìm kiếm dùng icon kính lúp.
-  2. `<select>` Lọc trạng thái / danh mục (`Tất cả`, `Kích hoạt`, `Đã khóa`).
-  3. **Column Visibility Dropdown (`Cột`)**: Checkbox bật/tắt cột + link `Mặc định` reset + **lưu `localStorage`**.
-  4. **Pagination Rows Per Page Dropdown**: Choose `5`, `10`, `20`, `50` dòng/trang.
-* **Bảng `<DataTable>`**: Header in hoa `#F9FAFB`, Sắp xếp 3 trạng thái (Asc $\rightarrow$ Desc $\rightarrow$ None), Skeleton loading, Empty state.
-* **Thanh Phân Trang `<PaginationBar>`** & **Modal Xác Nhận Xóa `<ConfirmModal>`**.
-* **Action column phải hoạt động thật**:
-  * Edit icon phải mở đúng màn Edit.
-  * Delete icon phải mở ConfirmModal và gọi API thật.
-  * Nếu là xóa master data, FE phải gọi endpoint xóa thật, không tự đổi nghĩa thành “tạm ngưng” trừ khi nghiệp vụ/backend chỉ định rõ.
-  * Nếu là xóa cứng master data, ConfirmModal phải nói rõ dữ liệu sẽ bị xóa khỏi danh sách và Backend phải lưu snapshot audit trước khi xóa.
-  * Backend phải kiểm tra ràng buộc trước khi xóa: đếm các bản ghi đang tham chiếu theo từng nghiệp vụ quan trọng (ví dụ tuyến, chuyến, booking), trả HTTP `409 Conflict` với message tiếng Việt nêu rõ đang bị dính gì và số lượng bao nhiêu.
-  * FE phải hiển thị nguyên văn lỗi nghiệp vụ từ Backend khi xóa không được, ví dụ: “Không thể xóa bến tàu vì đang được sử dụng: 2 điểm dừng tuyến, 1 hành trình điểm đi.” Không được toast chung chung “Xóa thất bại”.
-  * System/root record dùng Lock icon disabled kèm tooltip rõ lý do.
+### 5.1. Màn Hình Danh Sách Master (`TableUtilities.tsx` & `<AdminTablePage>`)
+* **BẮT BUỘC DÙNG `<AdminTablePage>` / `TableUtilities.tsx`**: Mọi trang danh sách BẮT BUỘC phải sử dụng Master Component `<AdminTablePage>` được đóng gói trong `src/components/common/TableUtilities.tsx`.
+* **CẤM HIỂN THỊ CỘT ID NỘI BỘ DB THÔ**: Tuyệt đối **KHÔNG** hiển thị cột ID băm/ID số nội bộ DB (như `#mEGx1djKqo3ABbOn`) làm cột riêng trong Bảng Danh Sách List View. Bảng chỉ hiển thị các cột thông tin có ý nghĩa nghiệp vụ cho người dùng Admin.
+* **Quy tắc Vàng Cho Tiêu Đề Header (`<PageHeader>`)**:
+  * **Vị trí Nút bấm Hành động**: Nút `Làm mới` (`<RefreshCw>`) và nút `+ Thêm mới` (`<Plus>`) BẮT BUỘC nằm ở **Góc Phải Hàng Tiêu Đề Header** (ngang hàng với tiêu đề H1).
+  * **CẤM Badge Thừa**: KHÔNG hiển thị các badge dư thừa như "Dữ liệu đang đồng bộ" hay "Live API Backend" bên cạnh tiêu đề H1 để giữ giao diện tối giản và thanh thoát.
+* **Quy tắc Vàng Cho Sắp Xếp Cột (`SortableHeader` & `useSortableData`)**:
+  * **QUY TẮC BẮT BUỘC**: Mũi tên Sắp xếp (`ChevronsUpDown`, `ChevronUp`, `ChevronDown`) **CHỈ HIỂN THỊ KHI CỘT ĐƯỢC KHAI BÁO `sortable: true`**.
+  * Các cột không khai báo `sortable: true` hoặc cột `actions` tuyệt đối KHÔNG có mũi tên sort.
+  * Khi sort chuỗi tiếng Việt (ví dụ "Superdong I", "Superdong II"...), BẮT BUỘC dùng `localeCompare(..., 'vi', { numeric: true, sensitivity: 'base' })` để xếp thứ tự tự nhiên chuẩn xác.
+* **Spacing Cột Đầu Tiên (`pl-6 pr-4`)**:
+  * Cột đầu tiên của bảng (`th:first-child`, `td:first-child`) BẮT BUỘC có padding `pl-6 pr-4` để dữ liệu không bị dính sát vào đường viền mép trái của Card container.
+* **Thanh Bộ Lọc `<TableToolbar>`**:
+  * Chứa ô `<SearchInput>` (kèm nút xóa nhanh `X`).
+  * Dropdown chọn bộ lọc `<FilterSelect>` (hỗ trợ Wheel Picker trên Mobile và Popover trên Desktop).
+  * Dropdown ẩn/hiện cột `<ColumnToggleDropdown>` (checkbox + tự động lưu cấu hình vào `localStorage`).
+* **Thanh Phân Trang `<PaginationBar>`**:
+  * Nút chọn số trang dạng pill nút bấm nổi bật (`[1]`, `[2]`, `[3]`...).
+  * Hiển thị phạm vi chuẩn: `1–10 / 50 mục`.
+  * Bộ chọn số dòng `Hiển thị [10 ▾] mục/trang` đẹp mắt.
 
 ### 5.2. Màn Hình Tạo Mới & Chỉnh Sửa (Create & Edit Forms)
 * **Tràn viền `w-full`**: Toàn bộ form nằm trong **1 khung Card duy nhất** (`bg-white shadow-2xs`).
@@ -213,67 +197,22 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
   * `IV. TRẠNG THÁI & GHI CHÚ`
 * **Component Ô Chọn Ngày `<DateBox>`**: Định dạng ngày Việt Nam `DD/MM/YYYY` kèm **đúng 1 Icon Lịch duy nhất**.
 * **Thanh Nút Bấm Hành Động Dưới Cùng**: `Hủy Bỏ` & `Lưu thay đổi` (góc phải).
-* **Create/Edit phải dùng data thật**:
-  * Create page phải submit API tạo mới thật, sau đó sync relation thật nếu có (ví dụ sync Role Permissions).
-  * Edit page phải fetch detail thật bằng ID từ URL, hydrate form từ server, lưu thành công thì re-fetch detail.
-  * Nếu có multi-select/checkbox quyền, phải tick sẵn dữ liệu đang gán, không hardcode giá trị mặc định.
-  * Create page không được prefill dữ liệu nghiệp vụ giả. Ví dụ không được đặt sẵn `capacity: 306`, `speed: "30 hải lý/giờ"`; phải để rỗng và dùng placeholder.
-  * List page không được fallback dữ liệu nghiệp vụ giả. Nếu thiếu tốc độ/sức chứa, hiển thị `Chưa cập nhật` thay vì tự đoán.
-  * Edit page không có nút `Làm sạch dữ liệu`; Create page bắt buộc có.
-
-### 5.3. Quy chuẩn riêng cho Role & Permission UI
-
-* **Role list và User role column**:
-  * Luôn ưu tiên role `guard_name = api`.
-  * Hiển thị tên vai trò bằng `display_name` từ Backend, ví dụ `Administrator`, `Manager`, `Counter Staff`.
-  * Không tự ý đổi `Administrator` thành `Super Admin` nếu Backend đang đặt `display_name = Administrator`.
-  * Nếu user có cả `admin/web` và `admin/api`, phải chọn `admin/api`.
-
-* **Permission selection UI**:
-  * Không hiển thị raw permission name làm label chính nếu chưa format, ví dụ không để label chính là `manage-roles`.
-  * Phải có formatter tiếng Việt cho Admin đọc:
-    * `manage-roles` → `Quản lý vai trò`
-    * `manage-permissions` → `Quản lý quyền truy cập`
-    * `create-admins` → `Tạo mới tài khoản admin`
-    * `manage-admins-access` → `Quản lý phân quyền nhân viên`
-    * `access-dashboard` → `Truy cập dashboard`
-  * Raw permission name chỉ hiển thị nhỏ bằng font mono dưới label chính để hỗ trợ debug.
-  * Phải group quyền theo nghiệp vụ như `Người dùng & nhân viên`, `Vai trò`, `Quyền truy cập`, `Truy cập hệ thống`, `Tài liệu nội bộ`.
-  * Badge `Đã chọn N` chưa đủ. Form phải có box tóm tắt quyền đang chọn, liệt kê label tiếng Việt của từng quyền đang gán.
-  * Khi lưu Role, phải sync bằng ID permission API, không sync bằng label hoặc name.
-
----
-
-## 🔒 6. Quy Chuẩn Bảo Vệ Quyền Hạn & Security Guards
-
-1. **Bảo Vệ Tài Khoản Super Admin Gốc**:
-   * Tài khoản root (`admin@admin.com` / `Super Admin`) **TUYỆT ĐỐI KHÔNG THỂ BỊ XÓA**: Thay nút xóa bằng **Icon Ổ Khóa (`Lock`)** mờ kèm tooltip *"Tài khoản Super Admin gốc hệ thống - Không thể xóa"*.
-   * Dropdown **Vai Trò Hệ Thống** và Checkbox **Trạng Thái Kích Hoạt** của Super Admin BẮT BUỘC bị khoá `disabled`, giữ nguyên vai trò tối cao và trạng thái Kích hoạt.
-
----
-
-## 🚀 7. Quy Chuẩn Git Master Workflow Cho Cả Backend & Frontend
-
-1. **Backend (`superdong-be`)**:
-   * Toàn bộ phát triển và chỉnh sửa thực hiện trực tiếp trên nhánh **`master`**.
-   * Khi làm xong task: `git add . && git commit -m "..." && git push origin master`.
-   * LiteSpeed Live Server (`https://superdong-be.vitrasau.info.vn`) sẽ tự động kích hoạt deploy bản mới nhất ngay lập tức.
-
-2. **Frontend (`superdong-fe-dashboard`)**:
-   * Toàn bộ phát triển thực hiện trực tiếp trên nhánh **`master`**.
-   * Push code thẳng lên `origin/master` để Vercel tự động kích hoạt build & deploy live dashboard.
 
 ---
 
 ## 📂 8. Danh Sách File Mẫu Chuẩn Mực (Golden Reference Source Files)
 
+* **Master Table Component**: [TableUtilities.tsx](file:///E:/cty/superdong-fe-dashboard/src/components/common/TableUtilities.tsx)
 * **PasswordInput Component**: [PasswordInput.tsx](file:///E:/cty/superdong-fe-dashboard/src/components/common/PasswordInput.tsx)
-* **Coupon Module**:
-  * List: [coupons/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/index.tsx)
-  * Create: [coupons/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/create.tsx)
-  * Edit: [coupons/$couponId.edit.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/coupons/$couponId.edit.tsx)
-
-* **User Module**:
-  * List: [users/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/users/index.tsx)
-  * Create: [users/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/users/create.tsx)
-  * Edit: [users/$userId.edit.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/users/$userId.edit.tsx)
+* **Fleet Boat Modules**:
+  * List: [boats/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/boats/index.tsx)
+  * Create: [boats/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/boats/create.tsx)
+  * Edit: [boats/$boatId.edit.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/boats/$boatId.edit.tsx)
+* **Seat Class Modules**:
+  * List: [seat-classes/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/seat-classes/index.tsx)
+  * Create: [seat-classes/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/seat-classes/create.tsx)
+  * Edit: [seat-classes/$classId.edit.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/seat-classes/$classId.edit.tsx)
+* **Seat Map Modules**:
+  * List: [seat-maps/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/seat-maps/index.tsx)
+  * Create: [seat-maps/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/seat-maps/create.tsx)
+  * Edit: [seat-maps/$seatMapId.edit.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/seat-maps/$seatMapId.edit.tsx)

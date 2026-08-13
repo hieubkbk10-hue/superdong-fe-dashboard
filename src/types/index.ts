@@ -65,6 +65,8 @@ export interface User {
   roles?: Role[];
   permissions?: Permission[];
   avatar_url?: string;
+  birth?: string;
+  birthday?: string;
   last_login_at?: string;
   created_at?: string;
   updated_at?: string;

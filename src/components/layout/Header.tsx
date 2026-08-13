@@ -1,70 +1,61 @@
-import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from '@tanstack/react-router';
-import { Bell, ChevronRight, Home, Menu as MenuIcon, Moon, Sun, Search } from 'lucide-react';
+import React from 'react';
+import { Link, useLocation } from '@tanstack/react-router';
+import { Bell, ChevronRight, Home, Menu as MenuIcon } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { UserNav } from './UserNav';
-
-interface HeaderProps {
-  onToggleSidebar?: () => void;
-}
+import { AdminHeaderSearchAutocomplete } from './AdminHeaderSearchAutocomplete';
+import { useSidebarState } from '@/contexts/SidebarContext';
 
 const ROUTE_LABELS: Record<string, string> = {
   '': 'Dashboard',
-  posts: 'Quản lý bài viết',
-  'post-categories': 'Danh mục bài viết',
   boats: 'Quản lý Đội tàu',
-  'seat-classes': 'Hạng ghế',
-  'seat-maps': 'Sơ đồ ghế',
+  'seat-classes': 'Hạng ghế tàu',
+  'seat-maps': 'Sơ đồ ghế 2D',
   locations: 'Bến tàu & Cảng',
-  journeys: 'Hành trình',
-  schedules: 'Lịch chạy tàu',
-  trips: 'Danh sách Chuyến',
-  bookings: 'Đơn đặt vé',
+  routes: 'Luồng tuyến hải trình',
+  journeys: 'Hành trình bán vé',
+  schedules: 'Lịch chạy định kỳ',
+  trips: 'Chuyến tàu thực tế',
+  bookings: 'Quản lý Đơn vé',
   'check-in': 'Soát vé & Check-in',
-  payments: 'Giao dịch & Thu quầy',
-  coupons: 'Mã khuyến mãi',
+  payments: 'Thu quầy & Giao dịch',
+  coupons: 'Mã khuyến mãi Coupon',
   'traveler-types': 'Phân loại Hành khách',
   'booking-changes': 'Đổi / Hủy vé',
   users: 'Tài khoản Nhân viên',
-  roles: 'Phân quyền',
-  'audit-logs': 'Nhật ký thao tác',
+  roles: 'Vai trò & Phân quyền',
+  'audit-logs': 'Nhật ký thao tác Audit',
   settings: 'Cấu hình hệ thống',
 };
 
-export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
+export const Header: React.FC = () => {
+  const { setMobileMenuOpen } = useSidebarState();
   const location = useLocation();
-  const navigate = useNavigate();
   const pathname = location.pathname;
-  const [searchTerm, setSearchTerm] = useState('');
 
   const segments = pathname.split('/').filter(Boolean);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchTerm.trim()) {
-      navigate({ to: '/trips' as any });
-    }
-  };
-
   return (
-    <header className="h-[54px] bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 flex items-center justify-between px-4 lg:px-8 transition-colors font-sans">
-      {/* Left: Mobile Menu & Breadcrumbs matching photo 3 */}
-      <div className="flex items-center gap-3">
+    <header className="h-[54px] bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-30 flex items-center justify-between px-4 lg:px-8 transition-colors font-sans">
+      {/* Left: Mobile Menu Toggle & Breadcrumbs */}
+      <div className="flex items-center gap-3 min-w-0">
         <button
           type="button"
-          className="lg:hidden p-1.5 -ml-1.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 rounded-md cursor-pointer"
-          onClick={onToggleSidebar}
+          className="lg:hidden p-1.5 -ml-1.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md cursor-pointer"
+          onClick={() => setMobileMenuOpen(true)}
+          title="Mở Menu"
         >
-          <MenuIcon size={24} />
+          <MenuIcon size={20} />
         </button>
-        <nav className="hidden md:flex items-center text-sm text-slate-500 dark:text-slate-400">
-          <Link to={"/" as any} className="hover:text-blue-600 transition-colors">
-            Home
+
+        <nav className="hidden sm:flex items-center text-xs sm:text-sm text-slate-500 dark:text-slate-400 truncate">
+          <Link to={"/" as any} className="hover:text-blue-600 transition-colors font-medium">
+            Trang chủ
           </Link>
           {segments.length === 0 ? (
             <>
-              <ChevronRight size={14} className="mx-2 text-slate-300 dark:text-slate-600" />
-              <span className="font-medium text-slate-900 dark:text-slate-100">Posts</span>
+              <ChevronRight size={14} className="mx-2 text-slate-300 dark:text-slate-600 shrink-0" />
+              <span className="font-semibold text-slate-900 dark:text-slate-100">Tổng quan Vận hành</span>
             </>
           ) : (
             segments.map((segment, index) => {
@@ -74,15 +65,19 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
 
               return (
                 <React.Fragment key={url}>
-                  <ChevronRight size={14} className="mx-2 text-slate-300 dark:text-slate-600" />
-                  <Link
-                    to={url as any}
-                    className={`capitalize hover:text-blue-600 transition-colors ${
-                      isLast ? 'font-medium text-slate-900 dark:text-slate-100' : ''
-                    }`}
-                  >
-                    {label}
-                  </Link>
+                  <ChevronRight size={14} className="mx-2 text-slate-300 dark:text-slate-600 shrink-0" />
+                  {isLast ? (
+                    <span className="font-semibold text-slate-900 dark:text-slate-100 capitalize truncate">
+                      {label}
+                    </span>
+                  ) : (
+                    <Link
+                      to={url as any}
+                      className="capitalize hover:text-blue-600 transition-colors truncate"
+                    >
+                      {label}
+                    </Link>
+                  )}
                 </React.Fragment>
               );
             })
@@ -90,33 +85,25 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         </nav>
       </div>
 
-      {/* Right: Search & Action Controls matching photo 3 */}
-      <div className="flex items-center gap-2">
-        <form onSubmit={handleSearchSubmit} className="hidden md:block relative w-64">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm nhanh menu, list, edit..."
-            className="w-full h-8 pl-9 pr-3 text-xs bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white placeholder:text-slate-400 border border-transparent focus:border-blue-500 rounded-lg outline-none transition-all"
-          />
-        </form>
+      {/* Right: Search Autocomplete & Action Controls */}
+      <div className="flex items-center gap-2 shrink-0">
+        <AdminHeaderSearchAutocomplete />
 
         <Link
           to={"/" as any}
-          className="p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-full transition-colors"
-          title="Mở trang chủ"
+          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-full transition-colors hidden sm:flex"
+          title="Về Trang chủ"
         >
-          <Home size={18} />
+          <Home size={17} />
         </Link>
 
         <button
           type="button"
-          className="relative p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-full transition-colors cursor-pointer"
-          title="Thông báo"
+          className="relative p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-full transition-colors cursor-pointer hidden sm:flex"
+          title="Thông báo hệ thống"
         >
-          <Bell size={18} />
+          <Bell size={17} />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-blue-600 rounded-full" />
         </button>
 
         <ThemeToggle />
