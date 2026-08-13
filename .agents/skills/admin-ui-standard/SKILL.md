@@ -36,6 +36,45 @@ Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edi
 
 ## ⚙️ 1. Quy Chuẩn Backend & Database (Full-Stack Backend Integrity)
 
+> **🔴 BẮT BUỘC AUDIT TRỰC TIẾP REPO `superdong-be` TRƯỚC KHI VIẾT BẤT KỲ FORM NÀO**
+>
+> Khi bắt tay vào code bất kỳ form Create/Edit nào, AI Agent **BẮT BUỘC** phải đọc trực tiếp các file sau trong repo `e:\cty\superdong-be` theo thứ tự:
+>
+> **Bước 1 — Đọc `Request` (Input Contract)**
+> ```
+> app/Containers/<Section>/<Container>/UI/API/Requests/Create<Entity>Request.php
+> app/Containers/<Section>/<Container>/UI/API/Requests/Update<Entity>Request.php
+> ```
+> → Ghi lại: Danh sách field được phép gửi, kiểu dữ liệu (`string`, `array`, `date_format:H:i:s`...), field nào `required` vs `sometimes|nullable`, format enum (`in:mon,tue,...`), giá trị decode hashid.
+>
+> **Bước 2 — Đọc `Transformer` (Output Contract)**
+> ```
+> app/Containers/<Section>/<Container>/UI/API/Transformers/<Entity>Transformer.php
+> ```
+> → Ghi lại: Danh sách field Transformer trả về, field nào encode HashID, field nào là relation, field nào FE cần dùng để hydrate form Edit.
+>
+> **Bước 3 — Đọc `Action` (sanitizeInput White-list)**
+> ```
+> app/Containers/<Section>/<Container>/Actions/Create<Entity>Action.php
+> app/Containers/<Section>/<Container>/Actions/Update<Entity>Action.php
+> ```
+> → Kiểm tra `$request->sanitizeInput([...])` có liệt kê đủ field không. Field ngoài danh sách sẽ bị backend tự động bỏ qua dù FE đã gửi.
+>
+> **Bước 4 — Đọc `Model $fillable`**
+> ```
+> app/Containers/<Section>/<Container>/Models/<Entity>.php
+> ```
+> → Xác nhận mọi field muốn lưu đều có trong `$fillable`.
+>
+> **Sau khi đọc xong 4 bước → Lập Bảng Audit BE vs FE:**
+> | Field | Request rule | Transformer output | sanitizeInput | $fillable | FE Form |
+> |---|---|---|---|---|---|
+> | `name` | required\|string | ✅ | ✅ | ✅ | ✅ |
+> | `route_id` | hashid decode | ✅ encode | ✅ | ✅ | ✅ |
+> | `expected_version` | sometimes\|integer | ❌ (không trả) | N/A | N/A | ✅ lấy từ `version` |
+>
+> **NGHIÊM CẤM** bỏ qua bước này và tự đoán field. Mọi field sai sẽ gây lỗi 422, lỗi 405 hoặc BE âm thầm bỏ qua dữ liệu FE gửi lên.
+
 Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSection/<Domain>/`):
 
 1. **Migration Schema (`Data/Migrations/`)**:

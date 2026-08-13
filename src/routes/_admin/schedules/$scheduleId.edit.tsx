@@ -20,6 +20,7 @@ interface ScheduleFormData {
   end_time: string;
   days: string[];
   status: 'active' | 'inactive';
+  version: number;
 }
 
 const emptyForm: ScheduleFormData = {
@@ -30,6 +31,7 @@ const emptyForm: ScheduleFormData = {
   end_time: '09:00',
   days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
   status: 'active',
+  version: 1,
 };
 
 const WEEKDAYS = [
@@ -90,6 +92,8 @@ function ScheduleEditPage() {
           end_time: endTimeClean,
           days: daysNormalized,
           status: s.status === 'active' || s.is_active === true ? 'active' : 'inactive',
+          // LOGIC: Lưu version để gửi expected_version chống race condition khi update
+          version: typeof s.version === 'number' ? s.version : 1,
         };
 
         let nextForm = serverForm;
@@ -166,7 +170,8 @@ function ScheduleEditPage() {
         end_time: endTimeFormatted,
         days_of_week: formData.days.map((d) => d.toLowerCase()),
         status: formData.status,
-        is_active: formData.status === 'active',
+        // LOGIC: expected_version phải khớp version DB để UpdateScheduleAction chấp nhận ghi đè
+        expected_version: formData.version,
         reason: `Cập nhật lịch chạy định kỳ ${formData.name} từ dashboard`,
       } as any);
 
