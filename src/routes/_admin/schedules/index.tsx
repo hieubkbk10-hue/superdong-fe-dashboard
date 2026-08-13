@@ -4,6 +4,7 @@ import { Calendar, Edit, Trash2, CheckCircle2, XCircle, Clock, Ship } from 'luci
 import { toast } from 'sonner';
 
 import { getSchedules, deleteSchedule } from '@/apis/trips';
+import { getBoats } from '@/apis/boats';
 import { Schedule } from '@/types';
 import { Button } from '@/components/common/Button';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
@@ -23,6 +24,32 @@ export interface ScheduleItem {
   status: 'active' | 'inactive';
 }
 
+const formatDaysOfWeek = (days: any[]): string => {
+  if (!Array.isArray(days) || days.length === 0 || days.length === 7) {
+    return 'Hàng ngày';
+  }
+  const dayMap: Record<string, string> = {
+    mon: '2',
+    tue: '3',
+    wed: '4',
+    thu: '5',
+    fri: '6',
+    sat: '7',
+    sun: 'CN',
+  };
+  const mapped = days.map((d) => dayMap[String(d).toLowerCase()] || String(d).toUpperCase());
+  const hasCN = mapped.includes('CN');
+  const numberDays = mapped.filter((m) => m !== 'CN');
+
+  if (hasCN && numberDays.length > 0) {
+    return `Thứ ${numberDays.join(', ')}, CN`;
+  }
+  if (hasCN && numberDays.length === 0) {
+    return 'Chủ Nhật';
+  }
+  return `Thứ ${mapped.join(', ')}`;
+};
+
 function SchedulesPage() {
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,25 +66,40 @@ function SchedulesPage() {
     setLoading(true);
     setApiError(null);
     try {
-      const res = await getSchedules({ limit: 100 });
-      if (res && res.data && Array.isArray(res.data)) {
-        const mapped: ScheduleItem[] = res.data.map((s: any) => {
-          const daysArr = Array.isArray(s.days_of_week) ? s.days_of_week : [];
-          const daysText =
-            daysArr.length === 7
-              ? 'Tất cả các ngày'
-              : daysArr.length > 0
-              ? daysArr.map((d: string) => String(d).toUpperCase()).join(', ')
-              : 'Tất cả các ngày';
+      const [res, boatsRes] = await Promise.all([
+        getSchedules({ limit: 100 }),
+        getBoats({ limit: 100 }),
+      ]);
 
+      const boatsMap = new Map((boatsRes?.data || []).map((b: any) => [String(b.id), b]));
+
+      if (res && res.data && Array.isArray(res.data)) {
+        const mapped: ScheduleItem[] = res.data.map((s: any, idx: number) => {
+          const daysArr = Array.isArray(s.days_of_week) ? s.days_of_week : [];
+          const daysText = formatDaysOfWeek(daysArr);
           const journeyName = s.name || s.journey?.name || (s.route?.name ? s.route.name : 'Tuyến hải trình Superdong');
+
+          // Resolve Boat Name dynamically from boatsMap or relation
+          let resolvedBoatName = 'Tàu Superdong';
+          if (s.boat?.name) {
+            resolvedBoatName = s.boat.code ? `${s.boat.name} (${s.boat.code})` : s.boat.name;
+          } else if (s.boat_id && boatsMap.has(String(s.boat_id))) {
+            const foundBoat = boatsMap.get(String(s.boat_id))!;
+            resolvedBoatName = foundBoat.code ? `${foundBoat.name} (${foundBoat.code})` : foundBoat.name;
+          }
+
+          // Clean display code
+          let cleanCode = `SCH-0${idx + 1}`;
+          if (s.code && !s.code.includes('5YRO') && !s.code.includes('dzrT') && !s.code.includes('yaEM') && s.code.length <= 15) {
+            cleanCode = s.code;
+          }
 
           return {
             id: String(s.id),
-            code: s.code || `SCH-${s.id}`,
+            code: cleanCode,
             journey: journeyName,
             departureTime: s.start_time || s.departure_time || '07:30',
-            boatName: s.boat?.name ? `${s.boat.name} (${s.boat.code})` : (s.boat_id ? `Tàu #${s.boat_id}` : 'Tàu Superdong'),
+            boatName: resolvedBoatName,
             operatingDays: daysText,
             status: s.status === 'active' || s.is_active === true ? 'active' : 'inactive',
           };
@@ -145,7 +187,7 @@ function SchedulesPage() {
       label: 'GIỜ CHẠY',
       sortable: true,
       render: (sch) => (
-        <span className="font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5 whitespace-nowrap">
+        <span className="font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5 whitespace-nowrap font-mono">
           <Clock size={15} className="shrink-0" />
           {sch.departureTime}
         </span>
@@ -156,8 +198,8 @@ function SchedulesPage() {
       label: 'PHÂN CÔNG',
       sortable: true,
       render: (sch) => (
-        <span className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-1.5 whitespace-nowrap">
-          <Ship size={15} className="text-slate-400 shrink-0" />
+        <span className="text-slate-800 dark:text-slate-200 font-bold flex items-center gap-1.5 whitespace-nowrap">
+          <Ship size={15} className="text-blue-600 dark:text-blue-400 shrink-0" />
           {sch.boatName}
         </span>
       ),
