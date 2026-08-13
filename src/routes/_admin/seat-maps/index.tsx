@@ -137,14 +137,14 @@ function SeatMapsPage() {
       key: 'name',
       label: 'Tên sơ đồ',
       sortable: true,
-      render: (item) => <span className="font-bold text-slate-900 dark:text-white">{item.name || 'Chưa cập nhật'}</span>,
+      render: (item) => <span className="font-bold text-slate-900 dark:text-white whitespace-nowrap">{item.name || 'Chưa cập nhật'}</span>,
     },
     {
       key: 'boat',
       label: 'Tàu',
       sortable: true,
       render: (item) => (
-        <div>
+        <div className="whitespace-nowrap">
           <div className="font-semibold text-slate-800 dark:text-slate-200">{item.boatName || 'Chưa cập nhật'}</div>
           <div className="text-xs font-mono text-blue-600 dark:text-blue-400">{item.boatCode}</div>
         </div>
@@ -154,19 +154,19 @@ function SeatMapsPage() {
       key: 'version',
       label: 'Phiên bản',
       sortable: true,
-      render: (item) => <span className="font-mono text-xs text-slate-500">v{item.version}</span>,
+      render: (item) => <span className="font-mono text-xs text-slate-500 whitespace-nowrap">v{item.version}</span>,
     },
     {
       key: 'decks',
       label: 'Số tầng',
       sortable: true,
-      render: (item) => <span className="font-medium">{item.decks}</span>,
+      render: (item) => <span className="font-medium whitespace-nowrap">{item.decks}</span>,
     },
     {
       key: 'seats',
       label: 'Số ghế',
       sortable: true,
-      render: (item) => <span className="font-semibold text-slate-800 dark:text-slate-200">{item.seats}</span>,
+      render: (item) => <span className="font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{item.seats}</span>,
     },
     {
       key: 'status',
@@ -174,11 +174,11 @@ function SeatMapsPage() {
       sortable: true,
       render: (item) =>
         item.status === 'active' ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 whitespace-nowrap">
             <CheckCircle2 size={12} /> Đang áp dụng
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800 whitespace-nowrap">
             <XCircle size={12} /> Tạm ngưng
           </span>
         ),

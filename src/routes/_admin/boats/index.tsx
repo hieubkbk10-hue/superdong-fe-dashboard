@@ -110,27 +110,27 @@ function BoatsPage() {
       label: 'Tên Tàu',
       sortable: true,
       render: (b) => (
-        <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <Anchor size={15} className="text-slate-400" /> {b.name}
+        <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2 whitespace-nowrap">
+          <Anchor size={15} className="text-slate-400 shrink-0" /> {b.name}
         </div>
       ),
     },
     {
       key: 'capacity',
-      label: 'Sức Chứa (Ghế)',
+      label: 'Sức Chứa',
       sortable: true,
       render: (b) => (
-        <span className="font-medium text-slate-700 dark:text-slate-300">
+        <span className="font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
           {b.capacity > 0 ? `${b.capacity} ghế` : <span className="text-slate-400">Chưa cập nhật</span>}
         </span>
       ),
     },
     {
       key: 'speed',
-      label: 'Tốc Độ Vận Hành',
+      label: 'Tốc Độ',
       sortable: true,
       render: (b) => (
-        <span className="text-slate-600 dark:text-slate-400 font-mono text-xs">
+        <span className="text-slate-600 dark:text-slate-400 font-mono text-xs whitespace-nowrap">
           {b.speed || <span className="font-sans text-slate-400">Chưa cập nhật</span>}
         </span>
       ),
@@ -140,11 +140,11 @@ function BoatsPage() {
       label: 'Loại Tàu',
       render: (b) =>
         b.is_express ? (
-          <span className="bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800 text-xs px-2.5 py-0.5 rounded-full font-semibold">
+          <span className="bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800 text-xs px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap">
             Tàu Cao Tốc
           </span>
         ) : (
-          <span className="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">
+          <span className="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700 text-xs px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap">
             Tàu Phà Thường
           </span>
         ),
@@ -155,11 +155,11 @@ function BoatsPage() {
       sortable: true,
       render: (b) =>
         b.status === 'active' ? (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 whitespace-nowrap">
             <CheckCircle2 size={12} /> Đang hoạt động
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
+          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800 whitespace-nowrap">
             <XCircle size={12} /> Đang bảo trì
           </span>
         ),

@@ -290,7 +290,7 @@ export const SortableHeader: React.FC<SortableHeaderProps> = ({
     <th
       onClick={() => onSort(sortKey)}
       className={cn(
-        'cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-800/70 transition-colors select-none group p-3.5 text-xs font-bold uppercase tracking-wider',
+        'cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-800/70 transition-colors select-none group p-3.5 text-xs font-bold uppercase tracking-wider whitespace-nowrap',
         isFirst && 'pl-6 pr-4',
         align === 'right' && 'text-right',
         align === 'center' && 'text-center',
@@ -719,7 +719,7 @@ export function AdminTablePage<T>({
                     <th
                       key={col.key}
                       className={cn(
-                        'p-3.5 text-xs font-bold uppercase tracking-wider',
+                        'p-3.5 text-xs font-bold uppercase tracking-wider whitespace-nowrap',
                         isFirst && 'pl-6 pr-4',
                         col.align === 'right' && 'text-right',
                         col.align === 'center' && 'text-center',
@@ -761,7 +761,7 @@ export function AdminTablePage<T>({
                         <td
                           key={col.key}
                           className={cn(
-                            'p-3.5',
+                            'p-3.5 whitespace-nowrap',
                             isFirst && 'pl-6 pr-4',
                             col.align === 'right' && 'text-right',
                             col.align === 'center' && 'text-center',

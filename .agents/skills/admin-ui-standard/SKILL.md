@@ -177,6 +177,9 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
   * **QUY TẮC BẮT BUỘC**: Mũi tên Sắp xếp (`ChevronsUpDown`, `ChevronUp`, `ChevronDown`) **CHỈ HIỂN THỊ KHI CỘT ĐƯỢC KHAI BÁO `sortable: true`**.
   * Các cột không khai báo `sortable: true` hoặc cột `actions` tuyệt đối KHÔNG có mũi tên sort.
   * Khi sort chuỗi tiếng Việt (ví dụ "Superdong I", "Superdong II"...), BẮT BUỘC dùng `localeCompare(..., 'vi', { numeric: true, sensitivity: 'base' })` để xếp thứ tự tự nhiên chuẩn xác.
+* **Quy tắc Tiêu Đề Cột Ngắn Gọn & Chống Rớt Chữ (`whitespace-nowrap`)**:
+  * **Tiêu đề Cột Tối Đa 2 Từ**: Tên tiêu đề cột phải cô đọng, súc tích, tối đa 2 từ đủ ý (ví dụ: `MÃ TÀU`, `TÊN TÀU`, `SỨC CHỨA`, `TỐC ĐỘ`, `MÃ HẠNG`, `GIÁ CƠ SỞ`, `TRẠNG THÁI`, `THAO TÁC`). Tránh dùng 3-4 từ rườm rà như `TỐC ĐỘ VẬN HÀNH` hay `SỨC CHỨA (GHẾ)`.
+  * **Tuyệt Đối Không Rớt Chữ (`whitespace-nowrap`)**: Toàn bộ tiêu đề `<th>` và nội dung dòng `<td>` (tên tàu, badge trạng thái `Tàu Cao Tốc`, `Đang hoạt động`,...) BẮT BUỘC có class `whitespace-nowrap` để tuyệt đối KHÔNG bao giờ bị vỡ hoặc rớt chữ xuống dòng.
 * **Spacing Cột Đầu Tiên (`pl-6 pr-4`)**:
   * Cột đầu tiên của bảng (`th:first-child`, `td:first-child`) BẮT BUỘC có padding `pl-6 pr-4` để dữ liệu không bị dính sát vào đường viền mép trái của Card container.
 * **Thanh Bộ Lọc `<TableToolbar>`**:

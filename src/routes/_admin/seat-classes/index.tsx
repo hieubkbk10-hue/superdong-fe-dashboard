@@ -133,33 +133,33 @@ function SeatClassesPage() {
   const columns: ColumnDef<SeatClassItem>[] = [
     {
       key: 'code',
-      label: 'Mã Hạng Ghế',
+      label: 'Mã Hạng',
       sortable: true,
-      render: (sc) => <span className="font-mono font-bold text-blue-600 dark:text-blue-400 uppercase">{sc.code}</span>,
+      render: (sc) => <span className="font-mono font-bold text-blue-600 dark:text-blue-400 uppercase whitespace-nowrap">{sc.code}</span>,
     },
     {
       key: 'name',
-      label: 'Tên Hạng Ghế',
+      label: 'Tên Hạng',
       sortable: true,
-      render: (sc) => <span className="font-bold text-slate-900 dark:text-white">{sc.name}</span>,
+      render: (sc) => <span className="font-bold text-slate-900 dark:text-white whitespace-nowrap">{sc.name}</span>,
     },
     {
       key: 'price',
-      label: 'Giá Cơ Sở (VNĐ)',
+      label: 'Giá Cơ Sở',
       sortable: true,
-      render: (sc) => <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(sc.price)}</span>,
+      render: (sc) => <span className="font-mono font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{formatCurrency(sc.price)}</span>,
     },
     {
       key: 'color',
-      label: 'Màu Nhận Diện',
+      label: 'Màu Sắc',
       render: (sc) =>
         sc.color ? (
-          <div className="flex items-center gap-2">
-            <span className="h-4 w-4 rounded-full border border-slate-300 dark:border-slate-700 shadow-2xs" style={{ backgroundColor: sc.color }} />
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <span className="h-4 w-4 rounded-full border border-slate-300 dark:border-slate-700 shadow-2xs shrink-0" style={{ backgroundColor: sc.color }} />
             <span className="font-mono text-xs text-slate-600 dark:text-slate-400 uppercase">{sc.color}</span>
           </div>
         ) : (
-          <span className="text-slate-400 text-xs">Chưa cài đặt</span>
+          <span className="text-slate-400 text-xs whitespace-nowrap">Chưa cài đặt</span>
         ),
     },
     {
@@ -168,11 +168,11 @@ function SeatClassesPage() {
       sortable: true,
       render: (sc) =>
         sc.status === 'active' ? (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 whitespace-nowrap">
             <CheckCircle2 size={12} /> Đang áp dụng
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-800">
+          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-800 whitespace-nowrap">
             <XCircle size={12} /> Tạm ngưng
           </span>
         ),
