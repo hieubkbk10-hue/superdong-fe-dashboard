@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { Calendar, ArrowLeft, Save, RotateCcw, Clock, Ship } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { createSchedule } from '@/apis/trips';
-import { getRoutes, getJourneys } from '@/apis/journeys';
+import { getRoutes } from '@/apis/journeys';
 import { getBoats } from '@/apis/boats';
 import { Boat, Route as JourneyRoute } from '@/types';
 
@@ -13,39 +13,35 @@ export const Route = createFileRoute('/_admin/schedules/create')({
 });
 
 interface ScheduleFormData {
-  code: string;
+  name: string;
   route_id: string;
   boat_id: string;
-  departureTime: string;
+  start_time: string;
+  end_time: string;
   days: string[];
-  validFrom: string;
-  validTo: string;
   status: 'active' | 'inactive';
-  note: string;
 }
 
 const emptyForm: ScheduleFormData = {
-  code: '',
+  name: '',
   route_id: '',
   boat_id: '',
-  departureTime: '07:30',
-  days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-  validFrom: '',
-  validTo: '',
+  start_time: '07:30',
+  end_time: '09:00',
+  days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
   status: 'active',
-  note: '',
 };
 
 const draftKey = 'superdong_schedules_draft_create';
 
 const WEEKDAYS = [
-  { label: 'Thứ 2', code: 'Mon' },
-  { label: 'Thứ 3', code: 'Tue' },
-  { label: 'Thứ 4', code: 'Wed' },
-  { label: 'Thứ 5', code: 'Thu' },
-  { label: 'Thứ 6', code: 'Fri' },
-  { label: 'Thứ 7', code: 'Sat' },
-  { label: 'Chủ Nhật', code: 'Sun' },
+  { label: 'Thứ 2', code: 'mon' },
+  { label: 'Thứ 3', code: 'tue' },
+  { label: 'Thứ 4', code: 'wed' },
+  { label: 'Thứ 5', code: 'thu' },
+  { label: 'Thứ 6', code: 'fri' },
+  { label: 'Thứ 7', code: 'sat' },
+  { label: 'Chủ Nhật', code: 'sun' },
 ];
 
 function ScheduleCreatePage() {
@@ -113,33 +109,35 @@ function ScheduleCreatePage() {
     e.preventDefault();
     if (isSubmitting) return;
 
-    if (!formData.code.trim()) {
-      toast.error('Vui lòng nhập Mã Lịch Chạy Định Kỳ');
+    if (!formData.name.trim()) {
+      toast.error('Vui lòng nhập Tên lịch chạy định kỳ');
+      return;
+    }
+
+    if (!formData.start_time || !formData.end_time) {
+      toast.error('Vui lòng chọn đầy đủ Giờ khởi hành và Giờ cập bến');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const selectedRoute = routes.find((r) => String(r.id) === formData.route_id);
-      const name = formData.code.trim().toUpperCase() + (selectedRoute ? ` - ${selectedRoute.name || selectedRoute.code}` : '');
-      const startTime = formData.departureTime.length === 5 ? `${formData.departureTime}:00` : formData.departureTime;
+      const startTimeFormatted = formData.start_time.length === 5 ? `${formData.start_time}:00` : formData.start_time;
+      const endTimeFormatted = formData.end_time.length === 5 ? `${formData.end_time}:00` : formData.end_time;
 
       await createSchedule({
-        name,
-        code: formData.code.trim().toUpperCase(),
+        name: formData.name.trim(),
         route_id: formData.route_id || undefined,
         boat_id: formData.boat_id || undefined,
-        start_time: startTime,
-        end_time: '10:00:00',
+        start_time: startTimeFormatted,
+        end_time: endTimeFormatted,
         days_of_week: formData.days.map((d) => d.toLowerCase()),
         status: formData.status,
         is_active: formData.status === 'active',
-        effective_from: formData.validFrom || undefined,
-        effective_to: formData.validTo || undefined,
-        reason: `Tạo lịch chạy định kỳ ${formData.code} từ dashboard`,
+        reason: `Tạo lịch chạy định kỳ ${formData.name} từ dashboard`,
       } as any);
+
       localStorage.removeItem(draftKey);
-      toast.success(`Tạo thành công lịch chạy định kỳ: ${formData.code.trim().toUpperCase()}`);
+      toast.success(`Tạo thành công lịch chạy định kỳ: ${formData.name.trim()}`);
       navigate({ to: '/schedules' as any });
     } catch (err: any) {
       console.error('Create schedule error:', err);
@@ -168,7 +166,7 @@ function ScheduleCreatePage() {
               Tạo Lịch Chạy Định Kỳ Mới
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
-              Cấu hình khung giờ chạy cố định theo các ngày trong tuần cho từng tuyến hải trình Superdong
+              Cấu hình khung giờ chạy cố định (start_time, end_time) và tần suất các ngày trong tuần
             </p>
           </div>
         </div>
@@ -186,19 +184,19 @@ function ScheduleCreatePage() {
           I. Thông tin cấu hình lịch chạy
         </div>
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
+          <div className="md:col-span-2">
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Mã lịch chạy định kỳ <span className="text-red-500">*</span>
+              Tên lịch chạy định kỳ <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              value={formData.code}
-              onChange={(e) => updateField('code', e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 32))}
-              placeholder="VD: SCH-RG-01"
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-sm focus:border-blue-500 outline-none"
+              value={formData.name}
+              onChange={(e) => updateField('name', e.target.value)}
+              placeholder="VD: Hà Tiên - Phú Quốc (Superdong I) T2-T4-T6"
+              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
               required
             />
-            <p className="mt-1 text-[11px] text-slate-500">Mã duy nhất định danh lịch chạy tàu (VD: SCH-RG-01)</p>
+            <p className="mt-1 text-[11px] text-slate-500">Tên định danh mẫu lịch chạy hiển thị trên hệ thống (ví dụ: Hà Tiên - Phú Quốc (Superdong I) T2-T4-T6)</p>
           </div>
 
           <div>
@@ -221,22 +219,6 @@ function ScheduleCreatePage() {
 
           <div>
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Giờ xuất bến cố định <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="time"
-                value={formData.departureTime}
-                onChange={(e) => updateField('departureTime', e.target.value)}
-                className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-sm focus:border-blue-500 outline-none"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Tàu phân công mặc định
             </label>
             <div className="relative">
@@ -255,15 +237,47 @@ function ScheduleCreatePage() {
               </select>
             </div>
           </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Giờ khởi hành (start_time) <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="time"
+                value={formData.start_time}
+                onChange={(e) => updateField('start_time', e.target.value)}
+                className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-sm focus:border-blue-500 outline-none"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Giờ cập bến dự kiến (end_time) <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="time"
+                value={formData.end_time}
+                onChange={(e) => updateField('end_time', e.target.value)}
+                className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-sm focus:border-blue-500 outline-none"
+                required
+              />
+            </div>
+          </div>
         </div>
 
         <div className="px-5 py-3 bg-[#EBF7FA] border-y border-cyan-100 text-sm font-bold text-slate-800 uppercase">
-          II. Tần suất & Thời gian áp dụng
+          II. Tần suất & Trạng thái
         </div>
         <div className="p-6 space-y-6">
           <div>
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-              Các ngày chạy trong tuần
+              Các ngày chạy trong tuần (days_of_week)
             </label>
             <div className="flex flex-wrap gap-2">
               {WEEKDAYS.map((day) => {
@@ -288,51 +302,16 @@ function ScheduleCreatePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Hiệu lực từ ngày</label>
-              <input
-                type="date"
-                value={formData.validFrom}
-                onChange={(e) => updateField('validFrom', e.target.value)}
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Trạng thái áp dụng</label>
+              <select
+                value={formData.status}
+                onChange={(e) => updateField('status', e.target.value as 'active' | 'inactive')}
                 className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-              />
+              >
+                <option value="active">Đang áp dụng</option>
+                <option value="inactive">Tạm ngưng</option>
+              </select>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Đến hết ngày</label>
-              <input
-                type="date"
-                value={formData.validTo}
-                onChange={(e) => updateField('validTo', e.target.value)}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="px-5 py-3 bg-[#EBF7FA] border-y border-cyan-100 text-sm font-bold text-slate-800 uppercase">
-          III. Trạng thái & Ghi chú
-        </div>
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Trạng thái áp dụng</label>
-            <select
-              value={formData.status}
-              onChange={(e) => updateField('status', e.target.value as 'active' | 'inactive')}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-            >
-              <option value="active">Đang áp dụng</option>
-              <option value="inactive">Tạm ngưng</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Ghi chú vận hành (Không bắt buộc)</label>
-            <input
-              type="text"
-              value={formData.note}
-              onChange={(e) => updateField('note', e.target.value)}
-              placeholder="VD: Lịch chạy sáng cố định quanh năm"
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-            />
           </div>
         </div>
 
