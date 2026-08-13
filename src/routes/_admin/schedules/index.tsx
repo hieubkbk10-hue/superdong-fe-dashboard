@@ -90,9 +90,15 @@ function SchedulesPage() {
 
           // Clean display code
           let cleanCode = `SCH-0${idx + 1}`;
-          if (s.code && !s.code.includes('5YRO') && !s.code.includes('dzrT') && !s.code.includes('yaEM') && s.code.length <= 15) {
+          if (s.code && !s.code.includes('5YRO') && !s.code.includes('dzrT') && !s.code.includes('yaEM') && !s.code.includes('OgYP') && s.code.length <= 15) {
             cleanCode = s.code;
           }
+
+          // Cache for Edit page hydration
+          localStorage.setItem(`superdong_schedule_cache_${s.id}`, JSON.stringify({
+            ...s,
+            cleanCode,
+          }));
 
           return {
             id: String(s.id),

@@ -29,7 +29,7 @@ const emptyForm: ScheduleFormData = {
   route_id: '',
   boat_id: '',
   departureTime: '07:30',
-  days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
   validFrom: '',
   validTo: '',
   status: 'active',
@@ -37,13 +37,13 @@ const emptyForm: ScheduleFormData = {
 };
 
 const WEEKDAYS = [
-  { label: 'Thứ 2', code: 'Mon' },
-  { label: 'Thứ 3', code: 'Tue' },
-  { label: 'Thứ 4', code: 'Wed' },
-  { label: 'Thứ 5', code: 'Thu' },
-  { label: 'Thứ 6', code: 'Fri' },
-  { label: 'Thứ 7', code: 'Sat' },
-  { label: 'Chủ Nhật', code: 'Sun' },
+  { label: 'Thứ 2', code: 'mon' },
+  { label: 'Thứ 3', code: 'tue' },
+  { label: 'Thứ 4', code: 'wed' },
+  { label: 'Thứ 5', code: 'thu' },
+  { label: 'Thứ 6', code: 'fri' },
+  { label: 'Thứ 7', code: 'sat' },
+  { label: 'Chủ Nhật', code: 'sun' },
 ];
 
 function ScheduleEditPage() {
@@ -77,13 +77,25 @@ function ScheduleEditPage() {
       }
 
       if (scheduleRes) {
-        const s: Schedule = scheduleRes;
+        const s: any = scheduleRes;
+
+        // Clean display code
+        let cleanCode = s.cleanCode || s.code || '';
+        if (!cleanCode || cleanCode.length > 20 || cleanCode.includes('dzrE') || cleanCode.includes('5YRO') || cleanCode.includes('yaEM') || cleanCode.includes('OgYP')) {
+          cleanCode = `SCH-${String(scheduleId).slice(0, 5).toUpperCase()}`;
+        }
+
+        // Normalize days to lowercase
+        const daysNormalized = Array.isArray(s.days_of_week)
+          ? s.days_of_week.map((d: any) => String(d).toLowerCase())
+          : ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
         const serverForm: ScheduleFormData = {
-          code: `SCH-${s.id}`,
+          code: cleanCode,
           route_id: String(s.route_id || s.route?.id || ''),
           boat_id: String(s.boat_id || s.boat?.id || ''),
-          departureTime: s.departure_time || s.start_time || '07:30',
-          days: Array.isArray(s.days_of_week) ? s.days_of_week.map(String) : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          departureTime: s.start_time || s.departure_time || '07:30',
+          days: daysNormalized,
           validFrom: s.effective_from || '',
           validTo: s.effective_to || '',
           status: s.is_active || s.status === 'active' ? 'active' : 'inactive',
@@ -191,7 +203,7 @@ function ScheduleEditPage() {
               Chỉnh Sửa Lịch Chạy Tàu {formData.code && `: ${formData.code}`}
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
-              Cập nhật khung giờ chạy cố định, tần suất khai thác và tàu phân công
+              Cập nhật khung giờ chạy cố định, tần suất khai thác và tàu phân công Superdong
             </p>
           </div>
         </div>
