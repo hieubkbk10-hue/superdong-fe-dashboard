@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { Route as RouteIcon, Plus, Edit, Search, CheckCircle2, XCircle, ArrowRight, RefreshCw, AlertTriangle, Columns3, Trash2 } from 'lucide-react';
+import { Route as RouteIcon, Edit, Trash2, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
+
 import { deleteJourney, getJourneys } from '@/apis/journeys';
-import { Journey, Location, Route as JourneyRoute } from '@/types';
-import { PaginationBar } from '@/components/common/PaginationBar';
-import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { buildRouteDisplayName, unwrapData } from '@/helpers/journeyRoutes';
+import { Journey, Location, Route as JourneyRoute } from '@/types';
+import { Button } from '@/components/common/Button';
+import { ConfirmModal } from '@/components/common/ConfirmModal';
+import { AdminTablePage, ColumnDef } from '@/components/common/TableUtilities';
 
 export const Route = createFileRoute('/_admin/journeys/')({
   component: JourneysPage,
@@ -23,16 +25,6 @@ type JourneyRow = {
   updated_at?: string;
 };
 
-const columnStorageKey = 'superdong_journeys_columns';
-const defaultVisibleColumns = {
-  route: true,
-  direction: true,
-  status: true,
-  updated_at: true,
-  actions: true,
-};
-type VisibleColumns = typeof defaultVisibleColumns;
-
 const normalizeJourney = (journey: Journey): JourneyRow => {
   const route = unwrapData<JourneyRoute>(journey.route);
   const fromLocation = unwrapData<Location>(journey.from_location);
@@ -42,8 +34,8 @@ const normalizeJourney = (journey: Journey): JourneyRow => {
     id: String(journey.id),
     routeCode: route?.code || '',
     routeName: route ? buildRouteDisplayName({ code: route.code, name: route.name }, fromLocation?.name, toLocation?.name) : '',
-    fromName: fromLocation?.name || '',
-    toName: toLocation?.name || '',
+    fromName: fromLocation?.name || 'Chưa cập nhật',
+    toName: toLocation?.name || 'Chưa cập nhật',
     status: journey.status === 'inactive' || journey.is_active === false ? 'inactive' : 'active',
     updated_at: journey.updated_at,
   };
@@ -53,7 +45,7 @@ const formatDateTime = (value?: string) => {
   if (!value) return 'Chưa cập nhật';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Chưa cập nhật';
-  return date.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+  return date.toLocaleDateString('vi-VN');
 };
 
 function JourneysPage() {
@@ -61,17 +53,10 @@ function JourneysPage() {
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | JourneyStatus>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const [showColumns, setShowColumns] = useState(false);
-  const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>(() => {
-    try {
-      return { ...defaultVisibleColumns, ...JSON.parse(localStorage.getItem(columnStorageKey) || '{}') };
-    } catch {
-      return defaultVisibleColumns;
-    }
-  });
+
   const [deleteTarget, setDeleteTarget] = useState<JourneyRow | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -98,10 +83,6 @@ function JourneysPage() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(columnStorageKey, JSON.stringify(visibleColumns));
-  }, [visibleColumns]);
-
-  useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, pageSize]);
 
@@ -119,17 +100,12 @@ function JourneysPage() {
     });
   }, [journeys, searchTerm, statusFilter]);
 
-  const paginatedJourneys = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredJourneys.slice(start, start + pageSize);
-  }, [filteredJourneys, currentPage, pageSize]);
-
   const executeDelete = async () => {
     if (!deleteTarget || deleting) return;
     setDeleting(true);
     try {
       const response = await deleteJourney(deleteTarget.id, {
-        reason: `Xóa hành trình ${deleteTarget.fromName || 'Chưa cập nhật'} → ${deleteTarget.toName || 'Chưa cập nhật'} từ dashboard vận hành`,
+        reason: `Xóa hành trình ${deleteTarget.fromName} → ${deleteTarget.toName} từ dashboard vận hành`,
       });
       toast.success(response?.message || 'Đã xóa hành trình');
       setDeleteTarget(null);
@@ -142,224 +118,125 @@ function JourneysPage() {
     }
   };
 
+  const statusOptions = [
+    { value: 'all', label: 'Tất cả trạng thái' },
+    { value: 'active', label: 'Đang hoạt động' },
+    { value: 'inactive', label: 'Tạm ngưng' },
+  ];
+
+  const columns: ColumnDef<JourneyRow>[] = [
+    {
+      key: 'routeName',
+      label: 'LUỒNG TUYẾN',
+      sortable: true,
+      render: (item) => (
+        <div className="whitespace-nowrap">
+          <div className="font-bold text-slate-900 dark:text-white">{item.routeName || 'Chưa cập nhật'}</div>
+          <div className="font-mono text-xs text-blue-600 dark:text-blue-400">{item.routeCode}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'fromName',
+      label: 'BẾN ĐI',
+      sortable: true,
+      render: (item) => (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 font-semibold text-xs border border-blue-200 dark:border-blue-800 whitespace-nowrap">
+          {item.fromName}
+        </span>
+      ),
+    },
+    {
+      key: 'toName',
+      label: 'BẾN ĐẾN',
+      sortable: true,
+      render: (item) => (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 font-semibold text-xs border border-emerald-200 dark:border-emerald-800 whitespace-nowrap">
+          {item.toName}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'TRẠNG THÁI',
+      sortable: true,
+      render: (item) =>
+        item.status === 'active' ? (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 whitespace-nowrap">
+            <CheckCircle2 size={12} /> Đang hoạt động
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-800 whitespace-nowrap">
+            <XCircle size={12} /> Tạm ngưng
+          </span>
+        ),
+    },
+    {
+      key: 'updated_at',
+      label: 'CẬP NHẬT',
+      sortable: true,
+      render: (item) => <span className="text-slate-600 dark:text-slate-400 text-xs whitespace-nowrap">{formatDateTime(item.updated_at)}</span>,
+    },
+    {
+      key: 'actions',
+      label: 'THAO TÁC',
+      align: 'right',
+      render: (item) => (
+        <div className="space-x-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 dark:text-blue-400" asChild>
+            <Link to={'/journeys/$journeyId/edit' as any} params={{ journeyId: item.id } as any} title="Chỉnh sửa hành trình">
+              <Edit size={15} />
+            </Link>
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-600 hover:text-rose-700 dark:text-rose-400" onClick={() => setDeleteTarget(item)} title="Xóa hành trình">
+            <Trash2 size={15} />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div className="space-y-4 font-sans">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <RouteIcon className="h-6 w-6 text-blue-600" />
-              Quản lý hành trình
-            </h1>
-            {!apiError && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <CheckCircle2 size={13} /> Dữ liệu đang đồng bộ
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-slate-500 mt-1">Cấu hình cặp bến đi, bến đến hợp lệ trên từng luồng tuyến đang khai thác.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={fetchJourneys}
-            disabled={loading}
-            className="h-10 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-60"
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            Làm mới
-          </button>
-          <Link
-            to={'/journeys/create' as any}
-            className="h-10 px-4 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm flex items-center gap-2 shadow-xs transition-all cursor-pointer whitespace-nowrap"
-          >
-            <Plus size={16} /> Thêm hành trình
-          </Link>
-        </div>
-      </div>
-
-      {apiError && !loading && (
-        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-700 dark:text-rose-300 font-medium flex items-start gap-2.5">
-          <AlertTriangle size={18} className="shrink-0 text-rose-500" />
-          <span>Không tải được dữ liệu hành trình. {apiError}</span>
-        </div>
-      )}
-
-      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs flex flex-col lg:flex-row items-center justify-between gap-4">
-        <div className="relative w-full lg:w-96">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm theo tuyến, bến đi hoặc bến đến..."
-            className="w-full h-10 pl-9 pr-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-blue-500"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as 'all' | JourneyStatus)}
-            className="h-10 px-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500"
-          >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="active">Đang khai thác</option>
-            <option value="inactive">Tạm ngưng</option>
-          </select>
-
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowColumns((value) => !value)}
-              className="h-10 px-3 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2"
-            >
-              <Columns3 size={15} /> Cột
-            </button>
-            {showColumns && (
-              <div className="absolute right-0 z-20 mt-2 w-56 rounded-lg border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900">
-                <button type="button" onClick={() => setVisibleColumns(defaultVisibleColumns)} className="mb-2 text-xs font-semibold text-blue-600 hover:underline">
-                  Mặc định
-                </button>
-                {[
-                  ['route', 'Luồng tuyến'],
-                  ['direction', 'Bến đi → bến đến'],
-                  ['status', 'Trạng thái'],
-                  ['updated_at', 'Cập nhật gần nhất'],
-                  ['actions', 'Thao tác'],
-                ].map(([key, label]) => (
-                  <label key={key} className="flex items-center gap-2 py-1 text-xs text-slate-700 dark:text-slate-200">
-                    <input
-                      type="checkbox"
-                      checked={visibleColumns[key as keyof VisibleColumns]}
-                      onChange={(e) => setVisibleColumns((prev) => ({ ...prev, [key]: e.target.checked }))}
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <select
-            value={pageSize}
-            onChange={(e) => setPageSize(Number(e.target.value))}
-            className="h-10 px-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500"
-          >
-            {[5, 10, 20, 50].map((size) => (
-              <option key={size} value={size}>{size} dòng/trang</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-[#F9FAFB] dark:bg-slate-800 text-slate-600 font-bold uppercase text-xs border-b border-slate-200 dark:border-slate-800">
-            <tr>
-              {visibleColumns.route && <th className="p-4">Luồng tuyến</th>}
-              {visibleColumns.direction && <th className="p-4">Bến đi → bến đến</th>}
-              {visibleColumns.status && <th className="p-4">Trạng thái</th>}
-              {visibleColumns.updated_at && <th className="p-4">Cập nhật gần nhất</th>}
-              {visibleColumns.actions && <th className="p-4 text-right">Thao tác</th>}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {loading ? (
-              <tr>
-                <td colSpan={5} className="p-8 text-center text-slate-500">
-                  <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-blue-600" />
-                  Đang tải dữ liệu hành trình...
-                </td>
-              </tr>
-            ) : paginatedJourneys.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="p-8 text-center text-slate-500">
-                  {apiError ? 'Không tải được dữ liệu hành trình.' : 'Chưa có hành trình nào.'}
-                </td>
-              </tr>
-            ) : (
-              paginatedJourneys.map((journey) => (
-                <tr key={journey.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                  {visibleColumns.route && (
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 dark:text-white">{journey.routeName || 'Chưa cập nhật'}</div>
-                      <div className="mt-1 font-mono text-xs text-blue-600 dark:text-blue-400">{journey.routeCode || 'Chưa cập nhật'}</div>
-                    </td>
-                  )}
-                  {visibleColumns.direction && (
-                    <td className="p-4">
-                      <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
-                        <span>{journey.fromName || 'Chưa cập nhật'}</span>
-                        <ArrowRight size={14} className="text-blue-600 shrink-0" />
-                        <span>{journey.toName || 'Chưa cập nhật'}</span>
-                      </div>
-                    </td>
-                  )}
-                  {visibleColumns.status && (
-                    <td className="p-4">
-                      {journey.status === 'active' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 size={12} /> Đang khai thác
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-                          <XCircle size={12} /> Tạm ngưng
-                        </span>
-                      )}
-                    </td>
-                  )}
-                  {visibleColumns.updated_at && <td className="p-4 text-xs text-slate-500">{formatDateTime(journey.updated_at)}</td>}
-                  {visibleColumns.actions && (
-                    <td className="p-4 text-right">
-                      <div className="inline-flex items-center gap-1">
-                        <Link
-                          to={'/journeys/$journeyId/edit' as any}
-                          params={{ journeyId: journey.id } as any}
-                          className="p-1.5 inline-flex items-center justify-center rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-blue-600 cursor-pointer"
-                          title="Chỉnh sửa hành trình"
-                        >
-                          <Edit size={16} />
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => setDeleteTarget(journey)}
-                          className="p-1.5 inline-flex items-center justify-center rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 cursor-pointer"
-                          title="Xóa hành trình"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <PaginationBar
+    <>
+      <AdminTablePage
+        title="Quản lý hành trình"
+        subtitle="Cấu hình cặp bến đi, bến đến hợp lệ trên từng luồng tuyến đang khai thác của Superdong"
+        icon={RouteIcon}
+        apiError={apiError}
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Tìm theo tuyến, bến đi hoặc bến đến..."
+        filterValue={statusFilter}
+        onFilterChange={setStatusFilter}
+        filterOptions={statusOptions}
+        columns={columns}
+        columnStorageKey="superdong_journeys_columns"
+        onRefresh={fetchJourneys}
+        refreshing={loading}
+        createLink="/journeys/create"
+        createLabel="Thêm hành trình"
+        data={filteredJourneys}
+        loading={loading}
+        emptyText="Chưa có hành trình nào phù hợp với bộ lọc."
+        keyExtractor={(item) => item.id}
         currentPage={currentPage}
-        totalItems={filteredJourneys.length}
         pageSize={pageSize}
         onPageChange={setCurrentPage}
         onPageSizeChange={setPageSize}
       />
 
       <ConfirmModal
-        open={Boolean(deleteTarget)}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="Xóa hành trình?"
-        description={
-          <span>
-            Hành trình <strong>{deleteTarget?.fromName || 'Chưa cập nhật'} → {deleteTarget?.toName || 'Chưa cập nhật'}</strong> sẽ bị xóa khỏi master data. Nếu hành trình đang có chặng đặt vé phụ thuộc, hệ thống sẽ chặn và báo cần xử lý chặng đó trước.
-          </span>
-        }
-        confirmLabel="Xóa hành trình"
-        cancelLabel="Hủy bỏ"
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Xác nhận xóa hành trình"
+        description={`Bạn có chắc chắn muốn xóa hành trình "${deleteTarget?.fromName} → ${deleteTarget?.toName}"? Hệ thống sẽ kiểm tra ràng buộc chuyến tàu trước khi thực hiện.`}
+        confirmLabel={deleting ? 'Đang xóa...' : 'Xóa hành trình'}
         loading={deleting}
+        variant="destructive"
         onConfirm={executeDelete}
       />
-    </div>
+    </>
   );
 }
