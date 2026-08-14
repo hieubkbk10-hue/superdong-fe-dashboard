@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { Boat, SeatClass, SeatMap } from '@/types';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
+import { AdminFormActionBar } from '@/components/common/FormUtilities';
 
 export type SeatMapPayload = {
   boat_id?: string | number;
@@ -407,8 +408,25 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
     toast.info('Đã làm sạch toàn bộ dữ liệu mẫu');
   };
 
+  const isDirty = useMemo(() => {
+    if (mode === 'create') return true;
+    if (!initial) return false;
+    return (
+      initial.name !== form.name ||
+      initial.status !== form.status ||
+      JSON.stringify(initial.decks) !== JSON.stringify(form.decks) ||
+      JSON.stringify(initial.zones) !== JSON.stringify(form.zones) ||
+      JSON.stringify(initial.seats) !== JSON.stringify(form.seats) ||
+      JSON.stringify(initial.elements) !== JSON.stringify(form.elements)
+    );
+  }, [mode, initial, form]);
+
   const validateAndSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (mode === 'edit' && !isDirty) {
+      toast.info('Dữ liệu hiện tại chưa có thay đổi nào cần lưu');
+      return;
+    }
     if (mode === 'create' && !form.boat_id) {
       toast.error('Vui lòng chọn tàu cho sơ đồ ghế');
       return;
@@ -427,7 +445,11 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
       return;
     }
 
-    await onSubmit({ ...form, name: form.name.trim(), reason: form.reason?.trim() || undefined });
+    const autoReason = mode === 'create'
+      ? `Tạo mới sơ đồ ghế ${form.name.trim()} từ dashboard vận hành`
+      : `Cập nhật sơ đồ ghế ${form.name.trim()} từ dashboard vận hành`;
+
+    await onSubmit({ ...form, name: form.name.trim(), reason: autoReason });
     if (mode === 'create') {
       localStorage.removeItem(DRAFT_STORAGE_KEY);
     }
@@ -508,16 +530,6 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
             <p className="text-[11px] leading-4 text-slate-500 dark:text-slate-400">
               Mỗi tàu chỉ có tối đa 1 sơ đồ ghế đang áp dụng. Khi lưu trạng thái “Đang áp dụng”, hệ thống sẽ tự tạm ngưng sơ đồ active cũ của cùng tàu.
             </p>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Lý do thao tác (Audit log)</label>
-            <input
-              value={form.reason || ''}
-              onChange={(e) => setForm({ ...form, reason: e.target.value })}
-              placeholder="Không bắt buộc (VD: Cập nhật sơ đồ khoang dưới)"
-              className={inputClass}
-            />
           </div>
         </div>
       </div>
@@ -1172,28 +1184,16 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
         seatClassById={seatClassById}
       />
 
-      {/* BOTTOM ACTION BAR */}
-      <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
-        {mode === 'create' && (
-          <Button
-            type="button"
-            variant="light"
-            onClick={handleClearAllForm}
-            className="text-slate-700 hover:text-rose-600 hover:border-rose-200 dark:hover:border-rose-900 gap-1.5"
-          >
-            <RotateCcw size={15} /> Làm sạch dữ liệu
-          </Button>
-        )}
-
-        <div className="ml-auto flex items-center gap-3">
-          <Button variant="outline" asChild>
-            <Link to={'/seat-maps' as any}>Hủy bỏ</Link>
-          </Button>
-          <Button type="submit" variant="primary" disabled={submitting} className="font-bold gap-1.5">
-            <Save size={16} /> {submitting ? 'Đang lưu...' : mode === 'create' ? 'Lưu sơ đồ ghế' : 'Lưu thay đổi'}
-          </Button>
-        </div>
-      </div>
+      {/* BOTTOM ACTION BAR WITH SMART DIRTY STATE */}
+      <AdminFormActionBar
+        mode={mode}
+        isDirty={isDirty}
+        isSubmitting={submitting}
+        cancelTo="/seat-maps"
+        submitLabel={mode === 'create' ? 'Lưu sơ đồ ghế' : 'Lưu Thay Đổi'}
+        savedLabel="Đã lưu"
+        onClear={mode === 'create' ? handleClearAllForm : undefined}
+      />
     </form>
   );
 }

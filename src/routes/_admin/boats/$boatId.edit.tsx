@@ -1,17 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { Ship, ArrowLeft, Save, Loader2, Anchor } from 'lucide-react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { Ship, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { updateBoat, findBoatById } from '@/apis/boats';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  AdminFormHeader,
+  AdminFormCard,
+  FormSectionBlock,
+  FormInputField,
+  FormSelectField,
+  AdminFormActionBar,
+  useFormDirty,
+} from '@/components/common/FormUtilities';
 
 export const Route = createFileRoute('/_admin/boats/$boatId/edit')({
   component: BoatEditPage,
 });
+
+type BoatFormData = {
+  code: string;
+  name: string;
+  capacity: string;
+  speed: string;
+  is_express: boolean;
+  status: 'active' | 'maintenance' | 'inactive';
+};
+
+const emptyFormData: BoatFormData = {
+  code: '',
+  name: '',
+  capacity: '',
+  speed: '',
+  is_express: true,
+  status: 'active',
+};
 
 function BoatEditPage() {
   const { boatId } = Route.useParams();
@@ -19,22 +45,13 @@ function BoatEditPage() {
 
   const draftKey = `superdong_boat_draft_edit_${boatId}`;
 
-  // NO FAKE FALLBACK DATA IN INITIAL STATE (Rule 10 SKILL.md)
-  const [formData, setFormData] = useState({
-    code: '',
-    name: '',
-    capacity: '',
-    speed: '',
-    is_express: true,
-    status: 'active' as 'active' | 'maintenance' | 'inactive',
-    notes: '',
-  });
-
+  const [initialData, setInitialData] = useState<BoatFormData | null>(null);
+  const [formData, setFormData] = useState<BoatFormData>(emptyFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // HYDRATE REAL BOAT DETAILS + F5 DRAFT PERSISTENCE (Rule 6 & 10 SKILL.md)
+  // HYDRATE REAL BOAT DETAILS + F5 DRAFT PERSISTENCE
   useEffect(() => {
     let isMounted = true;
     const fetchBoatDetails = async () => {
@@ -44,15 +61,16 @@ function BoatEditPage() {
         const res = await findBoatById(boatId);
         if (isMounted && res && res.data) {
           const boat = res.data;
-          const serverData = {
+          const serverData: BoatFormData = {
             code: boat.code || '',
             name: boat.name || '',
             capacity: boat.capacity && boat.capacity > 0 ? String(boat.capacity) : '',
             speed: typeof boat.speed === 'number' ? `${boat.speed} hải lý/giờ` : (boat.speed || ''),
             is_express: boat.is_express ?? true,
             status: (boat.status || 'active') as 'active' | 'maintenance' | 'inactive',
-            notes: (boat as any).notes || '',
           };
+
+          setInitialData(serverData);
 
           // Recover F5 draft if draft exists
           let finalData = serverData;
@@ -81,18 +99,25 @@ function BoatEditPage() {
     return () => { isMounted = false; };
   }, [boatId, draftKey]);
 
-  // Save F5 Draft on form change after initial load (Rule 6)
+  // Dirty State Detection
+  const { isDirty } = useFormDirty(initialData, formData);
+
+  // Save F5 Draft on form change after initial load
   useEffect(() => {
-    if (!loading && !fetchError && formData.code) {
+    if (!loading && !fetchError && formData.code && isDirty) {
       try {
         localStorage.setItem(draftKey, JSON.stringify(formData));
       } catch (_) {}
     }
-  }, [formData, loading, fetchError, draftKey]);
+  }, [formData, loading, fetchError, draftKey, isDirty]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting) return;
+
+    if (!isDirty) {
+      toast.info('Dữ liệu hiện tại chưa có thay đổi nào cần lưu');
+      return;
+    }
 
     if (!formData.code.trim() || !formData.name.trim()) {
       toast.error('Vui lòng điền đầy đủ Mã tàu và Tên tàu!');
@@ -105,6 +130,7 @@ function BoatEditPage() {
       return;
     }
 
+    if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
@@ -117,7 +143,7 @@ function BoatEditPage() {
         status: formData.status,
       });
 
-      // Clear draft on successful save (Rule 6)
+      // Clear draft on successful save
       try {
         localStorage.removeItem(draftKey);
       } catch (_) {}
@@ -148,8 +174,8 @@ function BoatEditPage() {
         <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm font-medium">
           {fetchError}
         </div>
-        <Button variant="outline" asChild>
-          <Link to={'/boats' as any}>Quay lại danh sách Đội tàu</Link>
+        <Button variant="outline" onClick={() => navigate({ to: '/boats' as any })}>
+          Quay lại danh sách Đội tàu
         </Button>
       </div>
     );
@@ -158,26 +184,20 @@ function BoatEditPage() {
   return (
     <div className="space-y-4 w-full font-sans pb-10 text-slate-800 dark:text-slate-200">
       {/* Top Header Navigation Bar */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-3">
-          <Button variant="light" size="icon" className="h-8 w-8" asChild>
-            <Link to={'/boats' as any} title="Quay lại danh sách">
-              <ArrowLeft size={16} />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Ship className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              Chỉnh Sửa Tàu: <span className="text-blue-600 dark:text-blue-400 font-bold">{formData.name || formData.code}</span>
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Mã quản lý hệ thống: <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">#{boatId}</span>
-            </p>
-          </div>
-        </div>
-
-        <div>
-          {formData.status === 'active' ? (
+      <AdminFormHeader
+        icon={Ship}
+        title={
+          <>
+            Chỉnh Sửa Tàu:{' '}
+            <span className="text-blue-600 dark:text-blue-400 font-bold">
+              {formData.name || formData.code}
+            </span>
+          </>
+        }
+        subtitle="Cập nhật thông số kỹ thuật, sức chứa và trạng thái vận hành của tàu"
+        backTo="/boats"
+        badge={
+          formData.status === 'active' ? (
             <Badge variant="success" className="px-3 py-1 text-xs">
               Hoạt động tốt
             </Badge>
@@ -189,169 +209,100 @@ function BoatEditPage() {
             <Badge variant="danger" className="px-3 py-1 text-xs">
               Tạm dừng vận hành
             </Badge>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       {/* Main Single Card Container matching SKILL.md */}
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5">
-        
+      <AdminFormCard onSubmit={handleSubmit}>
         {/* SECTION 1: THÔNG TIN CƠ BẢN */}
-        <div className="space-y-3">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-            I. Thông tin cơ bản
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            <div className="space-y-1">
-              <Label htmlFor="boat-code" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Mã Định Danh Tàu (Boat Code) <span className="text-rose-500 font-bold">*</span>
-              </Label>
-              <Input
-                id="boat-code"
-                type="text"
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                placeholder="VD: SD-01, SD-09"
-                className="text-sm font-mono font-bold uppercase h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                required
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="boat-name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Tên Tàu Cao Tốc <span className="text-rose-500 font-bold">*</span>
-              </Label>
-              <Input
-                id="boat-name"
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="VD: Superdong I"
-                className="text-sm h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                required
-              />
-            </div>
-          </div>
-        </div>
+        <FormSectionBlock title="I. Thông tin cơ bản">
+          <FormInputField
+            id="boat-code"
+            label="Mã Định Danh Tàu (Boat Code)"
+            required
+            value={formData.code}
+            onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+            placeholder="VD: SD-01, SD-09"
+            className="font-mono font-bold uppercase"
+          />
+          <FormInputField
+            id="boat-name"
+            label="Tên Tàu Cao Tốc"
+            required
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="VD: Superdong I"
+          />
+        </FormSectionBlock>
 
         {/* SECTION 2: THÔNG SỐ THIẾT KẾ & SỨC CHỨA */}
-        <div className="space-y-3">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-            II. Thông số thiết kế &amp; Sức chứa
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            <div className="space-y-1">
-              <Label htmlFor="boat-capacity" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Sức Chứa (Tổng số ghế thực tế) <span className="text-rose-500 font-bold">*</span>
-              </Label>
-              <Input
-                id="boat-capacity"
-                type="text"
-                value={formData.capacity}
-                onChange={(e) => setFormData({ ...formData, capacity: e.target.value.replace(/[^0-9]/g, '') })}
-                placeholder="VD: 306"
-                className="text-sm font-mono h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                required
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="boat-speed" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Tốc Độ Vận Hành <span className="text-slate-400 font-normal">(Không bắt buộc)</span>
-              </Label>
-              <Input
-                id="boat-speed"
-                type="text"
-                value={formData.speed}
-                onChange={(e) => setFormData({ ...formData, speed: e.target.value })}
-                placeholder="VD: 28 hải lý/giờ"
-                className="text-sm h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-              />
-            </div>
-          </div>
-        </div>
+        <FormSectionBlock title="II. Thông số thiết kế & Sức chứa">
+          <FormInputField
+            id="boat-capacity"
+            label="Sức Chứa (Tổng số ghế thực tế)"
+            required
+            inputMode="numeric"
+            value={formData.capacity}
+            onChange={(e) => setFormData({ ...formData, capacity: e.target.value.replace(/[^0-9]/g, '') })}
+            placeholder="VD: 306"
+            className="font-mono font-bold"
+          />
+          <FormInputField
+            id="boat-speed"
+            label="Tốc Độ Vận Hành"
+            optional
+            value={formData.speed}
+            onChange={(e) => setFormData({ ...formData, speed: e.target.value })}
+            placeholder="VD: 28 hải lý/giờ"
+          />
+        </FormSectionBlock>
 
         {/* SECTION 3: TRẠNG THÁI & VẬN HÀNH */}
-        <div className="space-y-3">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-            III. Trạng thái &amp; Vận hành
+        <FormSectionBlock title="III. Trạng thái & Vận hành">
+          <FormSelectField
+            id="boat-status"
+            label="Trạng Thái Vận Hành Tàu"
+            required
+            value={formData.status}
+            onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+            options={[
+              { value: 'active', label: 'Hoạt động tốt' },
+              { value: 'maintenance', label: 'Bảo trì định kỳ' },
+              { value: 'inactive', label: 'Tạm dừng vận hành' },
+            ]}
+          />
+
+          <div className="flex items-center gap-2 pt-6">
+            <input
+              id="boat-is-express"
+              type="checkbox"
+              checked={formData.is_express}
+              onChange={(e) => setFormData({ ...formData, is_express: e.target.checked })}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+            <Label htmlFor="boat-is-express" className="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+              Tàu Cao Tốc Express (Ưu tiên lịch chạy nhanh)
+            </Label>
           </div>
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-              <div className="space-y-1">
-                <Label htmlFor="boat-status" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Trạng Thái Vận Hành Tàu <span className="text-rose-500 font-bold">*</span>
-                </Label>
-                <select
-                  id="boat-status"
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                  className="w-full text-sm h-9 px-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500"
-                >
-                  <option value="active">Hoạt động tốt</option>
-                  <option value="maintenance">Bảo trì định kỳ</option>
-                  <option value="inactive">Tạm dừng vận hành</option>
-                </select>
-              </div>
+        </FormSectionBlock>
 
-              <div className="flex items-center gap-2 pt-6">
-                <input
-                  id="boat-is-express"
-                  type="checkbox"
-                  checked={formData.is_express}
-                  onChange={(e) => setFormData({ ...formData, is_express: e.target.checked })}
-                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                />
-                <Label htmlFor="boat-is-express" className="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
-                  Tàu Cao Tốc Express (Ưu tiên lịch chạy nhanh)
-                </Label>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="boat-notes" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Ghi Chú Vận Hành <span className="text-slate-400 font-normal">(Không bắt buộc)</span>
-              </Label>
-              <textarea
-                id="boat-notes"
-                rows={2}
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Nhập ghi chú kỹ thuật, lịch bảo dưỡng hoặc ghi chú vận hành..."
-                className="w-full text-sm p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none focus:border-blue-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              try {
-                localStorage.removeItem(draftKey);
-              } catch (_) {}
-              navigate({ to: '/boats' as any });
-            }}
-          >
-            Hủy Bỏ
-          </Button>
-
-          <Button type="submit" disabled={isSubmitting} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold">
-            {isSubmitting ? (
-              <>
-                <Loader2 size={16} className="animate-spin" /> Đang lưu...
-              </>
-            ) : (
-              <>
-                <Save size={16} /> Lưu Thay Đổi
-              </>
-            )}
-          </Button>
-        </div>
-      </form>
+        {/* Action Buttons with Smart Dirty State */}
+        <AdminFormActionBar
+          mode="edit"
+          isDirty={isDirty}
+          isSubmitting={isSubmitting}
+          cancelTo="/boats"
+          submitLabel="Lưu Thay Đổi"
+          savedLabel="Đã lưu"
+          onCancel={() => {
+            try {
+              localStorage.removeItem(draftKey);
+            } catch (_) {}
+            navigate({ to: '/boats' as any });
+          }}
+        />
+      </AdminFormCard>
     </div>
   );
 }

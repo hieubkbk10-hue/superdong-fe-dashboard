@@ -1,15 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { Layers, ArrowLeft, Save, WalletCards, Loader2 } from 'lucide-react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { Layers, WalletCards, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { findSeatClassById, updateSeatClass } from '@/apis/boats';
-import { SeatClass } from '@/types';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { ColorPickerInput } from '@/components/common/ColorPickerInput';
+import {
+  AdminFormHeader,
+  AdminFormCard,
+  FormSectionBlock,
+  FormField,
+  FormInputField,
+  FormSelectField,
+  AdminFormActionBar,
+  useFormDirty,
+  generateDynamicAuditReason,
+} from '@/components/common/FormUtilities';
 
 export const Route = createFileRoute('/_admin/seat-classes/$classId/edit')({
   component: SeatClassEditPage,
@@ -21,19 +29,24 @@ type FormData = {
   price: string;
   color: string;
   status: 'active' | 'inactive';
-  reason: string;
   version: number;
 };
 
-// NO FAKE FALLBACK DATA IN INITIAL STATE (Rule 10 SKILL.md)
 const emptyFormData: FormData = {
   code: '',
   name: '',
   price: '',
   color: '',
   status: 'active',
-  reason: '',
   version: 1,
+};
+
+const SEAT_CLASS_LABELS: Record<string, string> = {
+  code: 'Mã hạng ghế',
+  name: 'Tên hạng ghế',
+  price: 'Giá cơ sở',
+  color: 'Màu nhận diện',
+  status: 'Trạng thái áp dụng',
 };
 
 function SeatClassEditPage() {
@@ -42,12 +55,13 @@ function SeatClassEditPage() {
 
   const draftKey = `superdong_seat_class_draft_edit_${classId}`;
 
+  const [initialData, setInitialData] = useState<FormData | null>(null);
   const [formData, setFormData] = useState<FormData>(emptyFormData);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // HYDRATE REAL DATA + F5 DRAFT PERSISTENCE (Rule 6 & 10 SKILL.md)
+  // HYDRATE REAL DATA + F5 DRAFT PERSISTENCE
   const loadSeatClass = async () => {
     setLoading(true);
     setLoadError(null);
@@ -61,9 +75,10 @@ function SeatClassEditPage() {
           price: typeof sc.price === 'number' && sc.price > 0 ? String(sc.price) : '',
           color: sc.color || '',
           status: sc.status === 'inactive' || (sc as any).is_active === false ? 'inactive' : 'active',
-          reason: '',
           version: sc.version || 1,
         };
+
+        setInitialData(serverForm);
 
         // F5 Draft Recovery if draft exists
         let finalData = serverForm;
@@ -92,17 +107,26 @@ function SeatClassEditPage() {
     if (classId) loadSeatClass();
   }, [classId]);
 
-  // Auto Save F5 Draft on edit (Rule 6)
+  // Dirty State Detection
+  const { isDirty } = useFormDirty(initialData, formData);
+
+  // Auto Save F5 Draft on edit
   useEffect(() => {
-    if (!loading && !loadError && formData.code) {
+    if (!loading && !loadError && formData.code && isDirty) {
       try {
         localStorage.setItem(draftKey, JSON.stringify(formData));
       } catch (_) {}
     }
-  }, [formData, loading, loadError, draftKey]);
+  }, [formData, loading, loadError, draftKey, isDirty]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isDirty) {
+      toast.info('Dữ liệu hiện tại chưa có thay đổi nào cần lưu');
+      return;
+    }
+
     if (!formData.code.trim() || !formData.name.trim()) {
       toast.error('Vui lòng nhập đầy đủ Mã hạng ghế và Tên hạng ghế!');
       return;
@@ -118,6 +142,14 @@ function SeatClassEditPage() {
     setIsSubmitting(true);
 
     try {
+      const dynamicReason = generateDynamicAuditReason({
+        entityName: 'Hạng ghế',
+        mode: 'edit',
+        initialData,
+        currentData: formData,
+        fieldLabels: SEAT_CLASS_LABELS,
+      });
+
       const payload: Record<string, any> = {
         code: formData.code.trim().toUpperCase(),
         name: formData.name.trim(),
@@ -125,14 +157,12 @@ function SeatClassEditPage() {
         status: formData.status,
         color: formData.color.trim() || null,
         expected_version: formData.version,
+        reason: dynamicReason,
       };
-      if (formData.reason.trim()) {
-        payload.reason = formData.reason.trim();
-      }
 
       await updateSeatClass(classId, payload);
 
-      // Clear draft on successful save (Rule 6)
+      // Clear draft on successful save
       try {
         localStorage.removeItem(draftKey);
       } catch (_) {}
@@ -163,8 +193,8 @@ function SeatClassEditPage() {
         <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm font-medium">
           {loadError}
         </div>
-        <Button variant="outline" asChild>
-          <Link to={'/seat-classes' as any}>Quay lại danh sách Hạng ghế</Link>
+        <Button variant="outline" onClick={() => navigate({ to: '/seat-classes' as any })}>
+          Quay lại danh sách Hạng ghế
         </Button>
       </div>
     );
@@ -173,26 +203,20 @@ function SeatClassEditPage() {
   return (
     <div className="space-y-4 w-full font-sans pb-10 text-slate-800 dark:text-slate-200">
       {/* Top Header Navigation Bar */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-3">
-          <Button variant="light" size="icon" className="h-8 w-8" asChild>
-            <Link to={'/seat-classes' as any} title="Quay lại danh sách">
-              <ArrowLeft size={16} />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Layers className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              Chỉnh Sửa Hạng Ghế: <span className="text-blue-600 dark:text-blue-400 font-bold">{formData.name || formData.code}</span>
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Mã quản lý hệ thống: <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">#{classId}</span>
-            </p>
-          </div>
-        </div>
-
-        <div>
-          {formData.status === 'active' ? (
+      <AdminFormHeader
+        icon={Layers}
+        title={
+          <>
+            Chỉnh Sửa Hạng Ghế:{' '}
+            <span className="text-blue-600 dark:text-blue-400 font-bold">
+              {formData.name || formData.code}
+            </span>
+          </>
+        }
+        subtitle="Cập nhật giá vé cơ sở và màu nhận diện cho hạng ghế bán vé Superdong"
+        backTo="/seat-classes"
+        badge={
+          formData.status === 'active' ? (
             <Badge variant="success" className="px-3 py-1 text-xs">
               Kích hoạt
             </Badge>
@@ -200,155 +224,85 @@ function SeatClassEditPage() {
             <Badge variant="danger" className="px-3 py-1 text-xs">
               Tạm ngưng
             </Badge>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       {/* Main Single Card Container matching SKILL.md */}
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5">
-        
+      <AdminFormCard onSubmit={handleSubmit}>
         {/* SECTION 1: THÔNG TIN HẠNG GHẾ */}
-        <div className="space-y-3">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-            I. Thông tin hạng ghế
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            <div className="space-y-1">
-              <Label htmlFor="seat-code" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Mã Hạng Ghế (Code) <span className="text-rose-500 font-bold">*</span>
-              </Label>
-              <Input
-                id="seat-code"
-                type="text"
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                placeholder="VD: STANDARD, VIP, BUSINESS"
-                className="text-sm font-mono font-bold uppercase h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                required
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="seat-name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Tên Hạng Ghế <span className="text-rose-500 font-bold">*</span>
-              </Label>
-              <Input
-                id="seat-name"
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="VD: Ghế Phổ Thông, Ghế VIP"
-                className="text-sm h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                required
-              />
-            </div>
-          </div>
-        </div>
+        <FormSectionBlock title="I. Thông tin hạng ghế">
+          <FormInputField
+            id="seat-code"
+            label="Mã Hạng Ghế (Code)"
+            required
+            value={formData.code}
+            onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+            placeholder="VD: STANDARD, VIP, BUSINESS"
+            className="font-mono font-bold uppercase"
+          />
+          <FormInputField
+            id="seat-name"
+            label="Tên Hạng Ghế"
+            required
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="VD: Ghế Phổ Thông, Ghế VIP"
+          />
+        </FormSectionBlock>
 
         {/* SECTION 2: GIÁ VÉ VÀ NHẬN DIỆN */}
-        <div className="space-y-3">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-            II. Giá vé &amp; Nhận diện
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            <div className="space-y-1">
-              <Label htmlFor="seat-price" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Giá Cơ Sở Hạng Ghế (VNĐ) <span className="text-rose-500 font-bold">*</span>
-              </Label>
-              <div className="relative">
-                <WalletCards size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <Input
-                  id="seat-price"
-                  type="text"
-                  inputMode="numeric"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value.replace(/[^0-9]/g, '') })}
-                  placeholder="VD: 320000"
-                  className="text-sm font-mono h-9 pl-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                  required
-                />
-              </div>
-            </div>
+        <FormSectionBlock title="II. Giá vé & Nhận diện">
+          <FormInputField
+            id="seat-price"
+            label="Giá Cơ Sở Hạng Ghế (VNĐ)"
+            required
+            inputMode="numeric"
+            value={formData.price}
+            onChange={(e) => setFormData({ ...formData, price: e.target.value.replace(/[^0-9]/g, '') })}
+            placeholder="VD: 320000"
+            className="font-mono font-bold"
+            leftIcon={<WalletCards size={15} />}
+          />
+          <FormField id="seat-color" label="Màu Nhận Diện Sơ Đồ Ghế" optional>
+            <ColorPickerInput
+              value={formData.color}
+              onChange={(color) => setFormData({ ...formData, color })}
+            />
+          </FormField>
+        </FormSectionBlock>
 
-            <div className="space-y-1">
-              <Label htmlFor="seat-color" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Màu Nhận Diện Sơ Đồ Ghế
-              </Label>
-              <ColorPickerInput
-                value={formData.color}
-                onChange={(color) => setFormData({ ...formData, color })}
-              />
-            </div>
-          </div>
-        </div>
+        {/* SECTION 3: TRẠNG THÁI VẬN HÀNH */}
+        <FormSectionBlock title="III. Trạng thái vận hành">
+          <FormSelectField
+            id="seat-status"
+            label="Trạng Thái Áp Dụng"
+            required
+            value={formData.status}
+            onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+            options={[
+              { value: 'active', label: 'Kích hoạt (Đang áp dụng)' },
+              { value: 'inactive', label: 'Tạm ngưng (Không áp dụng)' },
+            ]}
+          />
+        </FormSectionBlock>
 
-        {/* SECTION 3: TRẠNG THÁI & GHI CHÚ */}
-        <div className="space-y-3">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-            III. Trạng thái &amp; Ghi chú
-          </div>
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-              <div className="space-y-1">
-                <Label htmlFor="seat-status" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Trạng Thái Áp Dụng <span className="text-rose-500 font-bold">*</span>
-                </Label>
-                <select
-                  id="seat-status"
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                  className="w-full text-sm h-9 px-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500"
-                >
-                  <option value="active">Kích hoạt (Đang áp dụng)</option>
-                  <option value="inactive">Tạm ngưng (Không áp dụng)</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="seat-reason" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Lý Do Thay Đổi <span className="text-slate-400 font-normal">(Không bắt buộc)</span>
-                </Label>
-                <Input
-                  id="seat-reason"
-                  type="text"
-                  value={formData.reason}
-                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                  placeholder="VD: Điều chỉnh giá cơ sở theo quyết định vận hành"
-                  className="text-sm h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              try {
-                localStorage.removeItem(draftKey);
-              } catch (_) {}
-              navigate({ to: '/seat-classes' as any });
-            }}
-          >
-            Hủy Bỏ
-          </Button>
-
-          <Button type="submit" disabled={isSubmitting} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold">
-            {isSubmitting ? (
-              <>
-                <Loader2 size={16} className="animate-spin" /> Đang lưu...
-              </>
-            ) : (
-              <>
-                <Save size={16} /> Lưu Thay Đổi
-              </>
-            )}
-          </Button>
-        </div>
-      </form>
+        {/* Action Buttons with Smart Dirty State */}
+        <AdminFormActionBar
+          mode="edit"
+          isDirty={isDirty}
+          isSubmitting={isSubmitting}
+          cancelTo="/seat-classes"
+          submitLabel="Lưu Thay Đổi"
+          savedLabel="Đã lưu"
+          onCancel={() => {
+            try {
+              localStorage.removeItem(draftKey);
+            } catch (_) {}
+            navigate({ to: '/seat-classes' as any });
+          }}
+        />
+      </AdminFormCard>
     </div>
   );
 }

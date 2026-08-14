@@ -85,7 +85,8 @@ function BoatsPage() {
       setDeleteTarget(null);
       fetchBoats();
     } catch (err: any) {
-      toast.error(`Lỗi xóa tàu: ${err?.message || 'Không thể thực hiện'}`);
+      const serverMsg = err?.response?.data?.message || err?.message || 'Không thể thực hiện';
+      toast.error(`Lỗi xóa tàu: ${serverMsg}`);
     } finally {
       setDeleting(false);
     }
@@ -153,16 +154,27 @@ function BoatsPage() {
       key: 'status',
       label: 'Trạng Thái',
       sortable: true,
-      render: (b) =>
-        b.status === 'active' ? (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 whitespace-nowrap">
-            <CheckCircle2 size={12} /> Đang hoạt động
+      render: (b) => {
+        if (b.status === 'active') {
+          return (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 whitespace-nowrap">
+              <CheckCircle2 size={12} /> Đang hoạt động
+            </span>
+          );
+        }
+        if (b.status === 'maintenance') {
+          return (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800 whitespace-nowrap">
+              <XCircle size={12} /> Đang bảo trì
+            </span>
+          );
+        }
+        return (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-800 whitespace-nowrap">
+            <XCircle size={12} /> Tạm ngưng
           </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800 whitespace-nowrap">
-            <XCircle size={12} /> Đang bảo trì
-          </span>
-        ),
+        );
+      },
     },
     {
       key: 'actions',

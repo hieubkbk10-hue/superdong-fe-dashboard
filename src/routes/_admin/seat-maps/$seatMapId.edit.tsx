@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { ArrowLeft, Layers, RefreshCw, AlertTriangle } from 'lucide-react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { Layers, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { findSeatMapForEdit, getBoats, getSeatClasses, updateSeatMap } from '@/apis/boats';
 import { Boat, SeatClass } from '@/types';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
+import { AdminFormHeader } from '@/components/common/FormUtilities';
 import { mapSeatMapToPayload, SeatMapForm, SeatMapPayload } from './-seat-map-form';
 
 export const Route = createFileRoute('/_admin/seat-maps/$seatMapId/edit')({ component: SeatMapEditPage });
@@ -66,9 +67,11 @@ function SeatMapEditPage() {
   if (loadError || !initial) {
     return (
       <div className="space-y-4 font-sans">
-        <Link to={'/seat-maps' as any} className="inline-flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400">
-          <ArrowLeft size={16} /> Quay lại danh sách sơ đồ ghế
-        </Link>
+        <AdminFormHeader
+          icon={Layers}
+          title="Chỉnh sửa sơ đồ ghế"
+          backTo="/seat-maps"
+        />
         <div className="rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 p-4 text-xs text-rose-700 dark:text-rose-400 flex items-start gap-2">
           <AlertTriangle size={18} className="shrink-0 mt-0.5" />
           <div>
@@ -83,30 +86,12 @@ function SeatMapEditPage() {
   return (
     <div className="space-y-4 w-full font-sans pb-10 text-slate-800 dark:text-slate-200">
       {/* Top Header Navigation Bar */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-3">
-          <Button variant="light" size="icon" className="h-8 w-8" asChild>
-            <Link to={'/seat-maps' as any} title="Quay lại danh sách sơ đồ ghế">
-              <ArrowLeft size={16} />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Layers className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              Chỉnh sửa sơ đồ ghế
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Cập nhật cấu hình tầng, khu vực, ghế và tiện ích từ dữ liệu hệ thống
-            </p>
-          </div>
-        </div>
-
-        <div>
-          <Badge variant="blue" className="px-3 py-1 text-xs">
-            Chỉnh sửa #{seatMapId}
-          </Badge>
-        </div>
-      </div>
+      <AdminFormHeader
+        icon={Layers}
+        title="Chỉnh sửa sơ đồ ghế"
+        subtitle="Cập nhật cấu hình tầng, khu vực, ghế và tiện ích từ dữ liệu hệ thống"
+        backTo="/seat-maps"
+      />
 
       <SeatMapForm
         mode="edit"

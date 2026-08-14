@@ -20,16 +20,17 @@ Khi phát triển hoặc refactor bất kỳ module CRUD nào (List, Create, Edi
 [ ] 4. CREATE PAGE DEFAULTS & CLEAR DATA: Màn Create BẮT BUỘC để trống input nghiệp vụ chưa biết, chỉ dùng placeholder; chỉ được default giá trị an toàn như status=`active`, checkbox phù hợp domain, và phải có nút 'Làm sạch dữ liệu'
 [ ] 5. FRONTEND INPUT FILTER & PASSWORD UI: Lọc live SĐT/Tiền tệ/Phần trăm, PasswordInput với nút Eye toggle + Checklist 4 tiêu chí Apiato (min 8, A-Z/a-z, 0-9, special char)
 [ ] 6. F5 & FORM DRAFT PERSISTENCE: Lưu bản nháp tự động cho Form đang nhập dở (F5 không mất dữ liệu) + Re-sync API + Map-Merge Cache cho cả màn Edit và màn List
-[ ] 7. DOMAIN & DESIGN: 1 Card liền mạch, w-full, CẤM cột ID nội bộ DB thô, Banner Cyan (#EBF7FA) Số La Mã (I, II, III, IV), DateBox DD/MM/YYYY 1 icon
+[ ] 7. DOMAIN & DESIGN: 1 Card liền mạch, w-full, CẤM cột ID nội bộ DB thô / mã băm hashid trên giao diện và thanh Breadcrumbs (Breadcrumbs hiển thị thân thiện: `Trang chủ > Hạng ghế tàu > Chỉnh sửa`), Banner Cyan (#EBF7FA) Số La Mã (I, II, III, IV), DateBox DD/MM/YYYY 1 icon
 [ ] 8. BRAND COLOR & BADGES: Blue (#2B7FFF / blue-600) chủ đạo, Badge 4 màu chuẩn (Emerald, Rose, Amber, Blue)
-[ ] 9. ADMIN-READABLE COPYWRITING: Tên cột, label, toast, badge BẮT BUỘC viết cho Admin vận hành đọc, CẤM wording dev như "Backend", "Guard", "Permissions" nếu không thật sự cần
+[ ] 9. ADMIN-READABLE COPYWRITING: Tên cột, label, toast, badge BẮT BUỘC viết cho Admin vận hành đọc, CẤM wording dev như "Backend", "Guard", "Permissions", CẤM dòng "Mã quản lý hệ thống: #hashid" ở Subtitle header (Subtitle phải là mô tả nghiệp vụ)
 [ ] 10. NO FAKE FALLBACK DATA: List/Edit/Create CẤM bịa fallback dữ liệu nghiệp vụ (`28 hải lý/giờ`, `306 ghế`, email/sđt mẫu). Nếu API rỗng thì hiển thị `Chưa cập nhật` hoặc để input trống.
-[ ] 11. OPTIONAL UX FIELDS: Trường optional như `color`, `reason`, `note` KHÔNG được ép nhập. Nếu có `color`, ưu tiên dùng common color picker/preview thay vì chỉ text input.
+[ ] 11. CẤM HIỆN Ô INPUT 'REASON' TRONG FORM CREATE/EDIT & QUY CHUẨN AUDIT LOG: Trường 'reason' (Lý do thay đổi / Audit log) là trường phục vụ ghi vết truy soát và kiểm soát phiên bản (Versioned Resources) của Backend, TUYỆT ĐỐI CẤM hiển thị ô input 'reason' trực tiếp trong giao diện form Create/Edit. Giá trị reason BẮT BUỘC được tự động điền ngầm theo ngữ cảnh (ví dụ: 'Tạo mới hạng ghế từ dashboard vận hành', 'Cập nhật sơ đồ ghế từ dashboard vận hành') hoặc chỉ xuất hiện trong Modal xác nhận đặc biệt (như Xóa, Tạm ngưng). Các trường optional nghiệp vụ thực tế như color không được ép nhập và phải có ColorPicker trực quan.
 [ ] 12. HARD DELETE WITH SNAPSHOT & RESTRICT CHECK: Nếu module cho phép xóa master data thì phải là xóa thật có kiểm tra ràng buộc; Backend BẮT BUỘC lưu audit snapshot `before_json` trước khi xóa, kiểm tra FK/restrict trước khi delete, trả lỗi 409 nêu rõ record đang dính bảng/nghiệp vụ nào; FE phải có ConfirmModal cảnh báo rõ và toast/error panel hiển thị nguyên nhân xóa không được.
 [ ] 13. ROLE/PERMISSION GUARD PRECISION: Role/Permission dành cho dashboard BẮT BUỘC lọc `guard_name === 'api'`; KHÔNG lấy `web` vì `web` là guard nội bộ Backend
 [ ] 14. REAL CRUD NAVIGATION & ACTIONS: Nút Tạo/Sửa/Xóa/Lưu BẮT BUỘC navigate hoặc gọi API thật; CẤM toast placeholder kiểu "Tính năng đang phát triển"
 [ ] 15. GIT & MASTER BRANCH DEPLOY: Cả Backend và Frontend làm việc trực tiếp trên nhánh master, commit & push thẳng master để Vercel & Live LiteSpeed Server đồng bộ tức thì
 [ ] 16. TABLEUTILITIES & LIST PAGE ARCHITECTURE: Mọi trang Danh sách BẮT BUỘC sử dụng Master Component `<AdminTablePage>` từ `TableUtilities.tsx`. Top-Right Actions (`Làm mới`, `+ Thêm mới`), Nút Sắp xếp CHỈ hiển thị khi `sortable: true`, Phân trang nút pill `[1] [2] [3]`, Spacing lề trái `pl-6 pr-4` cho cột đầu tiên, và KHÔNG có badge thừa ở tiêu đề.
+[ ] 17. FORMUTILITIES, DIRTY STATE & AUTO AUDIT REASON: Mọi trang Tạo mới (Create) và Chỉnh sửa (Edit) BẮT BUỘC sử dụng bộ công cụ Master từ `FormUtilities.tsx` (`<AdminFormHeader>`, `<AdminFormCard>`, `<FormSectionBlock>`, `<FormInputField>`, `<AdminFormActionBar>`, `useFormDirty`, `generateDynamicAuditReason`). Nút 'Đã lưu' khi clean state BẮT BUỘC xám disabled KHÔNG ICON; khi có thay đổi thì chuyển sang xanh `[💾] Lưu Thay Đổi` và tự sinh Audit Reason theo diff dữ liệu.
 ```
 
 ---
@@ -143,10 +144,14 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
        3. `✓ Chữ số (0-9)`
        4. `✓ Ký tự đặc biệt (!@#$%...)`
 
-5. **Trường Optional Không Được Ép Nhập**:
-   * Các trường như `reason`, `note`, `description`, `color` chỉ được bắt buộc khi nghiệp vụ hoặc Backend bắt buộc thật sự.
-   * Nếu `reason` chỉ để audit/log, ưu tiên optional. Khi để trống, Backend tự ghi lý do mặc định rõ nghĩa, ví dụ `Cập nhật hạng ghế từ dashboard vận hành`.
-   * Label optional không có dấu `*`, placeholder phải nói rõ "Không bắt buộc" nếu dễ gây hiểu nhầm.
+5. **CẤM Hiển Thị Ô Input 'Reason' Trong Form Create & Edit (Quy Chuẩn Audit Log & Versioned Resources)**:
+   * **QUY TẮC BẮT BUỘC**: Trường `reason` (Lý do thao tác / Lý do thay đổi / Audit log) trên các API và Resource có version (`SeatClass`, `SeatMap`, `Route`, `Coupon`...):
+   * **TUYỆT ĐỐI CẤM** render ô input text/textarea "Lý do thay đổi / Lý do thao tác (Không bắt buộc)" trực tiếp trong giao diện form Create hoặc Edit chính của Admin. Form nghiệp vụ phải tinh gọn, sạch sẽ, chỉ tập trung vào các trường dữ liệu mà Admin thực sự quản lý.
+   * **Cơ chế gửi `reason` ngầm theo ngữ cảnh**:
+     * Khi gọi API `create`: Frontend tự động gửi kèm `reason: "Tạo mới <entity> từ dashboard vận hành"` (hoặc để Backend tự ghi nhận fallback mặc định).
+     * Khi gọi API `update`: Frontend tự động gửi kèm `reason: "Cập nhật <entity> từ dashboard vận hành"`.
+     * Trong các Modal hành động đặc biệt (`ConfirmModal` Xóa cứng, Tạm ngưng, Khóa): `reason` được Frontend gắn tự động trong payload (ví dụ: `Xóa cứng hạng ghế VIP từ dashboard vận hành`) hoặc chỉ hỏi trong Modal nếu là nghiệp vụ đặc thù, KHÔNG đưa vào form chính.
+   * Các trường optional nghiệp vụ thực tế khác như `description`, `color` không được ép nhập và phải có component nhập liệu chuyên dụng.
 
 6. **Color Picker Cho Trường Màu Nhận Diện**:
    * Nếu form có field `color`, ưu tiên tìm và dùng common component từ `E:\cty\Newmoon-Admin` trước.
@@ -230,31 +235,41 @@ Khi tạo mới hoặc cập nhật module ở Backend (`app/Containers/AppSecti
   * Hiển thị phạm vi chuẩn: `1–10 / 50 mục`.
   * Bộ chọn số dòng `Hiển thị [10 ▾] mục/trang` đẹp mắt.
 
-### 5.2. Màn Hình Tạo Mới & Chỉnh Sửa (Create & Edit Forms)
-* **Tràn viền `w-full`**: Toàn bộ form nằm trong **1 khung Card duy nhất** (`bg-white shadow-2xs`).
-* **Thanh Banner Nhóm Số La Mã Màu Cyan Nhạt (`bg-[#EBF7FA]`)**:
-  * `I. THÔNG TIN CÁ NHÂN` / `I. THÔNG TIN CƠ BẢN`
-  * `II. THÔNG TIN TÀI KHOẢN & LIÊN HỆ` / `II. MỨC GIẢM GIÁ & ĐIỀU KIỆN ÁP DỤNG`
-  * `III. PHÂN QUYỀN & VAI TRÒ` / `III. THỜI HẠN & GIỚI HẠN SỬ DỤNG`
-  * `IV. TRẠNG THÁI & GHI CHÚ`
-* **Component Ô Chọn Ngày `<DateBox>`**: Định dạng ngày Việt Nam `DD/MM/YYYY` kèm **đúng 1 Icon Lịch duy nhất**.
-* **Thanh Nút Bấm Hành Động Dưới Cùng**: `Hủy Bỏ` & `Lưu thay đổi` (góc phải).
+### 5.2. Màn Hình Tạo Mới & Chỉnh Sửa Master (`FormUtilities.tsx`)
+* **BẮT BUỘC DÙNG `FormUtilities.tsx`**: Mọi trang Tạo mới (Create) và Chỉnh sửa (Edit) BẮT BUỘC sử dụng bộ công cụ Master từ `src/components/common/FormUtilities.tsx`.
+* **Thanh Header Điều Hướng Chuẩn (`<AdminFormHeader>`)**:
+  * Nút Quay lại (`<ArrowLeft>`) có tooltip rõ ràng `Quay lại danh sách`.
+  * Tiêu đề H1 kèm Icon Lucide chuyên dụng (`Layers`, `Ship`, `User`, `Ticket`...).
+  * Subtitle mô tả ngắn gọn nghiệp vụ vận hành.
+  * Màn Create: Nút **`Làm sạch dữ liệu`** (`<RotateCcw>`) ở góc phải Header.
+  * Màn Edit: Badge trạng thái hoặc ID hệ thống (`#mEGx1djKqo3ABbOn`).
+* **Tràn viền `w-full` & Khung Card Duy Nhất (`<AdminFormCard>`)**: Toàn bộ form nằm trong **1 khung Card duy nhất** (`bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5`).
+* **Thanh Banner Nhóm Số La Mã Màu Cyan Nhạt (`<FormSection>`)**:
+  * `I. THÔNG TIN CÁ NHÂN` / `I. THÔNG TIN CƠ BẢN` / `I. THÔNG TIN HẠNG GHẾ`
+  * `II. THÔNG TIN TÀI KHOẢN & LIÊN HỆ` / `II. GIÁ VÉ & NHẬN DIỆN` / `II. THÔNG SỐ THIẾT KẾ & SỨC CHỨA`
+  * `III. PHÂN QUYỀN & VAI TRÒ` / `III. TRẠNG THÁI VẬN HÀNH`
+* **Thanh Nút Bấm Hành Động Dưới Cùng (`<AdminFormActionBar>`) & Dirty State**:
+  * **Dirty State thông minh (`useFormDirty`)**: Tự động so sánh deep diff giữa dữ liệu Server/Initial và Form hiện tại.
+  * Khi Form **Chưa chỉnh sửa (`!isDirty`)**: Nút Lưu hiển thị `[✓] Đã lưu` (outline style), bấm vào sẽ báo toast nhẹ "Dữ liệu hiện tại chưa có thay đổi nào cần lưu", TUYỆT ĐỐI KHÔNG gọi API thừa.
+  * Khi Form **Đã chỉnh sửa (`isDirty`)**: Nút Lưu sáng màu xanh `[💾] Lưu Thay Đổi`.
+  * **Tự sinh Audit Reason thông minh (`generateDynamicAuditReason`)**: Tự động so sánh diff các trường đã thay đổi để sinh chuỗi lý do tự nhiên tiếng Việt cho Backend (ví dụ: `Cập nhật Hạng ghế: Điều chỉnh Giá cơ sở (300.000 VNĐ)`), KHÔNG bắt Admin phải nhập tay.
 
 ---
 
 ## 📂 8. Danh Sách File Mẫu Chuẩn Mực (Golden Reference Source Files)
 
-* **Master Table Component**: [TableUtilities.tsx](file:///E:/cty/superdong-fe-dashboard/src/components/common/TableUtilities.tsx)
-* **PasswordInput Component**: [PasswordInput.tsx](file:///E:/cty/superdong-fe-dashboard/src/components/common/PasswordInput.tsx)
+* **Master Table Component**: [TableUtilities.tsx](file:///D:/Hieubkav/Reactjs/job/superdong-fe-dashboard/src/components/common/TableUtilities.tsx)
+* **Master Form Component**: [FormUtilities.tsx](file:///D:/Hieubkav/Reactjs/job/superdong-fe-dashboard/src/components/common/FormUtilities.tsx)
+* **PasswordInput Component**: [PasswordInput.tsx](file:///D:/Hieubkav/Reactjs/job/superdong-fe-dashboard/src/components/common/PasswordInput.tsx)
 * **Fleet Boat Modules**:
-  * List: [boats/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/boats/index.tsx)
-  * Create: [boats/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/boats/create.tsx)
-  * Edit: [boats/$boatId.edit.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/boats/$boatId.edit.tsx)
+  * List: [boats/index.tsx](file:///D:/Hieubkav/Reactjs/job/superdong-fe-dashboard/src/routes/_admin/boats/index.tsx)
+  * Create: [boats/create.tsx](file:///D:/Hieubkav/Reactjs/job/superdong-fe-dashboard/src/routes/_admin/boats/create.tsx)
+  * Edit: [boats/$boatId.edit.tsx](file:///D:/Hieubkav/Reactjs/job/superdong-fe-dashboard/src/routes/_admin/boats/$boatId.edit.tsx)
 * **Seat Class Modules**:
-  * List: [seat-classes/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/seat-classes/index.tsx)
-  * Create: [seat-classes/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/seat-classes/create.tsx)
-  * Edit: [seat-classes/$classId.edit.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/seat-classes/$classId.edit.tsx)
+  * List: [seat-classes/index.tsx](file:///D:/Hieubkav/Reactjs/job/superdong-fe-dashboard/src/routes/_admin/seat-classes/index.tsx)
+  * Create: [seat-classes/create.tsx](file:///D:/Hieubkav/Reactjs/job/superdong-fe-dashboard/src/routes/_admin/seat-classes/create.tsx)
+  * Edit: [seat-classes/$classId.edit.tsx](file:///D:/Hieubkav/Reactjs/job/superdong-fe-dashboard/src/routes/_admin/seat-classes/$classId.edit.tsx)
 * **Seat Map Modules**:
-  * List: [seat-maps/index.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/seat-maps/index.tsx)
-  * Create: [seat-maps/create.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/seat-maps/create.tsx)
-  * Edit: [seat-maps/$seatMapId.edit.tsx](file:///E:/cty/superdong-fe-dashboard/src/routes/_admin/seat-maps/$seatMapId.edit.tsx)
+  * List: [seat-maps/index.tsx](file:///D:/Hieubkav/Reactjs/job/superdong-fe-dashboard/src/routes/_admin/seat-maps/index.tsx)
+  * Create: [seat-maps/create.tsx](file:///D:/Hieubkav/Reactjs/job/superdong-fe-dashboard/src/routes/_admin/seat-maps/create.tsx)
+  * Edit: [seat-maps/$seatMapId.edit.tsx](file:///D:/Hieubkav/Reactjs/job/superdong-fe-dashboard/src/routes/_admin/seat-maps/$seatMapId.edit.tsx)

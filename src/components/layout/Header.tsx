@@ -28,12 +28,68 @@ const ROUTE_LABELS: Record<string, string> = {
   settings: 'Cấu hình hệ thống',
 };
 
+interface BreadcrumbItem {
+  label: string;
+  url?: string;
+  isLast?: boolean;
+}
+
+function parseBreadcrumbs(pathname: string): BreadcrumbItem[] {
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments.length === 0) {
+    return [{ label: 'Tổng quan Vận hành', isLast: true }];
+  }
+
+  const items: BreadcrumbItem[] = [];
+  const rootSegment = segments[0];
+  const rootLabel = ROUTE_LABELS[rootSegment] || rootSegment.replace(/-/g, ' ');
+
+  if (segments.length === 1) {
+    items.push({ label: rootLabel, isLast: true });
+    return items;
+  }
+
+  // Root section link
+  items.push({ label: rootLabel, url: `/${rootSegment}` });
+
+  // Handle Create and Edit actions cleanly
+  if (segments.includes('create')) {
+    items.push({ label: 'Thêm mới', isLast: true });
+    return items;
+  }
+
+  if (segments.includes('edit')) {
+    items.push({ label: 'Chỉnh sửa', isLast: true });
+    return items;
+  }
+
+  // Other sub-paths
+  for (let i = 1; i < segments.length; i++) {
+    const seg = segments[i];
+    const isId = /^[a-zA-Z0-9_-]{8,}$/.test(seg) || /^\d+$/.test(seg);
+    if (isId) {
+      if (i === segments.length - 1) {
+        items.push({ label: 'Chi tiết', isLast: true });
+      }
+      continue;
+    }
+
+    const label = ROUTE_LABELS[seg] || seg.replace(/-/g, ' ');
+    const isLast = i === segments.length - 1;
+    const url = `/${segments.slice(0, i + 1).join('/')}`;
+
+    items.push({ label, url: isLast ? undefined : url, isLast });
+  }
+
+  return items;
+}
+
 export const Header: React.FC = () => {
   const { setMobileMenuOpen } = useSidebarState();
   const location = useLocation();
   const pathname = location.pathname;
 
-  const segments = pathname.split('/').filter(Boolean);
+  const breadcrumbItems = parseBreadcrumbs(pathname);
 
   return (
     <header className="h-[54px] bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-30 flex items-center justify-between px-4 lg:px-8 transition-colors font-sans">
@@ -52,36 +108,23 @@ export const Header: React.FC = () => {
           <Link to={"/" as any} className="hover:text-blue-600 transition-colors font-medium">
             Trang chủ
           </Link>
-          {segments.length === 0 ? (
-            <>
+          {breadcrumbItems.map((item, index) => (
+            <React.Fragment key={index}>
               <ChevronRight size={14} className="mx-2 text-slate-300 dark:text-slate-600 shrink-0" />
-              <span className="font-semibold text-slate-900 dark:text-slate-100">Tổng quan Vận hành</span>
-            </>
-          ) : (
-            segments.map((segment, index) => {
-              const url = `/${segments.slice(0, index + 1).join('/')}`;
-              const label = ROUTE_LABELS[segment] || segment.replace(/-/g, ' ');
-              const isLast = index === segments.length - 1;
-
-              return (
-                <React.Fragment key={url}>
-                  <ChevronRight size={14} className="mx-2 text-slate-300 dark:text-slate-600 shrink-0" />
-                  {isLast ? (
-                    <span className="font-semibold text-slate-900 dark:text-slate-100 capitalize truncate">
-                      {label}
-                    </span>
-                  ) : (
-                    <Link
-                      to={url as any}
-                      className="capitalize hover:text-blue-600 transition-colors truncate"
-                    >
-                      {label}
-                    </Link>
-                  )}
-                </React.Fragment>
-              );
-            })
-          )}
+              {item.isLast || !item.url ? (
+                <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">
+                  {item.label}
+                </span>
+              ) : (
+                <Link
+                  to={item.url as any}
+                  className="hover:text-blue-600 transition-colors truncate"
+                >
+                  {item.label}
+                </Link>
+              )}
+            </React.Fragment>
+          ))}
         </nav>
       </div>
 
