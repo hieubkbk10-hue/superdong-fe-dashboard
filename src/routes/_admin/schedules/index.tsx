@@ -396,16 +396,15 @@ function SchedulesPage() {
       align: 'right',
       render: (sch) => (
         <div className="flex items-center justify-end gap-1">
-          {/* Quick Generate Trips Action */}
+          {/* Quick Generate Trips Action (Icon-only) */}
           <Button
-            variant="outline"
-            size="sm"
-            className="h-8 px-2.5 text-xs font-medium border-slate-200 dark:border-slate-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-950/30 text-slate-700 dark:text-slate-300 gap-1.5 transition-colors"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30"
             onClick={() => handleOpenGenerateModal(sch)}
-            title="Sinh nhanh các chuyến tàu thực tế theo lịch chạy này"
+            title="Sinh chuyến tàu thực tế theo lịch chạy này"
           >
-            <CalendarPlus size={14} className="text-blue-600 dark:text-blue-400" />
-            <span>Sinh chuyến</span>
+            <CalendarPlus size={16} />
           </Button>
 
           <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 dark:text-blue-400" asChild>
