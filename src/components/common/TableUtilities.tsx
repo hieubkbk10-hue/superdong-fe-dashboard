@@ -77,6 +77,8 @@ export interface FilterSelectProps {
   placeholder?: string;
   className?: string;
   align?: 'left' | 'right';
+  searchable?: boolean;
+  itemTypeLabel?: string;
 }
 
 export const FilterSelect: React.FC<FilterSelectProps> = ({
@@ -86,11 +88,47 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
   placeholder,
   className,
   align = 'left',
+  searchable,
+  itemTypeLabel = 'tuyến',
 }) => {
   const [open, setOpen] = useState(false);
+  const [filterSearch, setFilterSearch] = useState('');
+  const [displayCount, setDisplayCount] = useState(8);
+
   const selectedOption = options.find((opt) => opt.value === value);
   const displayLabel = selectedOption ? selectedOption.label : placeholder || 'Tất cả';
   const isSelected = Boolean(value && value !== 'all');
+
+  const shouldSearch = searchable ?? options.length > 5;
+
+  // Filtered options based on search term
+  const filteredOptions = useMemo(() => {
+    if (!filterSearch.trim()) return options;
+    const q = filterSearch.trim().toLowerCase();
+    return options.filter((opt) => opt.label.toLowerCase().includes(q));
+  }, [options, filterSearch]);
+
+  const displayedOptions = useMemo(() => {
+    return filteredOptions.slice(0, displayCount);
+  }, [filteredOptions, displayCount]);
+
+  const hasMore = filteredOptions.length > displayedOptions.length;
+  const remainingCount = filteredOptions.length - displayedOptions.length;
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 25 && hasMore) {
+      setDisplayCount((prev) => prev + 8);
+    }
+  };
+
+  const handleOpen = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (nextOpen) {
+      setFilterSearch('');
+      setDisplayCount(8);
+    }
+  };
 
   return (
     <div className="relative inline-block text-left w-full sm:w-auto">
@@ -118,15 +156,15 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
         </div>
       </div>
 
-      {/* Desktop Popover Select */}
+      {/* Desktop Popover Select (Smart Combobox) */}
       <div className="hidden sm:block">
         <Button
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => setOpen(!open)}
+          onClick={() => handleOpen(!open)}
           className={cn(
-            'gap-1.5 h-9 px-3 text-xs sm:text-sm font-medium transition-all select-none whitespace-nowrap',
+            'gap-1.5 h-9 px-3 text-xs sm:text-sm font-medium transition-all select-none whitespace-nowrap justify-between',
             isSelected
               ? 'border-blue-500/60 bg-blue-50/80 text-blue-700 dark:border-blue-500/40 dark:bg-blue-950/40 dark:text-blue-300 font-semibold'
               : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800',
@@ -134,8 +172,8 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
           )}
           title={displayLabel}
         >
-          <span className="truncate max-w-[180px]">{displayLabel}</span>
-          <ChevronDown size={13} className={cn('text-slate-400 transition-transform duration-200', open && 'rotate-180')} />
+          <span className="truncate max-w-[160px]">{displayLabel}</span>
+          <ChevronDown size={13} className={cn('text-slate-400 shrink-0 transition-transform duration-200', open && 'rotate-180')} />
         </Button>
 
         {open && (
@@ -143,30 +181,71 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
             <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
             <div
               className={cn(
-                'absolute top-full mt-1 min-w-[160px] max-w-[280px] whitespace-nowrap bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50 py-1 animate-in fade-in-80 zoom-in-95 duration-100',
+                'absolute top-full mt-1 min-w-[200px] max-w-[320px] bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in-80 zoom-in-95 duration-100',
                 align === 'right' ? 'right-0' : 'left-0'
               )}
             >
-              {options.map((opt) => {
-                const active = opt.value === value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => {
-                      onChange(opt.value);
-                      setOpen(false);
-                    }}
-                    className={cn(
-                      'w-full flex items-center justify-between gap-3 px-3 py-1.5 text-xs font-medium text-left transition-colors hover:bg-slate-100 dark:hover:bg-slate-800/80 cursor-pointer',
-                      active ? 'text-blue-600 dark:text-blue-400 font-semibold bg-blue-50/70 dark:bg-blue-950/40' : 'text-slate-700 dark:text-slate-300'
-                    )}
+              {/* Search Box inside dropdown if searchable */}
+              {shouldSearch && (
+                <div className="p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                  <div className="relative">
+                    <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Gõ để tìm kiếm..."
+                      value={filterSearch}
+                      onChange={(e) => setFilterSearch(e.target.value)}
+                      autoFocus
+                      className="w-full pl-8 pr-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-slate-800 dark:text-slate-200 placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Scrollable list with progressive load */}
+              <div
+                onScroll={handleScroll}
+                className="max-h-56 overflow-y-auto py-1 divide-y divide-slate-50 dark:divide-slate-900 scrollbar-thin"
+              >
+                {displayedOptions.length === 0 ? (
+                  <div className="px-3 py-3 text-center text-xs text-slate-400">
+                    Không tìm thấy kết quả phù hợp
+                  </div>
+                ) : (
+                  displayedOptions.map((opt) => {
+                    const active = opt.value === value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          onChange(opt.value);
+                          setOpen(false);
+                        }}
+                        className={cn(
+                          'w-full flex items-center justify-between gap-3 px-3 py-2 text-xs font-medium text-left transition-colors hover:bg-slate-100/80 dark:hover:bg-slate-800/80 cursor-pointer',
+                          active
+                            ? 'text-blue-600 dark:text-blue-400 font-semibold bg-blue-50/70 dark:bg-blue-950/40'
+                            : 'text-slate-700 dark:text-slate-300'
+                        )}
+                      >
+                        <span className="truncate">{opt.label}</span>
+                        {active && <Check size={14} className="text-blue-600 dark:text-blue-400 shrink-0" />}
+                      </button>
+                    );
+                  })
+                )}
+
+                {/* Notice at bottom if more items available */}
+                {hasMore && (
+                  <div
+                    onClick={() => setDisplayCount((prev) => prev + 8)}
+                    className="px-3 py-1.5 text-center text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-slate-50/80 dark:bg-slate-900/80 hover:bg-blue-50 dark:hover:bg-blue-950/40 cursor-pointer transition-colors border-t border-slate-100 dark:border-slate-800"
                   >
-                    <span>{opt.label}</span>
-                    {active && <Check size={14} className="text-blue-600 dark:text-blue-400 shrink-0" />}
-                  </button>
-                );
-              })}
+                    +{remainingCount} {itemTypeLabel} nữa (cuộn để tải thêm)
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}

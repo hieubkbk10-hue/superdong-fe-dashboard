@@ -758,14 +758,16 @@ function DashboardOverview() {
               onChange={setSelectedRouteFilter}
               options={routeOptions}
               placeholder="Tất cả tuyến tàu"
-              className="w-full sm:w-56"
+              itemTypeLabel="tuyến tàu"
+              className="w-full sm:w-auto min-w-[140px]"
             />
             <FilterSelect
               value={selectedStatusFilter}
               onChange={setSelectedStatusFilter}
               options={statusOptions}
               placeholder="Tất cả trạng thái"
-              className="w-full sm:w-48"
+              itemTypeLabel="trạng thái"
+              className="w-full sm:w-auto min-w-[140px]"
             />
           </div>
 
