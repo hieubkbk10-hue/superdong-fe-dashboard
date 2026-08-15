@@ -474,61 +474,53 @@ function DashboardOverview() {
         </div>
       )}
 
-      {/* Top Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs transition-all hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tổng Doanh Thu</span>
-            <div className="h-9 w-9 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-              <DollarSign size={18} />
-            </div>
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl font-extrabold text-slate-900 dark:text-white font-mono">
+      {/* Top Stats Cards - Super Slim, Square & Compact (Cao = 1/2) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="rounded-lg border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 py-2.5 flex items-center justify-between shadow-xs">
+          <div>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Tổng Doanh Thu</span>
+            <span className="text-base font-extrabold text-slate-900 dark:text-white font-mono mt-0.5 block">
               {loading ? '...' : formatVND(revenue)}
             </span>
           </div>
+          <div className="h-7 w-7 rounded-md bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+            <DollarSign size={15} />
+          </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs transition-all hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tổng Đơn Đặt Vé</span>
-            <div className="h-9 w-9 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center">
-              <Ticket size={18} />
-            </div>
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl font-extrabold text-slate-900 dark:text-white font-mono">
+        <div className="rounded-lg border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 py-2.5 flex items-center justify-between shadow-xs">
+          <div>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Tổng Đơn Đặt Vé</span>
+            <span className="text-base font-extrabold text-slate-900 dark:text-white font-mono mt-0.5 block">
               {loading ? '...' : `${totalBookings} đơn`}
             </span>
           </div>
+          <div className="h-7 w-7 rounded-md bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+            <Ticket size={15} />
+          </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs transition-all hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Chuyến Sắp & Đang Chạy</span>
-            <div className="h-9 w-9 rounded-lg bg-indigo-500/10 text-indigo-600 flex items-center justify-center">
-              <Ship size={18} />
-            </div>
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl font-extrabold text-slate-900 dark:text-white font-mono">
+        <div className="rounded-lg border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 py-2.5 flex items-center justify-between shadow-xs">
+          <div>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Chuyến Sắp & Đang Chạy</span>
+            <span className="text-base font-extrabold text-slate-900 dark:text-white font-mono mt-0.5 block">
               {loading ? '...' : `${activeTripsCount} chuyến`}
             </span>
           </div>
+          <div className="h-7 w-7 rounded-md bg-indigo-500/10 text-indigo-600 flex items-center justify-center shrink-0">
+            <Ship size={15} />
+          </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs transition-all hover:shadow-md">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Hành Khách Phục Vụ</span>
-            <div className="h-9 w-9 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
-              <Users size={18} />
-            </div>
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl font-extrabold text-slate-900 dark:text-white font-mono">
+        <div className="rounded-lg border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 py-2.5 flex items-center justify-between shadow-xs">
+          <div>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Hành Khách Phục Vụ</span>
+            <span className="text-base font-extrabold text-slate-900 dark:text-white font-mono mt-0.5 block">
               {loading ? '...' : `${totalPassengers} khách`}
             </span>
+          </div>
+          <div className="h-7 w-7 rounded-md bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+            <Users size={15} />
           </div>
         </div>
       </div>
