@@ -616,6 +616,17 @@ function DashboardOverview() {
               >
                 Lịch sử cũ
               </button>
+              <button
+                type="button"
+                onClick={() => handlePeriodChange('all')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  period === 'all'
+                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                Tất cả
+              </button>
             </div>
 
             {/* View Mode Toggle - Icon only (Bảng chi tiết vs Thẻ lịch) */}
