@@ -965,13 +965,13 @@ function DashboardOverview() {
                           <td className="p-3.5 text-right">
                             <Button
                               variant="ghost"
-                              size="sm"
-                              className="h-8 text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 gap-1"
+                              size="icon"
+                              className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30"
+                              title="Điều hành chuyến tàu"
                               asChild
                             >
                               <Link to={'/trips/$tripId/edit' as any} params={{ tripId: String(t.id) } as any}>
-                                <Edit size={13} />
-                                <span>Điều hành</span>
+                                <Edit size={15} />
                               </Link>
                             </Button>
                           </td>
