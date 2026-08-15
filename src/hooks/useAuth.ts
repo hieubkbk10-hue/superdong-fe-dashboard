@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { User } from '../types';
 import authApi, { LoginPayload } from '../apis/auth';
-import { TOKEN_STORAGE_KEY } from '../constants/api';
+import { clearStoredAuth, getStoredToken, setStoredAuth } from '../helpers/auth';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -9,7 +9,7 @@ export function useAuth() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async () => {
-    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+    const token = getStoredToken();
     if (!token) {
       setUser(null);
       setIsLoading(false);
@@ -38,7 +38,9 @@ export function useAuth() {
       setIsLoading(true);
       setError(null);
       const res = await authApi.login(payload);
-      setUser(res.data.user);
+      if (res.data?.user) {
+        setUser(res.data.user);
+      }
       return res.data;
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
@@ -56,10 +58,12 @@ export function useAuth() {
     } catch (err) {
       // Ignore logout errors and clear state
     } finally {
+      clearStoredAuth();
       setUser(null);
       setIsLoading(false);
     }
   }, []);
+
 
   return {
     user,

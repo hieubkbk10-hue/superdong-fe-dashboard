@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { Mail, Lock, Eye, EyeOff, Headset, Loader2, ShieldCheck, Ship, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -7,8 +7,16 @@ import { login } from '@/apis/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { isAuthenticated, setStoredAuth } from '@/helpers/auth';
 
 export const Route = createFileRoute('/login')({
+  beforeLoad: () => {
+    if (isAuthenticated()) {
+      throw redirect({
+        to: '/',
+      });
+    }
+  },
   component: LoginComponent,
 });
 
@@ -37,7 +45,9 @@ function LoginComponent() {
     try {
       const res: any = await login({ email, password });
       const token = res?.access_token || res?.data?.access_token;
+      const user = res?.user || res?.data?.user;
       if (token) {
+        setStoredAuth(token, user);
         toast.success('Đăng nhập hệ thống thành công!');
         navigate({ to: (returnTo.startsWith('/login') ? '/' : returnTo) as any });
       } else {
@@ -63,7 +73,9 @@ function LoginComponent() {
     try {
       const res: any = await login({ email: 'admin@admin.com', password: 'admin' });
       const token = res?.access_token || res?.data?.access_token;
+      const user = res?.user || res?.data?.user;
       if (token) {
+        setStoredAuth(token, user);
         toast.success('Đã xác thực tài khoản Admin thành công!');
         navigate({ to: (returnTo.startsWith('/login') ? '/' : returnTo) as any });
       } else {
@@ -79,6 +91,7 @@ function LoginComponent() {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 md:p-6 bg-slate-100 dark:bg-slate-950 font-sans">

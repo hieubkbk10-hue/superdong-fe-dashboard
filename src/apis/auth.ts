@@ -1,4 +1,5 @@
-import api, { TOKEN_STORAGE_KEY } from '../constants/api';
+import api from '../constants/api';
+import { clearStoredAuth, setStoredAuth } from '../helpers/auth';
 import { ApiResponse, User } from '../types';
 
 export interface LoginPayload {
@@ -29,10 +30,10 @@ export interface ResetPasswordPayload {
  */
 export async function login(payload: LoginPayload): Promise<ApiResponse<LoginResponseData>> {
   const response = await api.post<ApiResponse<LoginResponseData>>('/clients/web/login', payload);
-  if (response.data?.data?.access_token || (response.data as any)?.access_token) {
-    const token = response.data?.data?.access_token || (response.data as any)?.access_token;
-    localStorage.setItem(TOKEN_STORAGE_KEY, token);
-    localStorage.setItem('superdong_token', token);
+  const token = response.data?.data?.access_token || (response.data as any)?.access_token;
+  const user = response.data?.data?.user || (response.data as any)?.user;
+  if (token) {
+    setStoredAuth(token, user);
   }
   return response.data;
 }
@@ -45,9 +46,10 @@ export async function logout(): Promise<ApiResponse<void>> {
     const response = await api.post<ApiResponse<void>>('/auth/logout');
     return response.data;
   } finally {
-    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    clearStoredAuth();
   }
 }
+
 
 /**
  * LOGIC: Lấy thông tin cá nhân của admin đang đăng nhập

@@ -1,33 +1,47 @@
 import React, { useEffect, useState } from 'react';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { clearStoredAuth, getStoredToken, isTokenExpired } from '@/helpers/auth';
 
 export const Route = createFileRoute('/_admin')({
+  beforeLoad: ({ location }) => {
+    const token = getStoredToken();
+    if (!token || isTokenExpired(token)) {
+      clearStoredAuth();
+      const returnTo = location.pathname + (location.searchStr ? `?${location.searchStr}` : '');
+      throw redirect({
+        to: '/login',
+        search: {
+          returnTo: returnTo && returnTo !== '/' ? returnTo : undefined,
+        },
+      });
+    }
+  },
   component: AdminLayoutWrapper,
 });
 
 function AdminLayoutWrapper() {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [authChecked, setAuthChecked] = useState<boolean>(() => {
+    const token = getStoredToken();
+    return Boolean(token && !isTokenExpired(token));
+  });
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('superdong_access_token') || localStorage.getItem('superdong_token');
-      // If no token or fake demo token exists, clear and force real login
-      if (!token || token.startsWith('demo_token')) {
-        localStorage.removeItem('superdong_token');
-        localStorage.removeItem('superdong_access_token');
-        localStorage.removeItem('superdong_user');
-        setIsAuthenticated(false);
-        const currentPath = window.location.pathname + window.location.search;
-        navigate({ to: '/login' as any, search: { returnTo: currentPath } as any });
-      } else {
-        setIsAuthenticated(true);
-      }
+    const token = getStoredToken();
+    if (!token || isTokenExpired(token)) {
+      clearStoredAuth();
+      const currentPath = window.location.pathname + window.location.search;
+      navigate({
+        to: '/login' as any,
+        search: { returnTo: currentPath && currentPath !== '/' ? currentPath : undefined } as any,
+      });
+    } else {
+      setAuthChecked(true);
     }
   }, [navigate]);
 
-  if (isAuthenticated === null) {
+  if (!authChecked) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 font-sans">
         <div className="flex flex-col items-center gap-3">
@@ -38,9 +52,6 @@ function AdminLayoutWrapper() {
     );
   }
 
-  if (isAuthenticated === false) {
-    return null;
-  }
-
   return <AdminLayout />;
 }
+

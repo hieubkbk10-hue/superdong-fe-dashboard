@@ -11,24 +11,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { clearStoredAuth, getStoredUser } from '@/helpers/auth';
 
 export const UserNav: React.FC = () => {
   const navigate = useNavigate();
 
   // Retrieve user info from storage or use defaults
   const user = React.useMemo(() => {
-    try {
-      const stored = localStorage.getItem('superdong_user');
-      if (stored) return JSON.parse(stored);
-    } catch {
-      // fallback
-    }
+    const stored = getStoredUser();
+    if (stored) return stored;
     return {
       name: 'Super Admin',
       email: 'admin@superdong.com.vn',
       role: 'Quản trị hệ thống',
     };
   }, []);
+
 
   const initials = user.name
     .split(' ')
@@ -39,11 +37,11 @@ export const UserNav: React.FC = () => {
     .toUpperCase();
 
   const handleLogout = () => {
-    localStorage.removeItem('superdong_token');
-    localStorage.removeItem('superdong_access_token');
-    localStorage.removeItem('superdong_user');
+    clearStoredAuth();
     navigate({ to: '/login' as any });
   };
+
+
 
   return (
     <DropdownMenu>
