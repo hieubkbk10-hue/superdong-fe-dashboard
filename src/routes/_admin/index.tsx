@@ -439,11 +439,11 @@ function DashboardOverview() {
   };
 
   return (
-    <div className="space-y-6 font-sans pb-10">
+    <div className="space-y-3.5 font-sans pb-8">
       {/* Title & Refresh */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">
             Tổng quan
           </h1>
         </div>
@@ -453,12 +453,12 @@ function DashboardOverview() {
             variant="outline"
             onClick={fetchDashboardData}
             disabled={loading}
-            className="h-9 text-xs font-semibold gap-1.5"
+            className="h-8 px-3 text-xs font-semibold gap-1.5"
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
             Làm mới dữ liệu
           </Button>
-          <Button variant="primary" className="h-9 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white" asChild>
+          <Button variant="primary" className="h-8 px-3 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white" asChild>
             <Link to="/trips/create">
               + Tạo Chuyến Mới
             </Link>
@@ -468,59 +468,59 @@ function DashboardOverview() {
 
       {/* API Error Alert */}
       {apiError && (
-        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2.5">
-          <AlertTriangle size={18} className="shrink-0 text-rose-500" />
+        <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2">
+          <AlertTriangle size={16} className="shrink-0 text-rose-500" />
           <span>Không thể đồng bộ dữ liệu từ Backend API: {apiError}.</span>
         </div>
       )}
 
       {/* Top Stats Cards - Super Slim, Square & Compact (Cao = 1/2) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="rounded-lg border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 py-2.5 flex items-center justify-between shadow-xs">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        <div className="rounded-lg border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 flex items-center justify-between shadow-xs">
           <div>
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Tổng Doanh Thu</span>
-            <span className="text-base font-extrabold text-slate-900 dark:text-white font-mono mt-0.5 block">
+            <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white font-mono mt-0.5 block">
               {loading ? '...' : formatVND(revenue)}
             </span>
           </div>
           <div className="h-7 w-7 rounded-md bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-            <DollarSign size={15} />
+            <DollarSign size={14} />
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 py-2.5 flex items-center justify-between shadow-xs">
+        <div className="rounded-lg border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 flex items-center justify-between shadow-xs">
           <div>
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Tổng Đơn Đặt Vé</span>
-            <span className="text-base font-extrabold text-slate-900 dark:text-white font-mono mt-0.5 block">
+            <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white font-mono mt-0.5 block">
               {loading ? '...' : `${totalBookings} đơn`}
             </span>
           </div>
           <div className="h-7 w-7 rounded-md bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
-            <Ticket size={15} />
+            <Ticket size={14} />
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 py-2.5 flex items-center justify-between shadow-xs">
+        <div className="rounded-lg border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 flex items-center justify-between shadow-xs">
           <div>
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Chuyến Sắp & Đang Chạy</span>
-            <span className="text-base font-extrabold text-slate-900 dark:text-white font-mono mt-0.5 block">
+            <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white font-mono mt-0.5 block">
               {loading ? '...' : `${activeTripsCount} chuyến`}
             </span>
           </div>
           <div className="h-7 w-7 rounded-md bg-indigo-500/10 text-indigo-600 flex items-center justify-center shrink-0">
-            <Ship size={15} />
+            <Ship size={14} />
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 px-3.5 py-2.5 flex items-center justify-between shadow-xs">
+        <div className="rounded-lg border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 flex items-center justify-between shadow-xs">
           <div>
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Hành Khách Phục Vụ</span>
-            <span className="text-base font-extrabold text-slate-900 dark:text-white font-mono mt-0.5 block">
+            <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white font-mono mt-0.5 block">
               {loading ? '...' : `${totalPassengers} khách`}
             </span>
           </div>
           <div className="h-7 w-7 rounded-md bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
-            <Users size={15} />
+            <Users size={14} />
           </div>
         </div>
       </div>
@@ -528,12 +528,12 @@ function DashboardOverview() {
       {/* ==========================================================================
           MAIN SECTION: LỊCH CHUYẾN TÀU VẬN HÀNH & TƯƠNG LAI
           ========================================================================== */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-sm space-y-6">
+      <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs space-y-3.5">
         {/* Section Header with Period Selector & View Mode Switcher */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Calendar className="text-blue-600 h-5 w-5" />
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Calendar className="text-blue-600 h-4.5 w-4.5" />
               Lịch tàu chạy
             </h2>
             <p className="text-xs text-slate-500 mt-0.5 font-medium">
@@ -547,7 +547,7 @@ function DashboardOverview() {
               <button
                 type="button"
                 onClick={() => handlePeriodChange('this_week')}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                   period === 'this_week'
                     ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -558,7 +558,7 @@ function DashboardOverview() {
               <button
                 type="button"
                 onClick={() => handlePeriodChange('next_week')}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                   period === 'next_week'
                     ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -569,7 +569,7 @@ function DashboardOverview() {
               <button
                 type="button"
                 onClick={() => handlePeriodChange('this_month')}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                   period === 'this_month'
                     ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -580,7 +580,7 @@ function DashboardOverview() {
               <button
                 type="button"
                 onClick={() => handlePeriodChange('next_month')}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                   period === 'next_month'
                     ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -591,7 +591,7 @@ function DashboardOverview() {
               <button
                 type="button"
                 onClick={() => handlePeriodChange('all_upcoming')}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                   period === 'all_upcoming'
                     ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -602,7 +602,7 @@ function DashboardOverview() {
               <button
                 type="button"
                 onClick={() => handlePeriodChange('past')}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                   period === 'past'
                     ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -624,7 +624,7 @@ function DashboardOverview() {
                 }`}
                 title="Bảng Chi Tiết"
               >
-                <TableIcon size={16} />
+                <TableIcon size={15} />
               </button>
               <button
                 type="button"
@@ -636,21 +636,21 @@ function DashboardOverview() {
                 }`}
                 title="Thẻ Lịch theo ngày"
               >
-                <LayoutGrid size={16} />
+                <LayoutGrid size={15} />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Weekly Day Strip (Thứ 2 -> Chủ Nhật) */}
+        {/* Weekly Day Strip (Thứ 2 -> Chủ Nhật) - Super Compact */}
         {(period === 'this_week' || period === 'next_week') && (
-          <div className="space-y-3 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-700/70">
+          <div className="space-y-2 bg-slate-50/70 dark:bg-slate-800/30 p-2.5 sm:p-3 rounded-xl border border-slate-200/70 dark:border-slate-700/70">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                   {period === 'this_week' ? 'Lịch Tuần Này' : 'Lịch Tuần Sau'}
                 </span>
-                <span className="text-xs text-slate-400">
+                <span className="text-[11px] text-slate-400">
                   ({weekInfo.days[0].displayDate} — {weekInfo.days[6].displayDate})
                 </span>
               </div>
@@ -672,10 +672,10 @@ function DashboardOverview() {
                       setWeekOffset((prev) => prev - 1);
                       setSelectedDayDate(null);
                     }}
-                    className="h-7 w-7 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-white dark:hover:bg-slate-900 text-slate-600 dark:text-slate-300"
+                    className="h-6 w-6 rounded-md border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-white dark:hover:bg-slate-900 text-slate-600 dark:text-slate-300 cursor-pointer"
                     title="Tuần trước"
                   >
-                    <ChevronLeft size={14} />
+                    <ChevronLeft size={13} />
                   </button>
                   <button
                     type="button"
@@ -683,17 +683,17 @@ function DashboardOverview() {
                       setWeekOffset((prev) => prev + 1);
                       setSelectedDayDate(null);
                     }}
-                    className="h-7 w-7 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-white dark:hover:bg-slate-900 text-slate-600 dark:text-slate-300"
+                    className="h-6 w-6 rounded-md border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-white dark:hover:bg-slate-900 text-slate-600 dark:text-slate-300 cursor-pointer"
                     title="Tuần tiếp theo"
                   >
-                    <ChevronRight size={14} />
+                    <ChevronRight size={13} />
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* 7 Days Interactive Buttons */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+            {/* 7 Days Interactive Buttons - Slim & Inline */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-1.5 sm:gap-2">
               {weekInfo.days.map((d) => {
                 const count = tripsCountByDate.get(d.dateStr) || 0;
                 const isSelected = selectedDayDate === d.dateStr;
@@ -703,30 +703,30 @@ function DashboardOverview() {
                     key={d.dateStr}
                     type="button"
                     onClick={() => setSelectedDayDate(isSelected ? null : d.dateStr)}
-                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    className={`py-1.5 px-2.5 rounded-lg border text-left transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-500/20'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
                         : d.isToday
-                          ? 'bg-blue-50/70 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800 text-slate-900 dark:text-slate-100'
+                          ? 'bg-blue-50/70 border-blue-200/90 dark:bg-blue-950/30 dark:border-blue-800 text-slate-900 dark:text-slate-100'
                           : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className={`text-xs font-bold ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>
+                      <span className={`text-[11px] font-bold ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>
                         {d.dayLabel}
                       </span>
                       {d.isToday && !isSelected && (
-                        <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.2 rounded font-bold">
+                        <span className="text-[9px] bg-blue-600 text-white px-1.5 py-0.2 rounded font-bold">
                           Hôm nay
                         </span>
                       )}
                     </div>
-                    <div className="mt-1 text-sm font-extrabold font-mono">
-                      {d.displayDate}
-                    </div>
-                    <div className="mt-2 flex items-center gap-1 text-[11px]">
+                    <div className="mt-1 flex items-baseline justify-between">
+                      <span className="text-xs font-extrabold font-mono">
+                        {d.displayDate}
+                      </span>
                       <span
-                        className={`px-1.5 py-0.5 rounded-md font-semibold text-[10px] ${
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
                           isSelected
                             ? 'bg-blue-700 text-white'
                             : count > 0
