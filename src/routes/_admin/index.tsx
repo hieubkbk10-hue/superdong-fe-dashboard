@@ -443,19 +443,9 @@ function DashboardOverview() {
       {/* Title & Refresh */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              Tổng Quan Vận Hành Superdong
-            </h1>
-            {!apiError && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                <CheckCircle2 size={13} /> Live System
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Điều hành các chuyến tàu thực tế, theo dõi lịch chạy thứ 2 — CN và quản lý doanh thu
-          </p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+            Tổng quan
+          </h1>
         </div>
 
         <div className="flex items-center gap-2">
