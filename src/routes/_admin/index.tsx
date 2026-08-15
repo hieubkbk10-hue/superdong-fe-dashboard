@@ -32,7 +32,7 @@ import { getRoutes } from '@/apis/journeys';
 import { getSchedules } from '@/apis/trips';
 import { Boat, Route as JourneyRoute, Schedule, Trip, TripStatus } from '@/types';
 import { Button } from '@/components/common/Button';
-import { SearchInput, FilterSelect, FilterOption } from '@/components/common/TableUtilities';
+import { SearchInput, FilterSelect, FilterOption, useTablePagination } from '@/components/common/TableUtilities';
 import { PaginationBar } from '@/components/common/PaginationBar';
 
 export const Route = createFileRoute('/_admin/')({
@@ -179,9 +179,14 @@ function DashboardOverview() {
   const [selectedRouteFilter, setSelectedRouteFilter] = useState<string>('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
 
-  // Table Pagination
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(10);
+  // Table Pagination with Zustand Persist (Nhớ pageSize khi F5)
+  const {
+    currentPage,
+    pageSize,
+    setCurrentPage,
+    onPageChange,
+    onPageSizeChange,
+  } = useTablePagination('dashboard_trips', 10);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -989,11 +994,8 @@ function DashboardOverview() {
                 currentPage={currentPage}
                 totalItems={filteredTrips.length}
                 pageSize={pageSize}
-                onPageChange={setCurrentPage}
-                onPageSizeChange={(newSize) => {
-                  setPageSize(newSize);
-                  setCurrentPage(1);
-                }}
+                onPageChange={onPageChange}
+                onPageSizeChange={onPageSizeChange}
               />
             )}
           </div>

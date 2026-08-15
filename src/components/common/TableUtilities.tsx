@@ -16,6 +16,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from './Button';
 import { PaginationBar } from './PaginationBar';
+import { useTablePreferencesStore } from '@/store/useTablePreferencesStore';
 
 /* ==========================================================================
    1. SearchInput - Component tìm kiếm từ khóa dùng chung
@@ -870,3 +871,28 @@ export function AdminTablePage<T>({
     </div>
   );
 }
+
+/* ==========================================================================
+   9. useTablePagination - Hook quản lý phân trang đồng bộ Zustand Persist
+   ========================================================================== */
+export function useTablePagination(tableKey: string = 'global', defaultPageSize: number = 10) {
+  const { tablePageSizes, defaultPageSize: globalDefault, setTablePageSize } = useTablePreferencesStore();
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const pageSize = tablePageSizes[tableKey] || globalDefault || defaultPageSize;
+
+  const handlePageSizeChange = (newSize: number) => {
+    setTablePageSize(tableKey, newSize);
+    setCurrentPage(1);
+  };
+
+  return {
+    currentPage,
+    pageSize,
+    setCurrentPage,
+    setPageSize: handlePageSizeChange,
+    onPageChange: setCurrentPage,
+    onPageSizeChange: handlePageSizeChange,
+  };
+}
+
