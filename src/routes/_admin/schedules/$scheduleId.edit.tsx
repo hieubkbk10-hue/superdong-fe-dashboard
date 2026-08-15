@@ -2,13 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import {
   Calendar,
+  CalendarPlus,
   ArrowLeft,
   Save,
   RefreshCw,
   Clock,
   Ship,
   AlertTriangle,
-  Sparkles,
   Layers,
   CheckCircle2,
   Lock,
@@ -423,7 +423,7 @@ function ScheduleEditPage() {
             }}
             className="h-9 px-3 text-xs font-semibold border-blue-200 bg-blue-50/50 hover:bg-blue-100 text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300 gap-1.5"
           >
-            <Sparkles size={14} className="text-blue-600 dark:text-blue-400" />
+            <CalendarPlus size={14} className="text-blue-600 dark:text-blue-400" />
             <span>Sinh Chuyến Theo Lịch</span>
           </Button>
 
@@ -615,7 +615,7 @@ function ScheduleEditPage() {
             onClick={() => setOpenGenerateModal(true)}
             className="text-xs font-semibold gap-1.5 self-start sm:self-auto"
           >
-            <Sparkles size={13} className="text-blue-600" />
+            <CalendarPlus size={14} className="text-blue-600 dark:text-blue-400" />
             Sinh thêm chuyến
           </Button>
         </div>
@@ -634,9 +634,9 @@ function ScheduleEditPage() {
               variant="primary"
               size="sm"
               onClick={() => setOpenGenerateModal(true)}
-              className="mt-3 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+              className="mt-3 text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
             >
-              <Sparkles size={13} className="mr-1.5" />
+              <CalendarPlus size={14} />
               Sinh Chuyến Ngay
             </Button>
           </div>

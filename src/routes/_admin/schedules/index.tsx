@@ -2,13 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import {
   Calendar,
+  CalendarPlus,
   Edit,
   Trash2,
   CheckCircle2,
   XCircle,
   Clock,
   Ship,
-  Sparkles,
   Info,
   Loader2,
   CalendarDays,
@@ -404,7 +404,7 @@ function SchedulesPage() {
             onClick={() => handleOpenGenerateModal(sch)}
             title="Sinh nhanh các chuyến tàu thực tế theo lịch chạy này"
           >
-            <Sparkles size={13} className="text-blue-600 dark:text-blue-400" />
+            <CalendarPlus size={14} className="text-blue-600 dark:text-blue-400" />
             <span>Sinh chuyến</span>
           </Button>
 
