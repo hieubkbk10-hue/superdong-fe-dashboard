@@ -17,8 +17,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { getSchedules, deleteSchedule, generateTripsFromSchedule, getTrips } from '@/apis/trips';
+import { getSchedules, deleteSchedule, generateTripsFromSchedule, getTrips, getAllTrips } from '@/apis/trips';
 import { getBoats } from '@/apis/boats';
+import { Boat, Schedule } from '@/types';
 import { Button } from '@/components/common/Button';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { AdminTablePage, ColumnDef } from '@/components/common/TableUtilities';
@@ -111,30 +112,35 @@ function SchedulesPage() {
     setLoading(true);
     setApiError(null);
     try {
-      const [schedulesRes, boatsRes, tripsRes] = await Promise.all([
+      const [schedulesRes, boatsRes, allTrips] = await Promise.all([
         getSchedules({ limit: 100 }),
         getBoats({ limit: 100 }),
-        getTrips({ limit: 500 }).catch(() => ({ data: [] })),
+        getAllTrips(),
       ]);
 
-      const boatsMap = new Map((boatsRes?.data || []).map((b: any) => [String(b.id), b]));
-      const allTrips = Array.isArray(tripsRes?.data) ? tripsRes.data : [];
+      const boatsMap = new Map<string, Boat>((boatsRes?.data || []).map((b: any) => [String(b.id), b]));
 
       // Calculate upcoming active trips per schedule
-      const todayStart = new Date().setHours(0, 0, 0, 0);
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
       const activeTripsMap = new Map<string, number>();
 
       allTrips.forEach((t: any) => {
         if (!t.schedule_id) return;
         const schId = String(t.schedule_id);
         const startStr = t.start_at || t.departure_time;
-        if (!startStr) return;
 
-        const tripTime = new Date(startStr).getTime();
-        const isUpcoming = tripTime >= todayStart;
+        // Trip counts if not cancelled or completed
         const isNotClosedOrCancelled = t.status !== 'cancelled' && t.status !== 'completed';
+        if (!isNotClosedOrCancelled) return;
 
-        if (isUpcoming && isNotClosedOrCancelled) {
+        if (startStr) {
+          const tripTime = new Date(startStr).getTime();
+          const isUpcoming = Number.isNaN(tripTime) || tripTime >= todayStart;
+          if (isUpcoming) {
+            activeTripsMap.set(schId, (activeTripsMap.get(schId) || 0) + 1);
+          }
+        } else {
           activeTripsMap.set(schId, (activeTripsMap.get(schId) || 0) + 1);
         }
       });

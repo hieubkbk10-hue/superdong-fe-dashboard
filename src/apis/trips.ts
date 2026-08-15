@@ -54,11 +54,44 @@ function normalizePayload(data?: TripActionPayload | string): TripActionPayload 
 }
 
 /**
- * LOGIC: Lấy danh sách chuyến tàu thực tế (hỗ trợ lọc theo schedule_id, route_id, boat_id, status, start_from, start_to)
+ * LOGIC: Lấy danh sách chuyến tàu thực tế (giới hạn limit tối đa 100 theo rule Backend)
  */
 export async function getTrips(params?: Record<string, any>): Promise<PaginatedResponse<Trip>> {
-  const response = await api.get<PaginatedResponse<Trip>>('/trips', { params });
+  const safeParams = { ...params };
+  if (safeParams.limit) {
+    safeParams.limit = Math.min(Math.max(Number(safeParams.limit) || 10, 1), 100);
+  }
+  const response = await api.get<PaginatedResponse<Trip>>('/trips', { params: safeParams });
   return response.data;
+}
+
+/**
+ * LOGIC: Lấy toàn bộ chuyến tàu thực tế (tự động phân trang an toàn)
+ */
+export async function getAllTrips(params?: Record<string, any>): Promise<Trip[]> {
+  try {
+    const firstRes = await getTrips({ ...params, limit: 100, page: 1 });
+    const list: Trip[] = Array.isArray(firstRes?.data) ? [...firstRes.data] : [];
+    const totalPages = firstRes?.meta?.pagination?.total_pages || 1;
+
+    if (totalPages > 1) {
+      const promises = [];
+      for (let p = 2; p <= Math.min(totalPages, 10); p++) {
+        promises.push(getTrips({ ...params, limit: 100, page: p }).catch(() => null));
+      }
+      const results = await Promise.all(promises);
+      results.forEach((r) => {
+        if (r?.data && Array.isArray(r.data)) {
+          list.push(...r.data);
+        }
+      });
+    }
+
+    return list;
+  } catch (err) {
+    console.error('getAllTrips error:', err);
+    return [];
+  }
 }
 
 /**
@@ -266,6 +299,7 @@ export async function deleteSchedule(id: string | number, data?: { reason?: stri
 
 export default {
   getTrips,
+  getAllTrips,
   findTrip,
   createTrip,
   deleteTrip,

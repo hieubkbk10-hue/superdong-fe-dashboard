@@ -27,6 +27,7 @@ import {
   findSchedule,
   updateSchedule,
   getTrips,
+  getAllTrips,
   generateTripsFromSchedule,
   openTripForSale,
   closeTripForSale,
@@ -175,11 +176,11 @@ function ScheduleEditPage() {
     setLoading(true);
     setApiError(null);
     try {
-      const [scheduleRes, routesRes, boatsRes, tripsRes] = await Promise.all([
+      const [scheduleRes, routesRes, boatsRes, allTrips] = await Promise.all([
         findSchedule(scheduleId),
         getRoutes({ limit: 100 }),
         getBoats({ limit: 100 }),
-        getTrips({ limit: 500 }).catch(() => ({ data: [] })),
+        getAllTrips(),
       ]);
 
       if (routesRes?.data && Array.isArray(routesRes.data)) {
@@ -230,24 +231,27 @@ function ScheduleEditPage() {
       }
 
       // Filter upcoming trips related to this schedule
-      const todayStart = new Date().setHours(0, 0, 0, 0);
-      const allTrips = Array.isArray(tripsRes?.data) ? tripsRes.data : [];
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
-      const activeFiltered = allTrips
+      const activeFiltered = (allTrips || [])
         .filter((t: any) => {
           const matchesSchedule = String(t.schedule_id || '') === String(scheduleId);
           if (!matchesSchedule) return false;
           const startStr = t.start_at || t.departure_time;
-          if (!startStr) return false;
 
-          const tripTime = new Date(startStr).getTime();
-          const isNotExpired = tripTime >= todayStart;
-          const isNotCancelled = t.status !== 'cancelled';
-          return isNotExpired && isNotCancelled;
+          const isNotCancelledOrCompleted = t.status !== 'cancelled' && t.status !== 'completed';
+          if (!isNotCancelledOrCompleted) return false;
+
+          if (startStr) {
+            const tripTime = new Date(startStr).getTime();
+            return Number.isNaN(tripTime) || tripTime >= todayStart;
+          }
+          return true;
         })
         .sort((a: any, b: any) => {
-          const timeA = new Date(a.start_at || a.departure_time).getTime();
-          const timeB = new Date(b.start_at || b.departure_time).getTime();
+          const timeA = new Date(a.start_at || a.departure_time).getTime() || 0;
+          const timeB = new Date(b.start_at || b.departure_time).getTime() || 0;
           return timeA - timeB;
         });
 
