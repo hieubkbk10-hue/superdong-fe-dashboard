@@ -450,76 +450,73 @@ function SchedulesPage() {
         onPageSizeChange={setPageSize}
       />
 
-      {/* Modal: Sinh chuyến hàng loạt từ Schedule (Giao diện chuẩn chỉ, tối giản, thanh lịch) */}
+      {/* Modal: Sinh chuyến hàng loạt từ Schedule (To, thoáng, tối giản, chuyên nghiệp) */}
       <Dialog open={!!generateTarget} onOpenChange={(open) => !open && setGenerateTarget(null)}>
-        <DialogContent className="max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-xl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <div className="h-7 w-7 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200/60 dark:border-blue-800/60">
-                <Sparkles size={15} />
-              </div>
+        <DialogContent className="sm:max-w-xl md:max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 rounded-2xl shadow-2xl">
+          <DialogHeader className="space-y-1.5 pb-2">
+            <DialogTitle className="text-lg font-bold text-slate-900 dark:text-white">
               Sinh Chuyến Tàu Theo Lịch Định Kỳ
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <DialogDescription className="text-sm text-slate-500 dark:text-slate-400">
               Hệ thống sẽ đối chiếu thứ trong tuần của lịch để sinh chuyến thực tế và tự động khởi tạo sơ đồ ghế trống.
             </DialogDescription>
           </DialogHeader>
 
           {generateTarget && (
-            <div className="space-y-4 py-2 text-xs">
+            <div className="space-y-5 py-3 text-sm">
               {/* Summary Card */}
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Mã & Tuyến:</span>
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">
-                    <span className="font-mono text-blue-600 dark:text-blue-400 font-bold mr-1.5">{generateTarget.code}</span>
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200/80 dark:border-slate-700/80 space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <span className="text-xs text-slate-500 font-medium">Mã & Tuyến chạy:</span>
+                  <span className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
+                    <span className="font-mono text-blue-600 dark:text-blue-400 font-bold mr-2">{generateTarget.code}</span>
                     {generateTarget.journey}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Giờ xuất bến & Tàu:</span>
-                  <span className="font-medium text-slate-800 dark:text-slate-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <span className="text-xs text-slate-500 font-medium">Giờ xuất bến & Tàu phụ trách:</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200 text-sm">
                     {generateTarget.departureTime} — {generateTarget.boatName}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Tần suất áp dụng:</span>
-                  <span className="font-medium text-slate-800 dark:text-slate-200">{generateTarget.operatingDays}</span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <span className="text-xs text-slate-500 font-medium">Tần suất áp dụng:</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200 text-sm">{generateTarget.operatingDays}</span>
                 </div>
               </div>
 
               {/* Date Range Selection */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Khoảng thời gian sinh chuyến</Label>
-                  <div className="flex items-center gap-1">
+                  <Label className="text-sm font-semibold text-slate-800 dark:text-slate-200">Khoảng thời gian sinh chuyến</Label>
+                  <div className="flex items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => setToDate(getFutureDateString(7))}
-                      className="px-1.5 py-0.5 text-[10px] rounded border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     >
                       +7 ngày
                     </button>
                     <button
                       type="button"
                       onClick={() => setToDate(getFutureDateString(14))}
-                      className="px-1.5 py-0.5 text-[10px] rounded border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     >
                       +14 ngày
                     </button>
                     <button
                       type="button"
                       onClick={() => setToDate(getFutureDateString(30))}
-                      className="px-1.5 py-0.5 text-[10px] rounded border border-blue-200 bg-blue-50/50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300"
+                      className="px-2.5 py-1 text-xs font-medium rounded-lg border border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 font-semibold"
                     >
                       +30 ngày
                     </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="from_date" className="text-[11px] text-slate-500 mb-1 block">
+                    <Label htmlFor="from_date" className="text-xs text-slate-500 font-medium mb-1.5 block">
                       Từ ngày
                     </Label>
                     <Input
@@ -527,11 +524,11 @@ function SchedulesPage() {
                       type="date"
                       value={fromDate}
                       onChange={(e) => setFromDate(e.target.value)}
-                      className="h-9 text-xs"
+                      className="h-10 text-sm rounded-lg"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="to_date" className="text-[11px] text-slate-500 mb-1 block">
+                    <Label htmlFor="to_date" className="text-xs text-slate-500 font-medium mb-1.5 block">
                       Đến ngày
                     </Label>
                     <Input
@@ -539,7 +536,7 @@ function SchedulesPage() {
                       type="date"
                       value={toDate}
                       onChange={(e) => setToDate(e.target.value)}
-                      className="h-9 text-xs"
+                      className="h-10 text-sm rounded-lg"
                     />
                   </div>
                 </div>
@@ -547,7 +544,7 @@ function SchedulesPage() {
 
               {/* Reason */}
               <div>
-                <Label htmlFor="generate_reason" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <Label htmlFor="generate_reason" className="text-sm font-semibold text-slate-800 dark:text-slate-200 block mb-1.5">
                   Ghi chú / Lý do khởi tạo
                 </Label>
                 <Input
@@ -555,13 +552,13 @@ function SchedulesPage() {
                   type="text"
                   value={generateReason}
                   onChange={(e) => setGenerateReason(e.target.value)}
-                  placeholder="Nhập lý do tạo chuyến..."
-                  className="mt-1.5 h-9 text-xs"
+                  placeholder="Ví dụ: Khởi tạo chuyến theo lịch định kỳ tháng tới..."
+                  className="h-10 text-sm rounded-lg"
                 />
               </div>
 
               {/* Publish option */}
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex items-center gap-2.5 pt-1">
                 <input
                   id="publish_immediate"
                   type="checkbox"
@@ -569,36 +566,32 @@ function SchedulesPage() {
                   onChange={(e) => setPublishImmediate(e.target.checked)}
                   className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer border-slate-300"
                 />
-                <Label htmlFor="publish_immediate" className="text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
-                  Mở bán vé ngay sau khi sinh (Trạng thái <span className="font-semibold text-emerald-600">selling</span>)
+                <Label htmlFor="publish_immediate" className="text-sm text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+                  Mở bán vé ngay sau khi sinh (Trạng thái <span className="font-semibold text-emerald-600 dark:text-emerald-400">selling</span>)
                 </Label>
               </div>
 
-              <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 text-slate-600 dark:text-slate-400 p-2.5 rounded-lg flex items-start gap-2 text-[11px]">
-                <Info size={14} className="shrink-0 mt-0.5 text-blue-500" />
-                <span>Backend sẽ tự động bỏ qua chuyến nếu đã được sinh trước đó để tránh trùng lặp dữ liệu.</span>
+              <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/70 text-slate-600 dark:text-slate-400 p-3 rounded-xl text-xs leading-relaxed">
+                Hệ thống sẽ tự động đối chiếu các ngày trong khoảng thời gian trên với thứ hoạt động của lịch. Các chuyến đã tạo trước đó sẽ được tự động bỏ qua để tránh trùng lặp.
               </div>
             </div>
           )}
 
-          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <DialogFooter className="gap-3 sm:gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
             <Button
               variant="outline"
-              size="sm"
               onClick={() => setGenerateTarget(null)}
               disabled={isGenerating}
-              className="text-xs"
+              className="h-10 px-5 text-sm font-medium"
             >
               Hủy bỏ
             </Button>
             <Button
               variant="primary"
-              size="sm"
               onClick={handleExecuteGenerateTrips}
               disabled={isGenerating}
-              className="text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
+              className="h-10 px-6 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
             >
-              {isGenerating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
               {isGenerating ? 'Đang khởi tạo...' : 'Xác Nhận Sinh Chuyến'}
             </Button>
           </DialogFooter>
