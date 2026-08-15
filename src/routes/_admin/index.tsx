@@ -151,8 +151,7 @@ const statusConfig: Record<TripStatus, { label: string; badgeClass: string; icon
   },
 };
 
-type PeriodPreset = 'this_week' | 'next_week' | 'this_month' | 'next_month' | 'all_upcoming' | 'past' | 'all';
-type ViewMode = 'calendar' | 'table';
+import { useDashboardStore, PeriodPreset, ViewMode } from '@/store/useDashboardStore';
 
 function DashboardOverview() {
   const [loading, setLoading] = useState(true);
@@ -170,11 +169,12 @@ function DashboardOverview() {
   const [activeTripsCount, setActiveTripsCount] = useState<number>(0);
   const [totalPassengers, setTotalPassengers] = useState<number>(0);
 
-  // Filter & Display States
-  const [period, setPeriod] = useState<PeriodPreset>('this_week');
+  // Zustand Persisted Dashboard Preferences
+  const { period, viewMode, setPeriod, setViewMode } = useDashboardStore();
+
+  // Local Filter & Display States
   const [selectedDayDate, setSelectedDayDate] = useState<string | null>(null);
   const [weekOffset, setWeekOffset] = useState<number>(0); // 0 = current week, 1 = next week, -1 = prev week
-  const [viewMode, setViewMode] = useState<ViewMode>('calendar');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedRouteFilter, setSelectedRouteFilter] = useState<string>('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
@@ -552,20 +552,20 @@ function DashboardOverview() {
           <div>
             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Calendar className="text-blue-600 h-5 w-5" />
-              Lịch Khởi Hành & Điều Hành Chuyến Tàu
+              Lịch tàu chạy
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Theo dõi toàn bộ chuyến tàu theo thứ 2 — Chủ Nhật, lọc theo tuần, tháng và quản lý trạng thái xuất bến
+            <p className="text-xs text-slate-500 mt-0.5 font-medium">
+              Tổng cộng <span className="font-bold text-blue-600 dark:text-blue-400">{filteredTrips.length}</span> chuyến
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Period Filter Chips */}
             <div className="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1 text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => handlePeriodChange('this_week')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                   period === 'this_week'
                     ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -576,7 +576,7 @@ function DashboardOverview() {
               <button
                 type="button"
                 onClick={() => handlePeriodChange('next_week')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                   period === 'next_week'
                     ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -587,7 +587,7 @@ function DashboardOverview() {
               <button
                 type="button"
                 onClick={() => handlePeriodChange('this_month')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                   period === 'this_month'
                     ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -598,7 +598,7 @@ function DashboardOverview() {
               <button
                 type="button"
                 onClick={() => handlePeriodChange('next_month')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                   period === 'next_month'
                     ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -609,7 +609,7 @@ function DashboardOverview() {
               <button
                 type="button"
                 onClick={() => handlePeriodChange('all_upcoming')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                   period === 'all_upcoming'
                     ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -620,7 +620,7 @@ function DashboardOverview() {
               <button
                 type="button"
                 onClick={() => handlePeriodChange('past')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                   period === 'past'
                     ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -630,33 +630,31 @@ function DashboardOverview() {
               </button>
             </div>
 
-            {/* View Mode Toggle */}
+            {/* View Mode Toggle - Icon only (Bảng chi tiết vs Thẻ lịch) */}
             <div className="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1 text-xs">
               <button
                 type="button"
-                onClick={() => setViewMode('calendar')}
-                className={`p-1.5 rounded-lg transition-all flex items-center gap-1 font-medium ${
-                  viewMode === 'calendar'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
+                onClick={() => setViewMode('table')}
+                className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
+                  viewMode === 'table'
+                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
-                title="Xem dạng thẻ lịch theo ngày"
+                title="Bảng Chi Tiết"
               >
-                <LayoutGrid size={15} />
-                <span className="hidden sm:inline">Thẻ Lịch</span>
+                <TableIcon size={16} />
               </button>
               <button
                 type="button"
-                onClick={() => setViewMode('table')}
-                className={`p-1.5 rounded-lg transition-all flex items-center gap-1 font-medium ${
-                  viewMode === 'table'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
+                onClick={() => setViewMode('calendar')}
+                className={`p-1.5 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
+                  viewMode === 'calendar'
+                    ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
-                title="Xem dạng bảng dữ liệu chi tiết"
+                title="Thẻ Lịch theo ngày"
               >
-                <TableIcon size={15} />
-                <span className="hidden sm:inline">Bảng Chi Tiết</span>
+                <LayoutGrid size={16} />
               </button>
             </div>
           </div>
