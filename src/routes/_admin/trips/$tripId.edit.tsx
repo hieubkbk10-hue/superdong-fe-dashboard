@@ -252,9 +252,10 @@ function TripEditPage() {
         <button
           type="button"
           onClick={hydrateTrip}
-          className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+          className="h-9 w-9 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center cursor-pointer"
+          title="Làm mới dữ liệu"
         >
-          <RotateCcw size={14} /> Làm mới
+          <RotateCcw size={15} />
         </button>
       </div>
 

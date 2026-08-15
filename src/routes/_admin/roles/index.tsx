@@ -227,9 +227,8 @@ function RolesPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="light" size="sm" className="h-8 gap-1.5" onClick={() => fetchRoles(true)} disabled={refreshing}>
+          <Button variant="light" size="icon" className="h-8 w-8" onClick={() => fetchRoles(true)} disabled={refreshing} title="Làm mới dữ liệu">
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-            Làm mới
           </Button>
           <Button variant="primary" size="sm" className="h-8 gap-1.5" asChild>
             <Link to={'/roles/create' as any}>

@@ -232,10 +232,10 @@ function SettingsPage() {
           <button
             onClick={fetchSettings}
             disabled={loading}
-            className="h-10 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+            className="h-10 w-10 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-700 dark:text-slate-200 flex items-center justify-center cursor-pointer shadow-xs"
+            title="Làm mới dữ liệu"
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            Làm mới
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
           </button>
           <button
             onClick={handleSave}

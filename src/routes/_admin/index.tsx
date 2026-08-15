@@ -456,12 +456,13 @@ function DashboardOverview() {
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
+            size="icon"
             onClick={fetchDashboardData}
             disabled={loading}
-            className="h-8 px-3 text-xs font-semibold gap-1.5"
+            className="h-8 w-8 text-slate-700 dark:text-slate-200"
+            title="Làm mới dữ liệu"
           >
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-            Làm mới dữ liệu
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </Button>
           <Button variant="primary" className="h-8 px-3 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white" asChild>
             <Link to="/trips/create">

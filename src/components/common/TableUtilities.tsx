@@ -482,14 +482,13 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         <Button
           type="button"
           variant="outline"
-          size="sm"
+          size="icon"
           onClick={onRefresh}
           disabled={refreshing}
-          className="gap-1.5 h-9 text-xs sm:text-sm font-medium border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+          className="h-9 w-9 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
           title="Làm mới dữ liệu"
         >
-          <RefreshCw size={14} className={cn('text-slate-500 dark:text-slate-400', refreshing && 'animate-spin')} />
-          <span>Làm mới</span>
+          <RefreshCw size={15} className={cn('text-slate-500 dark:text-slate-400', refreshing && 'animate-spin')} />
         </Button>
       )}
 
