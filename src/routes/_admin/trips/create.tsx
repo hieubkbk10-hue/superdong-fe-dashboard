@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { Ship, ArrowLeft, Save, Calendar, Clock, Route as RouteIcon, Phone, AlertCircle, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Ship, ArrowLeft, Save, RotateCcw, Clock, Calendar, Phone, CheckCircle2, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { createTrip, getSchedules } from '@/apis/trips';
 import { getRoutes } from '@/apis/journeys';
 import { getBoats } from '@/apis/boats';
 import { Boat, Route as JourneyRoute, Schedule, TripStatus } from '@/types';
-import { Button } from '@/components/common/Button';
 
 export const Route = createFileRoute('/_admin/trips/create')({
   component: TripCreatePage,
@@ -22,29 +21,53 @@ function getTodayDateTime() {
   };
 }
 
+interface TripCreateFormData {
+  createMode: 'schedule' | 'manual';
+  selectedScheduleId: string;
+  selectedRouteId: string;
+  selectedBoatId: string;
+  departureDate: string;
+  departureTime: string;
+  arrivalDate: string;
+  arrivalTime: string;
+  status: TripStatus;
+  shuttlePhone: string;
+}
+
+const emptyForm: TripCreateFormData = {
+  createMode: 'manual',
+  selectedScheduleId: '',
+  selectedRouteId: '',
+  selectedBoatId: '',
+  departureDate: getTodayDateTime().date,
+  departureTime: '08:00',
+  arrivalDate: getTodayDateTime().date,
+  arrivalTime: '10:30',
+  status: 'selling',
+  shuttlePhone: '',
+};
+
+const draftKey = 'superdong_trip_draft_create';
+
 function TripCreatePage() {
   const navigate = useNavigate();
-  const init = getTodayDateTime();
 
-  const [createMode, setCreateMode] = useState<'schedule' | 'manual'>('manual');
+  const [formData, setFormData] = useState<TripCreateFormData>(() => {
+    try {
+      const saved = localStorage.getItem(draftKey);
+      return saved ? { ...emptyForm, ...JSON.parse(saved) } : emptyForm;
+    } catch {
+      return emptyForm;
+    }
+  });
+
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [routes, setRoutes] = useState<JourneyRoute[]>([]);
   const [boats, setBoats] = useState<Boat[]>([]);
   const [loadingData, setLoadingData] = useState(true);
-
-  // Form Fields
-  const [selectedScheduleId, setSelectedScheduleId] = useState('');
-  const [selectedRouteId, setSelectedRouteId] = useState('');
-  const [selectedBoatId, setSelectedBoatId] = useState('');
-  const [departureDate, setDepartureDate] = useState(init.date);
-  const [departureTime, setDepartureTime] = useState(init.startTime);
-  const [arrivalDate, setArrivalDate] = useState(init.date);
-  const [arrivalTime, setArrivalTime] = useState(init.endTime);
-  const [status, setStatus] = useState<TripStatus>('selling');
-  const [reason, setReason] = useState('Khởi tạo chuyến tàu vận tải hành khách từ Dashboard');
-  const [shuttlePhone, setShuttlePhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Dynamic API Fetching
   useEffect(() => {
     const fetchData = async () => {
       setLoadingData(true);
@@ -57,20 +80,20 @@ function TripCreatePage() {
 
         if (routesRes?.data && Array.isArray(routesRes.data)) {
           setRoutes(routesRes.data);
-          if (routesRes.data.length > 0) {
-            setSelectedRouteId(String(routesRes.data[0].id));
+          if (!formData.selectedRouteId && routesRes.data.length > 0) {
+            setFormData((prev) => ({ ...prev, selectedRouteId: String(routesRes.data[0].id) }));
           }
         }
         if (boatsRes?.data && Array.isArray(boatsRes.data)) {
           setBoats(boatsRes.data);
-          if (boatsRes.data.length > 0) {
-            setSelectedBoatId(String(boatsRes.data[0].id));
+          if (!formData.selectedBoatId && boatsRes.data.length > 0) {
+            setFormData((prev) => ({ ...prev, selectedBoatId: String(boatsRes.data[0].id) }));
           }
         }
         if (schedulesRes?.data && Array.isArray(schedulesRes.data)) {
           setSchedules(schedulesRes.data);
-          if (schedulesRes.data.length > 0) {
-            setSelectedScheduleId(String(schedulesRes.data[0].id));
+          if (!formData.selectedScheduleId && schedulesRes.data.length > 0) {
+            setFormData((prev) => ({ ...prev, selectedScheduleId: String(schedulesRes.data[0].id) }));
           }
         }
       } catch (err) {
@@ -82,33 +105,60 @@ function TripCreatePage() {
     fetchData();
   }, []);
 
-  // When Schedule is selected, auto-fill route and boat
-  const handleScheduleChange = (schId: string) => {
-    setSelectedScheduleId(schId);
-    const found = schedules.find((s) => String(s.id) === schId);
-    if (found) {
-      if (found.route_id) setSelectedRouteId(String(found.route_id));
-      if (found.boat_id) setSelectedBoatId(String(found.boat_id));
-      if (found.start_time) setDepartureTime(found.start_time.slice(0, 5));
-      if (found.end_time) setArrivalTime(found.end_time.slice(0, 5));
+  // Form draft persistence
+  useEffect(() => {
+    if (!loadingData) {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(formData));
+      } catch {}
     }
+  }, [formData, loadingData]);
+
+  const updateField = <K extends keyof TripCreateFormData>(field: K, value: TripCreateFormData[K]) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleClearData = () => {
+    localStorage.removeItem(draftKey);
+    const today = getTodayDateTime();
+    setFormData({
+      ...emptyForm,
+      departureDate: today.date,
+      arrivalDate: today.date,
+      selectedRouteId: routes.length > 0 ? String(routes[0].id) : '',
+      selectedBoatId: boats.length > 0 ? String(boats[0].id) : '',
+      selectedScheduleId: schedules.length > 0 ? String(schedules[0].id) : '',
+    });
+    toast.success('Đã làm sạch dữ liệu form tạo chuyến');
+  };
+
+  const handleScheduleChange = (schId: string) => {
+    const found = schedules.find((s) => String(s.id) === schId);
+    setFormData((prev) => ({
+      ...prev,
+      selectedScheduleId: schId,
+      selectedRouteId: found?.route_id ? String(found.route_id) : prev.selectedRouteId,
+      selectedBoatId: found?.boat_id ? String(found.boat_id) : prev.selectedBoatId,
+      departureTime: found?.start_time ? found.start_time.slice(0, 5) : prev.departureTime,
+      arrivalTime: found?.end_time ? found.end_time.slice(0, 5) : prev.arrivalTime,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (createMode === 'manual' && (!selectedRouteId || !selectedBoatId)) {
+    if (formData.createMode === 'manual' && (!formData.selectedRouteId || !formData.selectedBoatId)) {
       toast.error('Vui lòng chọn Tuyến hải trình và Tàu đảm nhận');
       return;
     }
 
-    if (!departureDate || !departureTime || !arrivalDate || !arrivalTime) {
+    if (!formData.departureDate || !formData.departureTime || !formData.arrivalDate || !formData.arrivalTime) {
       toast.error('Vui lòng nhập đầy đủ ngày và giờ khởi hành / cập bến');
       return;
     }
 
-    const startAt = `${departureDate} ${departureTime.length === 5 ? departureTime + ':00' : departureTime}`;
-    const endAt = `${arrivalDate} ${arrivalTime.length === 5 ? arrivalTime + ':00' : arrivalTime}`;
+    const startAt = `${formData.departureDate} ${formData.departureTime.length === 5 ? formData.departureTime + ':00' : formData.departureTime}`;
+    const endAt = `${formData.arrivalDate} ${formData.arrivalTime.length === 5 ? formData.arrivalTime + ':00' : formData.arrivalTime}`;
 
     if (new Date(startAt) >= new Date(endAt)) {
       toast.error('Thời điểm khởi hành phải trước thời điểm cập bến');
@@ -119,27 +169,28 @@ function TripCreatePage() {
     setIsSubmitting(true);
 
     try {
-      if (createMode === 'schedule') {
+      if (formData.createMode === 'schedule') {
         await createTrip({
-          schedule_id: selectedScheduleId,
+          schedule_id: formData.selectedScheduleId,
           start_at: startAt,
           end_at: endAt,
-          status,
-          reason: reason.trim() || 'Tạo chuyến từ lịch chạy cố định',
-          shuttle_phone: shuttlePhone.trim() || undefined,
+          status: formData.status,
+          reason: 'Khởi tạo chuyến từ lịch chạy cố định',
+          shuttle_phone: formData.shuttlePhone.trim() || undefined,
         });
       } else {
         await createTrip({
-          route_id: selectedRouteId,
-          boat_id: selectedBoatId,
+          route_id: formData.selectedRouteId,
+          boat_id: formData.selectedBoatId,
           start_at: startAt,
           end_at: endAt,
-          status,
-          reason: reason.trim() || 'Tạo chuyến vận tải mới',
-          shuttle_phone: shuttlePhone.trim() || undefined,
+          status: formData.status,
+          reason: 'Khởi tạo chuyến tàu vận hành mới từ dashboard',
+          shuttle_phone: formData.shuttlePhone.trim() || undefined,
         });
       }
 
+      localStorage.removeItem(draftKey);
       toast.success('Đã khởi tạo chuyến tàu mới thành công! Kho ghế đã được tự động kích hoạt.');
       navigate({ to: '/trips' as any });
     } catch (err: any) {
@@ -152,141 +203,176 @@ function TripCreatePage() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl font-sans">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 w-full font-sans">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Link
             to={'/trips' as any}
+            onClick={() => localStorage.removeItem(draftKey)}
             className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-            title="Quay lại danh sách chuyến"
+            title="Quay lại danh sách chuyến tàu"
           >
             <ArrowLeft size={18} />
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Ship className="h-6 w-6 text-blue-600" />
-              Mở Chuyến Tàu Thực Tế Mới
+              Khởi Tạo Chuyến Tàu Mới
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
-              Khởi tạo chuyến tàu vận tải hành khách thực tế để bắt đầu mở bán vé trên hệ thống
+              Thiết lập thông tin chuyến tàu thực tế, luồng tuyến và phân công tàu vận hành.
             </p>
           </div>
         </div>
-      </div>
 
-      {/* Mode Selector */}
-      <div className="flex rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900 p-1">
         <button
           type="button"
-          onClick={() => setCreateMode('manual')}
-          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-            createMode === 'manual'
-              ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-          }`}
+          onClick={handleClearData}
+          disabled={loadingData}
+          className="h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 cursor-pointer disabled:opacity-60"
         >
-          Mode 1: Tạo Chuyến Thủ Công (Tùy chọn Tuyến & Tàu)
-        </button>
-        <button
-          type="button"
-          onClick={() => setCreateMode('schedule')}
-          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-            createMode === 'schedule'
-              ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-          }`}
-        >
-          Mode 2: Kế Thừa Từ Lịch Chạy Định Kỳ (Schedule)
+          <RotateCcw size={14} /> Làm sạch dữ liệu
         </button>
       </div>
 
-      {/* Form Card */}
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-6"
-      >
-        {createMode === 'schedule' && (
+      {/* Main Single Card Form */}
+      <form onSubmit={handleSubmit} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        {/* Section I */}
+        <div className="px-5 py-3 bg-[#EBF7FA] border-b border-cyan-100 text-sm font-bold text-slate-800 uppercase">
+          I. Hình thức & Tuyến hải trình
+        </div>
+        <div className="p-6 space-y-5">
+          {/* Mode Selector */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Chọn Lịch Chạy Định Kỳ Mẫu <span className="text-red-500">*</span>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+              Phương thức khởi tạo chuyến
             </label>
-            <select
-              value={selectedScheduleId}
-              onChange={(e) => handleScheduleChange(e.target.value)}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-            >
-              {schedules.map((sch) => (
-                <option key={sch.id} value={String(sch.id)}>
-                  {sch.name || `SCH-${sch.id}`} ({sch.start_time?.slice(0, 5)} - {sch.end_time?.slice(0, 5)})
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Tuyến Hải Trình <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <RouteIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <select
-                value={selectedRouteId}
-                onChange={(e) => setSelectedRouteId(e.target.value)}
-                disabled={createMode === 'schedule'}
-                className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none disabled:opacity-60"
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => updateField('createMode', 'manual')}
+                className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                  formData.createMode === 'manual'
+                    ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/30 ring-1 ring-blue-600'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
               >
-                {routes.map((r) => (
-                  <option key={r.id} value={String(r.id)}>
-                    {r.name || r.code}
+                <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 shrink-0">
+                  <Ship size={18} />
+                </div>
+                <div>
+                  <div className="font-bold text-sm text-slate-900 dark:text-white">Tạo chuyến tàu độc lập</div>
+                  <div className="text-xs text-slate-500 mt-0.5">Tự chọn tuyến hải trình, tàu và khung giờ cụ thể</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => updateField('createMode', 'schedule')}
+                className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                  formData.createMode === 'schedule'
+                    ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/30 ring-1 ring-blue-600'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 shrink-0">
+                  <Layers size={18} />
+                </div>
+                <div>
+                  <div className="font-bold text-sm text-slate-900 dark:text-white">Theo lịch mẫu định kỳ</div>
+                  <div className="text-xs text-slate-500 mt-0.5">Kế thừa tuyến, tàu và khung giờ cố định từ Lịch mẫu</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Schedule Mode */}
+          {formData.createMode === 'schedule' ? (
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Chọn Lịch Mẫu Cố Định <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.selectedScheduleId}
+                onChange={(e) => handleScheduleChange(e.target.value)}
+                disabled={loadingData}
+                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
+              >
+                {schedules.map((s) => (
+                  <option key={s.id} value={String(s.id)}>
+                    {s.name} (Khởi hành: {s.start_time?.slice(0, 5)} ➔ {s.end_time?.slice(0, 5)})
                   </option>
                 ))}
               </select>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Tuyến hải trình khai thác <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.selectedRouteId}
+                  onChange={(e) => updateField('selectedRouteId', e.target.value)}
+                  disabled={loadingData}
+                  className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
+                >
+                  <option value="">-- Chọn tuyến hải trình --</option>
+                  {routes.map((r) => (
+                    <option key={r.id} value={String(r.id)}>
+                      {r.name || r.code} {r.code ? `(${r.code})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Tàu Phân Công Khai Thác <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <Ship size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <select
-                value={selectedBoatId}
-                onChange={(e) => setSelectedBoatId(e.target.value)}
-                disabled={createMode === 'schedule'}
-                className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none disabled:opacity-60"
-              >
-                {boats.map((b) => (
-                  <option key={b.id} value={String(b.id)}>
-                    {b.name} {b.code ? `(${b.code})` : ''} - {b.total_capacity || 300} chỗ
-                  </option>
-                ))}
-              </select>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Tàu đảm nhận phục vụ <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Ship size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <select
+                    value={formData.selectedBoatId}
+                    onChange={(e) => updateField('selectedBoatId', e.target.value)}
+                    disabled={loadingData}
+                    className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
+                  >
+                    <option value="">-- Chọn tàu phục vụ --</option>
+                    {boats.map((b) => (
+                      <option key={b.id} value={String(b.id)}>
+                        {b.name} {b.code ? `(${b.code})` : ''} — {b.total_capacity || 300} chỗ
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+        </div>
 
+        {/* Section II */}
+        <div className="px-5 py-3 bg-[#EBF7FA] border-y border-cyan-100 text-sm font-bold text-slate-800 uppercase">
+          II. Lịch trình khởi hành & Cập bến
+        </div>
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Ngày Khởi Hành & Giờ Xuất Bến <span className="text-red-500">*</span>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Ngày & Giờ khởi hành xuất bến <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-2 gap-2">
               <input
                 type="date"
-                value={departureDate}
-                onChange={(e) => {
-                  setDepartureDate(e.target.value);
-                  setArrivalDate(e.target.value);
-                }}
+                value={formData.departureDate}
+                onChange={(e) => updateField('departureDate', e.target.value)}
                 className="h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-mono focus:border-blue-500 outline-none"
                 required
               />
               <input
                 type="time"
-                value={departureTime}
-                onChange={(e) => setDepartureTime(e.target.value)}
+                value={formData.departureTime}
+                onChange={(e) => updateField('departureTime', e.target.value)}
                 className="h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-mono focus:border-blue-500 outline-none"
                 required
               />
@@ -294,93 +380,83 @@ function TripCreatePage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Ngày & Giờ Cập Bến Dự Kiến <span className="text-red-500">*</span>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Ngày & Giờ cập bến dự kiến <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-2 gap-2">
               <input
                 type="date"
-                value={arrivalDate}
-                onChange={(e) => setArrivalDate(e.target.value)}
+                value={formData.arrivalDate}
+                onChange={(e) => updateField('arrivalDate', e.target.value)}
                 className="h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-mono focus:border-blue-500 outline-none"
                 required
               />
               <input
                 type="time"
-                value={arrivalTime}
-                onChange={(e) => setArrivalTime(e.target.value)}
+                value={formData.arrivalTime}
+                onChange={(e) => updateField('arrivalTime', e.target.value)}
                 className="h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-mono focus:border-blue-500 outline-none"
                 required
               />
             </div>
           </div>
+        </div>
 
+        {/* Section III */}
+        <div className="px-5 py-3 bg-[#EBF7FA] border-y border-cyan-100 text-sm font-bold text-slate-800 uppercase">
+          III. Thiết lập vận hành & Liên hệ
+        </div>
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Trạng Thái Mở Bán
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Trạng thái mở bán ban đầu <span className="text-red-500">*</span>
             </label>
             <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as any)}
+              value={formData.status}
+              onChange={(e) => updateField('status', e.target.value as TripStatus)}
               className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
             >
-              <option value="selling">Đang mở bán vé (selling)</option>
-              <option value="draft">Lưu bản nháp (draft)</option>
+              <option value="selling">Đang mở bán (Bán vé ngay)</option>
+              <option value="draft">Bản nháp (Chưa bán vé)</option>
+              <option value="closed">Đã khóa sổ (Tạm khóa bán)</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Số Điện Thoại Xe Đưa Đón (Tùy chọn)
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Hotline / Số điện thoại xe trung chuyển
             </label>
             <div className="relative">
               <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                value={shuttlePhone}
-                onChange={(e) => setShuttlePhone(e.target.value)}
-                placeholder="VD: 0297.3877.742"
+                value={formData.shuttlePhone}
+                onChange={(e) => updateField('shuttlePhone', e.target.value.replace(/[^0-9]/g, ''))}
+                placeholder="VD: 0948066514 (Chỉ nhập chữ số)"
+                maxLength={15}
                 className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
               />
             </div>
           </div>
         </div>
 
-        <div>
-          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-            Lý Do Khởi Tạo Chuyến (Audit Trail) <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Nhập lý do tạo chuyến..."
-            className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-            required
-          />
-        </div>
-
-        <div className="bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 p-3.5 rounded-xl flex items-start gap-2.5 text-xs">
-          <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" />
-          <span>Hệ thống Backend sẽ tự động gắn sơ đồ ghế active của con tàu được chọn và khởi tạo toàn bộ kho ghế trống (Trip Seat Inventory) để sẵn sàng mở bán ngay lập tức.</span>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+        {/* Action Bar */}
+        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
           <Link
             to={'/trips' as any}
-            className="h-10 px-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-semibold flex items-center transition-colors"
+            onClick={() => localStorage.removeItem(draftKey)}
+            className="px-5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
-            Hủy Bỏ
+            Hủy bỏ
           </Link>
-          <Button
+          <button
             type="submit"
-            disabled={isSubmitting || loadingData}
-            className="h-10 px-5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-lg flex items-center gap-2 shadow-xs transition-all cursor-pointer"
+            disabled={isSubmitting}
+            className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60"
           >
             <Save size={16} />
-            {isSubmitting ? 'Đang khởi tạo chuyến...' : 'Xác Nhận Mở Chuyến Tàu'}
-          </Button>
+            {isSubmitting ? 'Đang khởi tạo...' : 'Khởi tạo chuyến tàu'}
+          </button>
         </div>
       </form>
     </div>

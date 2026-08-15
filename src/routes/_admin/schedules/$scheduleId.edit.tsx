@@ -26,7 +26,6 @@ import { toast } from 'sonner';
 import {
   findSchedule,
   updateSchedule,
-  getTrips,
   getAllTrips,
   generateTripsFromSchedule,
   openTripForSale,
@@ -118,70 +117,69 @@ const STATUS_LABELS: Record<string, { label: string; colorClass: string; icon: a
 
 function formatTime(isoStr?: string) {
   if (!isoStr) return '--:--';
-  try {
-    const d = new Date(isoStr);
-    if (Number.isNaN(d.getTime())) return isoStr.slice(11, 16) || '--:--';
-    return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return '--:--';
-  }
+  const parts = isoStr.includes('T') ? isoStr.split('T')[1] : isoStr.split(' ')[1];
+  return parts ? parts.slice(0, 5) : isoStr.slice(0, 5);
 }
 
 function formatDate(isoStr?: string) {
-  if (!isoStr) return '';
-  try {
-    const d = new Date(isoStr);
-    if (Number.isNaN(d.getTime())) return isoStr.slice(0, 10);
-    return d.toLocaleDateString('vi-VN');
-  } catch {
-    return '';
-  }
+  if (!isoStr) return '--/--/----';
+  const datePart = isoStr.includes('T') ? isoStr.split('T')[0] : isoStr.split(' ')[0];
+  const [y, m, d] = datePart.split('-');
+  return `${d}/${m}/${y}`;
 }
 
 function getTodayString() {
-  const now = new Date();
-  return now.toISOString().split('T')[0];
+  const d = new Date();
+  return d.toISOString().split('T')[0];
 }
 
 function getFutureDateString(daysAhead: number) {
-  const now = new Date();
-  now.setDate(now.getDate() + daysAhead);
-  return now.toISOString().split('T')[0];
+  const d = new Date();
+  d.setDate(d.getDate() + daysAhead);
+  return d.toISOString().split('T')[0];
 }
 
 function ScheduleEditPage() {
   const { scheduleId } = Route.useParams();
-  const navigate = useNavigate();
-  const draftKey = `superdong_schedules_draft_edit_${scheduleId}`;
+  const draftKey = `superdong_schedule_draft_edit_${scheduleId}`;
   const cacheKey = `superdong_schedule_cache_${scheduleId}`;
 
   const [formData, setFormData] = useState<ScheduleFormData>(emptyForm);
-  const [scheduleCode, setScheduleCode] = useState<string>(`SCH-${String(scheduleId).slice(0, 5).toUpperCase()}`);
+  const [scheduleCode, setScheduleCode] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  // Metadata
   const [routes, setRoutes] = useState<JourneyRoute[]>([]);
   const [boats, setBoats] = useState<Boat[]>([]);
-  const [upcomingTrips, setUpcomingTrips] = useState<Trip[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [linkedTrips, setLinkedTrips] = useState<Trip[]>([]);
 
-  // Generate Trips Modal State
+  // Generation Modal State
   const [openGenerateModal, setOpenGenerateModal] = useState(false);
-  const [fromDate, setFromDate] = useState<string>(getTodayString());
-  const [toDate, setToDate] = useState<string>(getFutureDateString(30));
-  const [publishImmediate, setPublishImmediate] = useState<boolean>(true);
-  const [generateReason, setGenerateReason] = useState<string>('');
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [fromDate, setFromDate] = useState(getTodayString());
+  const [toDate, setToDate] = useState(getFutureDateString(30));
+  const [publishImmediate, setPublishImmediate] = useState(true);
+  const [generateReason, setGenerateReason] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const hydrateSchedule = async () => {
     setLoading(true);
     setApiError(null);
     try {
-      const [scheduleRes, routesRes, boatsRes, allTrips] = await Promise.all([
+      const [scheduleRes, routesRes, boatsRes, allTripsRes] = await Promise.all([
         findSchedule(scheduleId),
-        getRoutes({ limit: 100 }),
-        getBoats({ limit: 100 }),
-        getAllTrips(),
+        getRoutes({ limit: 100 }).catch(() => null),
+        getBoats({ limit: 100 }).catch(() => null),
+        getAllTrips().catch(() => []),
       ]);
+
+      const sch: any = scheduleRes;
+      if (!sch) {
+        throw new Error('Không tìm thấy dữ liệu lịch chạy từ hệ thống');
+      }
+
+      setScheduleCode(sch.code || `SCH-${String(scheduleId).slice(0, 6).toUpperCase()}`);
 
       if (routesRes?.data && Array.isArray(routesRes.data)) {
         setRoutes(routesRes.data);
@@ -190,77 +188,49 @@ function ScheduleEditPage() {
         setBoats(boatsRes.data);
       }
 
-      if (scheduleRes) {
-        const s: any = scheduleRes;
-
-        const daysNormalized = Array.isArray(s.days_of_week)
-          ? s.days_of_week.map((d: any) => String(d).toLowerCase())
-          : ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-
-        const startTimeClean = String(s.start_time || s.departure_time || '07:30:00').slice(0, 5);
-        const endTimeClean = String(s.end_time || s.arrival_time || '09:00:00').slice(0, 5);
-
-        let cleanCode = `SCH-${String(scheduleId).slice(0, 5).toUpperCase()}`;
-        if (s.cleanCode) cleanCode = s.cleanCode;
-        else if (s.code && s.code.length <= 15) cleanCode = s.code;
-        setScheduleCode(cleanCode);
-
-        const serverForm: ScheduleFormData = {
-          name: s.name || cleanCode,
-          route_id: String(s.route_id || s.route?.id || ''),
-          boat_id: String(s.boat_id || s.boat?.id || ''),
-          start_time: startTimeClean,
-          end_time: endTimeClean,
-          days: daysNormalized,
-          status: s.status === 'active' || s.is_active === true ? 'active' : 'inactive',
-          version: typeof s.version === 'number' ? s.version : 1,
-        };
-
-        let nextForm = serverForm;
+      let parsedDays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+      if (Array.isArray(sch.days_of_week)) {
+        parsedDays = sch.days_of_week.map((d: any) => String(d).toLowerCase());
+      } else if (typeof sch.days_of_week === 'string') {
         try {
-          const draftStr = localStorage.getItem(draftKey);
-          if (draftStr) {
-            nextForm = { ...serverForm, ...JSON.parse(draftStr) };
-          }
-        } catch (_) {}
-
-        setFormData(nextForm);
-        localStorage.setItem(cacheKey, JSON.stringify({ id: String(scheduleId), cleanCode, ...serverForm }));
-      } else {
-        setApiError('Dữ liệu lịch chạy có thể đã bị xóa hoặc không còn tồn tại trên Server');
+          const arr = JSON.parse(sch.days_of_week);
+          if (Array.isArray(arr)) parsedDays = arr.map((d: any) => String(d).toLowerCase());
+        } catch {
+          parsedDays = sch.days_of_week.split(',').map((d: string) => d.trim().toLowerCase());
+        }
       }
 
-      // Filter upcoming trips related to this schedule
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const serverForm: ScheduleFormData = {
+        name: sch.name || '',
+        route_id: String(sch.route_id || sch.route?.id || ''),
+        boat_id: String(sch.boat_id || sch.boat?.id || ''),
+        start_time: sch.start_time ? sch.start_time.slice(0, 5) : '07:30',
+        end_time: sch.end_time ? sch.end_time.slice(0, 5) : '09:00',
+        days: parsedDays,
+        status: sch.status === 'inactive' || sch.is_active === false ? 'inactive' : 'active',
+        version: typeof sch.version === 'number' ? sch.version : 1,
+      };
 
-      const activeFiltered = (allTrips || [])
-        .filter((t: any) => {
-          const matchesSchedule = String(t.schedule_id || '') === String(scheduleId);
-          if (!matchesSchedule) return false;
-          const startStr = t.start_at || t.departure_time;
+      let nextForm = serverForm;
+      try {
+        const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
+        if (draft) nextForm = { ...serverForm, ...draft };
+      } catch {}
 
-          const isNotCancelledOrCompleted = t.status !== 'cancelled' && t.status !== 'completed';
-          if (!isNotCancelledOrCompleted) return false;
+      setFormData(nextForm);
+      localStorage.setItem(cacheKey, JSON.stringify({ id: String(scheduleId), ...serverForm }));
 
-          if (startStr) {
-            const tripTime = new Date(startStr).getTime();
-            return Number.isNaN(tripTime) || tripTime >= todayStart;
-          }
-          return true;
-        })
-        .sort((a: any, b: any) => {
-          const timeA = new Date(a.start_at || a.departure_time).getTime() || 0;
-          const timeB = new Date(b.start_at || b.departure_time).getTime() || 0;
-          return timeA - timeB;
-        });
-
-      setUpcomingTrips(activeFiltered);
+      // Filter linked trips
+      const allTrips = Array.isArray(allTripsRes) ? allTripsRes : [];
+      const matched = allTrips.filter(
+        (t: any) => String(t.schedule_id) === String(scheduleId) || (t.schedule && String(t.schedule.id) === String(scheduleId))
+      );
+      setLinkedTrips(matched);
     } catch (err: any) {
-      console.error('Hydrate schedule error:', err);
-      const message = err?.response?.data?.message || err?.message || 'Không thể tải lịch chạy tàu';
-      setApiError(message);
-      toast.error(`Không tải được thông tin lịch chạy. ${message}`);
+      console.error('Fetch schedule error:', err);
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      setApiError(serverMsg || 'Không thể tải chi tiết lịch chạy từ Backend');
+      toast.error(`Không thể tải dữ liệu lịch chạy. ${serverMsg}`);
     } finally {
       setLoading(false);
     }
@@ -270,9 +240,12 @@ function ScheduleEditPage() {
     hydrateSchedule();
   }, [scheduleId]);
 
+  // Draft persistence
   useEffect(() => {
     if (!loading && !apiError) {
-      localStorage.setItem(draftKey, JSON.stringify(formData));
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(formData));
+      } catch {}
     }
   }, [formData, loading, apiError, draftKey]);
 
@@ -281,20 +254,23 @@ function ScheduleEditPage() {
   };
 
   const toggleDay = (dayCode: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      days: prev.days.includes(dayCode)
-        ? prev.days.filter((d) => d !== dayCode)
-        : [...prev.days, dayCode],
-    }));
+    setFormData((prev) => {
+      const exists = prev.days.includes(dayCode);
+      const nextDays = exists ? prev.days.filter((d) => d !== dayCode) : [...prev.days, dayCode];
+      return { ...prev, days: nextDays };
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting) return;
 
     if (!formData.name.trim()) {
-      toast.error('Vui lòng nhập Tên lịch chạy định kỳ');
+      toast.error('Vui lòng nhập Tên lịch chạy');
+      return;
+    }
+
+    if (formData.days.length === 0) {
+      toast.error('Vui lòng chọn ít nhất 1 ngày chạy trong tuần');
       return;
     }
 
@@ -386,7 +362,7 @@ function ScheduleEditPage() {
   const routesMap = useMemo(() => new Map(routes.map((r) => [String(r.id), r])), [routes]);
 
   return (
-    <div className="space-y-6 w-full font-sans max-w-5xl">
+    <div className="space-y-6 w-full font-sans">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -399,12 +375,17 @@ function ScheduleEditPage() {
             <ArrowLeft size={18} />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Calendar className="h-6 w-6 text-blue-600" />
-              Chi Tiết & Chỉnh Sửa Lịch Chạy: <span className="font-mono text-blue-600">{scheduleCode}</span>
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Calendar className="h-6 w-6 text-blue-600" />
+                Chỉnh Sửa Lịch Chạy Định Kỳ
+              </h1>
+              <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${formData.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+                {formData.status === 'active' ? 'Đang áp dụng' : 'Tạm ngưng'}
+              </span>
+            </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              ID Lịch chạy: <span className="font-mono">{scheduleId}</span> | Quản lý khung giờ và các chuyến tàu thực tế liên kết
+              Quản lý khung giờ xuất bến, ngày áp dụng trong tuần và phân công đội tàu.
             </p>
           </div>
         </div>
@@ -427,422 +408,393 @@ function ScheduleEditPage() {
             <span>Sinh Chuyến Theo Lịch</span>
           </Button>
 
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="icon"
             onClick={hydrateSchedule}
             disabled={loading}
-            className="h-9 w-9 text-slate-600 hover:bg-slate-100 dark:text-slate-300"
-            title="Tải lại dữ liệu"
+            className="h-9 w-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center cursor-pointer disabled:opacity-60"
+            title="Làm mới dữ liệu"
           >
             <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-          </Button>
+          </button>
         </div>
       </div>
 
-      {apiError && (
-        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2">
-          <AlertTriangle size={16} />
-          <span>{apiError}</span>
+      {apiError && !loading ? (
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-700 dark:text-rose-300 font-medium flex items-start gap-2.5">
+          <AlertTriangle size={18} className="shrink-0 text-rose-500" />
+          <span>Không tải được dữ liệu lịch chạy. {apiError}</span>
         </div>
-      )}
-
-      {/* SECTION 1: Form Chỉnh Sửa Lịch Chạy */}
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-6"
-      >
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Clock size={16} className="text-blue-600" />
-            Cấu Hình Khung Giờ & Tần Suất Khai Thác
-          </h2>
-          <span className="text-xs text-slate-400 font-mono">Phiên bản: v{formData.version}</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Tên Lịch Chạy Định Kỳ <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => updateField('name', e.target.value)}
-              placeholder="VD: Rạch Giá - Phú Quốc (Chuyến sáng)"
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Trạng Thái Áp Dụng
-            </label>
-            <select
-              value={formData.status}
-              onChange={(e) => updateField('status', e.target.value as any)}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-            >
-              <option value="active">Đang áp dụng (Active)</option>
-              <option value="inactive">Tạm ngưng (Inactive)</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Tuyến Hải Trình <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.route_id}
-              onChange={(e) => updateField('route_id', e.target.value)}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-            >
-              <option value="">-- Chọn tuyến hải trình --</option>
-              {routes.map((r) => (
-                <option key={r.id} value={String(r.id)}>
-                  {r.name || r.code}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Tàu Phân Công Mặc Định
-            </label>
-            <select
-              value={formData.boat_id}
-              onChange={(e) => updateField('boat_id', e.target.value)}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-            >
-              <option value="">-- Chọn tàu mặc định --</option>
-              {boats.map((b) => (
-                <option key={b.id} value={String(b.id)}>
-                  {b.name} {b.code ? `(${b.code})` : ''} - {b.capacity || 300} chỗ
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Giờ Khởi Hành <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="time"
-              value={formData.start_time}
-              onChange={(e) => updateField('start_time', e.target.value)}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-mono focus:border-blue-500 outline-none"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Giờ Cập Bến Dự Kiến <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="time"
-              value={formData.end_time}
-              onChange={(e) => updateField('end_time', e.target.value)}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-mono focus:border-blue-500 outline-none"
-              required
-            />
-          </div>
-        </div>
-
-        {/* Days of week selector */}
-        <div>
-          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
-            Tần Suất Khai Thác Trong Tuần
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {WEEKDAYS.map((w) => {
-              const active = formData.days.includes(w.code);
-              return (
-                <button
-                  key={w.code}
-                  type="button"
-                  onClick={() => toggleDay(w.code)}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                    active
-                      ? 'bg-blue-50 border-blue-300 text-blue-700 dark:bg-blue-950/50 dark:border-blue-800 dark:text-blue-300'
-                      : 'bg-slate-50 border-slate-200 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 hover:bg-slate-100'
-                  }`}
-                >
-                  {w.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Form Action */}
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-          <Button
-            type="submit"
-            disabled={isSubmitting}
-            className="h-10 px-5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-lg flex items-center gap-2 shadow-xs transition-all cursor-pointer"
-          >
-            <Save size={16} />
-            {isSubmitting ? 'Đang lưu...' : 'Lưu Thay Đổi Cấu Hình'}
-          </Button>
-        </div>
-      </form>
-
-      {/* SECTION 2: Danh Sách Các Chuyến Tàu Sắp Tới Đang Hoạt Động (Upcoming Active Trips) */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-          <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Layers size={18} className="text-blue-600" />
-              Các Chuyến Tàu Đang Hoạt Động & Sắp Chạy
-              <span className="ml-1 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                {upcomingTrips.length} chuyến
+      ) : (
+        <>
+          {/* Main Single Card Form */}
+          <form onSubmit={handleSubmit} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+            {/* Section I */}
+            <div className="px-5 py-3 bg-[#EBF7FA] border-b border-cyan-100 text-sm font-bold text-slate-800 uppercase flex items-center justify-between">
+              <span>I. Thông tin lịch mẫu & Tuyến chạy</span>
+              <span className="text-xs font-mono font-normal text-slate-500 lowercase">
+                Mã: {scheduleCode}
               </span>
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Danh sách các chuyến tàu thực tế liên kết với lịch này có lịch khởi hành từ hôm nay trở đi (đã lọc bỏ chuyến quá hạn hoặc đã hủy).
-            </p>
-          </div>
+            </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Tên lịch chạy định kỳ <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => updateField('name', e.target.value)}
+                  placeholder="VD: Rạch Giá - Phú Quốc (Sáng T2-T6)"
+                  className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
+                  required
+                />
+              </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setOpenGenerateModal(true)}
-            className="text-xs font-semibold gap-1.5 self-start sm:self-auto"
-          >
-            <CalendarPlus size={14} className="text-blue-600 dark:text-blue-400" />
-            Sinh thêm chuyến
-          </Button>
-        </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Tuyến hải trình áp dụng
+                </label>
+                <select
+                  value={formData.route_id}
+                  onChange={(e) => updateField('route_id', e.target.value)}
+                  disabled={loading}
+                  className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none disabled:opacity-60"
+                >
+                  <option value="">-- Chọn tuyến hải trình --</option>
+                  {routes.map((r) => (
+                    <option key={r.id} value={String(r.id)}>
+                      {r.name || r.code} {r.code ? `(${r.code})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-        {upcomingTrips.length === 0 ? (
-          <div className="py-8 text-center bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-700/80">
-            <Calendar className="h-8 w-8 mx-auto text-slate-400 mb-2 opacity-60" />
-            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Hiện chưa có chuyến tàu nào sắp tới được tạo từ lịch chạy này.
-            </p>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              Bạn có thể bấm "Sinh Chuyến Theo Lịch" để tự động sinh các chuyến theo khoảng ngày mong muốn.
-            </p>
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              onClick={() => setOpenGenerateModal(true)}
-              className="mt-3 text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
-            >
-              <CalendarPlus size={14} />
-              Sinh Chuyến Ngay
-            </Button>
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-800">
-                <tr>
-                  <th className="p-3">Mã Chuyến</th>
-                  <th className="p-3">Ngày & Giờ Xuất Bến</th>
-                  <th className="p-3">Tàu Đảm Nhận</th>
-                  <th className="p-3">Trạng Thái</th>
-                  <th className="p-3 text-right">Thao Tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {upcomingTrips.map((t: any) => {
-                  const meta = STATUS_LABELS[t.status] || STATUS_LABELS.draft;
-                  const IconComp = meta.icon;
-                  const boat = t.boat || (t.boat_id ? boatsMap.get(String(t.boat_id)) : null);
-                  const boatName = boat?.name ? (boat.code ? `${boat.name} (${boat.code})` : boat.name) : 'Tàu Superdong';
-                  const startStr = t.start_at || t.departure_time;
-                  const endStr = t.end_at || t.arrival_time;
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Tàu phân công mặc định
+                </label>
+                <div className="relative">
+                  <Ship size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <select
+                    value={formData.boat_id}
+                    onChange={(e) => updateField('boat_id', e.target.value)}
+                    disabled={loading}
+                    className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none disabled:opacity-60"
+                  >
+                    <option value="">-- Chọn tàu mặc định --</option>
+                    {boats.map((b) => (
+                      <option key={b.id} value={String(b.id)}>
+                        {b.name} {b.code ? `(${b.code})` : ''} — {b.total_capacity || 300} chỗ
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
 
-                  return (
-                    <tr key={t.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                      <td className="p-3 font-mono font-bold text-blue-600 dark:text-blue-400">
-                        TRIP-{String(t.id).slice(0, 6).toUpperCase()}
-                      </td>
-                      <td className="p-3">
-                        <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1 font-mono">
-                          <Clock size={13} className="text-blue-500 shrink-0" />
-                          {formatTime(startStr)} - {formatTime(endStr)}
-                        </div>
-                        <div className="text-[11px] text-slate-500 font-mono">{formatDate(startStr)}</div>
-                      </td>
-                      <td className="p-3 font-medium text-slate-800 dark:text-slate-200">
-                        <span className="flex items-center gap-1.5">
-                          <Ship size={14} className="text-blue-600 dark:text-blue-400 shrink-0" />
-                          {boatName}
-                        </span>
-                      </td>
-                      <td className="p-3">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${meta.colorClass}`}>
-                          <IconComp size={11} /> {meta.label}
-                        </span>
-                      </td>
-                      <td className="p-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {t.status === 'selling' ? (
-                            <button
-                              type="button"
-                              onClick={() => handleQuickToggleTripSale(t)}
-                              className="px-2 py-1 rounded text-[11px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 flex items-center gap-1 cursor-pointer"
-                              title="Khóa bán vé chuyến này"
-                            >
-                              <Lock size={11} /> Khóa bán
-                            </button>
-                          ) : t.status === 'closed' || t.status === 'draft' ? (
-                            <button
-                              type="button"
-                              onClick={() => handleQuickToggleTripSale(t)}
-                              className="px-2 py-1 rounded text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 flex items-center gap-1 cursor-pointer"
-                              title="Mở bán vé chuyến này"
-                            >
-                              <Unlock size={11} /> Mở bán
-                            </button>
-                          ) : null}
+            {/* Section II */}
+            <div className="px-5 py-3 bg-[#EBF7FA] border-y border-cyan-100 text-sm font-bold text-slate-800 uppercase">
+              II. Khung giờ & Các ngày trong tuần
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Giờ khởi hành xuất bến <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="time"
+                      value={formData.start_time}
+                      onChange={(e) => updateField('start_time', e.target.value)}
+                      className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-sm focus:border-blue-500 outline-none"
+                      required
+                    />
+                  </div>
+                </div>
 
-                          <Link
-                            to={'/trips/$tripId/edit' as any}
-                            params={{ tripId: String(t.id) } as any}
-                            className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-blue-600 dark:text-blue-400 transition-colors"
-                            title="Chỉnh sửa chi tiết / Đổi tàu cho chuyến này"
-                          >
-                            <ExternalLink size={14} />
-                          </Link>
-                        </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Giờ cập bến dự kiến <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="time"
+                      value={formData.end_time}
+                      onChange={(e) => updateField('end_time', e.target.value)}
+                      className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-sm focus:border-blue-500 outline-none"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  Các ngày chạy trong tuần <span className="text-red-500">*</span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {WEEKDAYS.map((day) => {
+                    const isSelected = formData.days.includes(day.code);
+                    return (
+                      <button
+                        key={day.code}
+                        type="button"
+                        onClick={() => toggleDay(day.code)}
+                        className={`h-9 px-3.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                          isSelected
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        {day.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Section III */}
+            <div className="px-5 py-3 bg-[#EBF7FA] border-y border-cyan-100 text-sm font-bold text-slate-800 uppercase">
+              III. Trạng thái khai thác
+            </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Trạng thái áp dụng</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => updateField('status', e.target.value as 'active' | 'inactive')}
+                  className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
+                >
+                  <option value="active">Đang áp dụng</option>
+                  <option value="inactive">Tạm ngưng</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Form Action Bar */}
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+              <Link
+                to="/schedules"
+                onClick={() => localStorage.removeItem(draftKey)}
+                className="px-5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                Hủy bỏ
+              </Link>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60"
+              >
+                <Save size={16} />
+                {isSubmitting ? 'Đang lưu...' : 'Lưu thay đổi'}
+              </button>
+            </div>
+          </form>
+
+          {/* Section IV: Linked Trips Table */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+            <div className="px-5 py-3 bg-[#EBF7FA] border-b border-cyan-100 text-sm font-bold text-slate-800 uppercase flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Ship size={16} className="text-blue-600" />
+                <span>IV. Danh Sách Chuyến Tàu Đã Sinh ({linkedTrips.length} chuyến)</span>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setFromDate(getTodayString());
+                  setToDate(getFutureDateString(30));
+                  setPublishImmediate(true);
+                  setGenerateReason(`Khởi tạo chuyến từ lịch ${formData.name || scheduleCode}`);
+                  setOpenGenerateModal(true);
+                }}
+                className="h-7 text-xs px-2.5 bg-white dark:bg-slate-900 font-semibold border-blue-300 text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/40 gap-1"
+              >
+                <CalendarPlus size={13} />
+                <span>+ Sinh Thêm Chuyến</span>
+              </Button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+                    <th className="py-3 px-4">Mã Chuyến</th>
+                    <th className="py-3 px-4">Khởi Hành</th>
+                    <th className="py-3 px-4">Cập Bến</th>
+                    <th className="py-3 px-4">Tàu Phục Vụ</th>
+                    <th className="py-3 px-4">Trạng Thái</th>
+                    <th className="py-3 px-4 text-right">Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {linkedTrips.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-slate-500">
+                        Chưa có chuyến tàu nào được sinh từ lịch chạy này. Hãy bấm <b>"Sinh Chuyến Theo Lịch"</b> để khởi tạo chuyến thực tế.
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                  ) : (
+                    linkedTrips.map((trip) => {
+                      const statusDef = STATUS_LABELS[trip.status] || STATUS_LABELS.draft;
+                      const StatusIcon = statusDef.icon;
+                      const boatObj = trip.boat || boatsMap.get(String(trip.boat_id));
 
-      {/* Modal Sinh Chuyến Tàu (To, thoáng, tối giản, chuyên nghiệp) */}
+                      return (
+                        <tr key={trip.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                          <td className="py-3 px-4 font-mono font-bold text-blue-600">
+                            TRIP-{String(trip.id).slice(0, 6).toUpperCase()}
+                          </td>
+                          <td className="py-3 px-4 font-mono">
+                            <div className="font-semibold text-slate-800 dark:text-slate-200">
+                              {formatDate(trip.start_at || trip.departure_time)}
+                            </div>
+                            <div className="text-[11px] text-slate-500 flex items-center gap-1">
+                              <Clock size={10} />
+                              {formatTime(trip.start_at || trip.departure_time)}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-300">
+                            <div>{formatDate(trip.end_at || trip.arrival_time)}</div>
+                            <div className="text-[11px] text-slate-500 flex items-center gap-1">
+                              <Clock size={10} />
+                              {formatTime(trip.end_at || trip.arrival_time)}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">
+                            {boatObj?.name || 'Chưa gán'} {boatObj?.code ? `(${boatObj.code})` : ''}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${statusDef.colorClass}`}>
+                              <StatusIcon size={11} />
+                              {statusDef.label}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {trip.status === 'selling' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickToggleTripSale(trip)}
+                                  className="h-7 w-7 rounded-md border border-amber-200 text-amber-600 hover:bg-amber-50 flex items-center justify-center cursor-pointer"
+                                  title="Khóa bán vé"
+                                >
+                                  <Lock size={12} />
+                                </button>
+                              )}
+                              {(trip.status === 'draft' || trip.status === 'closed') && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickToggleTripSale(trip)}
+                                  className="h-7 w-7 rounded-md border border-emerald-200 text-emerald-600 hover:bg-emerald-50 flex items-center justify-center cursor-pointer"
+                                  title="Mở bán vé"
+                                >
+                                  <Unlock size={12} />
+                                </button>
+                              )}
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600 hover:bg-blue-50" title="Điều hành chuyến tàu" asChild>
+                                <Link to={'/trips/$tripId/edit' as any} params={{ tripId: String(trip.id) } as any}>
+                                  <Edit size={13} />
+                                </Link>
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Modal: Generate Trips from Schedule */}
       <Dialog open={openGenerateModal} onOpenChange={setOpenGenerateModal}>
-        <DialogContent className="sm:max-w-xl md:max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 rounded-2xl shadow-2xl">
-          <DialogHeader className="space-y-1.5 pb-2">
-            <DialogTitle className="text-lg font-bold text-slate-900 dark:text-white">
-              Sinh Chuyến Tàu Theo Lịch Này
+        <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white">
+              <CalendarPlus className="h-5 w-5 text-blue-600" />
+              Khởi Tạo Chuyến Tàu Tự Động
             </DialogTitle>
-            <DialogDescription className="text-sm text-slate-500 dark:text-slate-400">
-              Sinh tự động các chuyến xuất bến theo khung giờ và tần suất của lịch <span className="font-semibold text-slate-700 dark:text-slate-300">{formData.name}</span>.
+            <DialogDescription className="text-xs text-slate-500">
+              Sinh các chuyến tàu thực tế theo khung giờ và các ngày trong tuần của lịch <b>{formData.name || scheduleCode}</b>.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5 py-3 text-sm">
-            {/* Quick Presets */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-semibold text-slate-800 dark:text-slate-200">Khoảng thời gian sinh chuyến</Label>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setToDate(getFutureDateString(7))}
-                    className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    +7 ngày
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setToDate(getFutureDateString(14))}
-                    className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    +14 ngày
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setToDate(getFutureDateString(30))}
-                    className="px-2.5 py-1 text-xs font-medium rounded-lg border border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 font-semibold"
-                  >
-                    +30 ngày
-                  </button>
-                </div>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="fromDate" className="text-xs font-semibold">Từ ngày (from_date)</Label>
+                <Input
+                  id="fromDate"
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="h-9 mt-1 text-xs"
+                />
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="modal_from_date" className="text-xs text-slate-500 font-medium mb-1.5 block">
-                    Từ ngày
-                  </Label>
-                  <Input
-                    id="modal_from_date"
-                    type="date"
-                    value={fromDate}
-                    onChange={(e) => setFromDate(e.target.value)}
-                    className="h-10 text-sm rounded-lg"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="modal_to_date" className="text-xs text-slate-500 font-medium mb-1.5 block">
-                    Đến ngày
-                  </Label>
-                  <Input
-                    id="modal_to_date"
-                    type="date"
-                    value={toDate}
-                    onChange={(e) => setToDate(e.target.value)}
-                    className="h-10 text-sm rounded-lg"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="toDate" className="text-xs font-semibold">Đến ngày (to_date)</Label>
+                <Input
+                  id="toDate"
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="h-9 mt-1 text-xs"
+                />
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="modal_reason" className="text-sm font-semibold text-slate-800 dark:text-slate-200 block mb-1.5">
-                Ghi chú / Lý do khởi tạo
-              </Label>
-              <Input
-                id="modal_reason"
-                type="text"
-                value={generateReason}
-                onChange={(e) => setGenerateReason(e.target.value)}
-                placeholder="Ví dụ: Khởi tạo chuyến theo lịch định kỳ tháng tới..."
-                className="h-10 text-sm rounded-lg"
-              />
-            </div>
-
-            <div className="flex items-center gap-2.5 pt-1">
+            <div className="flex items-center space-x-2 pt-1">
               <input
-                id="modal_publish"
                 type="checkbox"
+                id="publishImmediate"
                 checked={publishImmediate}
                 onChange={(e) => setPublishImmediate(e.target.checked)}
-                className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer border-slate-300"
+                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
               />
-              <Label htmlFor="modal_publish" className="text-sm text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-                Mở bán vé ngay sau khi sinh (Trạng thái <span className="font-semibold text-emerald-600 dark:text-emerald-400">selling</span>)
+              <Label htmlFor="publishImmediate" className="text-xs font-semibold cursor-pointer">
+                Mở bán vé ngay lập tức sau khi sinh chuyến
               </Label>
-            </div>
-
-            <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/70 text-slate-600 dark:text-slate-400 p-3 rounded-xl text-xs leading-relaxed">
-              Hệ thống sẽ tự động khởi tạo đầy đủ sơ đồ ghế trống (Seat Inventory) cho từng chuyến. Các chuyến đã tạo trước đó sẽ được tự động bỏ qua để tránh trùng lặp.
             </div>
           </div>
 
-          <DialogFooter className="gap-3 sm:gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button
+              type="button"
               variant="outline"
+              size="sm"
               onClick={() => setOpenGenerateModal(false)}
               disabled={isGenerating}
-              className="h-10 px-5 text-sm font-medium"
+              className="text-xs h-9"
             >
               Hủy bỏ
             </Button>
             <Button
-              variant="primary"
+              type="button"
+              size="sm"
               onClick={handleExecuteGenerateTrips}
               disabled={isGenerating}
-              className="h-10 px-6 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+              className="text-xs h-9 bg-blue-600 hover:bg-blue-700 text-white font-semibold gap-1.5"
             >
-              {isGenerating ? 'Đang khởi tạo...' : 'Xác Nhận Sinh Chuyến'}
+              {isGenerating ? (
+                <>
+                  <Loader2 size={13} className="animate-spin" />
+                  <span>Đang xử lý...</span>
+                </>
+              ) : (
+                <>
+                  <CalendarPlus size={13} />
+                  <span>Bắt Đầu Sinh Chuyến</span>
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
