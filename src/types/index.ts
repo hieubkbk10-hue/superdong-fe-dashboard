@@ -168,6 +168,7 @@ export interface Boat {
   name: string;
   code: string;
   capacity: number;
+  total_capacity?: number;
   speed?: string | number;
   is_express?: boolean;
   status: 'active' | 'maintenance' | 'inactive';
@@ -256,6 +257,7 @@ export interface Journey {
 
 export interface Schedule {
   id: string | number;
+  name?: string;
   code?: string;
   route_id?: string | number;
   route?: Route;
@@ -277,26 +279,32 @@ export interface Schedule {
   updated_at?: string;
 }
 
-export type TripStatus = 'open' | 'closed' | 'departed' | 'completed' | 'cancelled';
+export type TripStatus = 'draft' | 'selling' | 'closed' | 'started' | 'completed' | 'cancelled' | 'open' | 'departed';
 
 export interface Trip {
   id: string | number;
-  schedule_id?: string | number;
+  object?: string;
+  schedule_id?: string | number | null;
   journey_id?: string | number;
   route_id: string | number;
   route?: Route;
   boat_id: string | number;
   boat?: Boat;
-  departure_time: string;
-  arrival_time: string;
+  start_at?: string;
+  end_at?: string;
+  departure_time?: string;
+  arrival_time?: string;
   status: TripStatus;
-  available_seats: number;
-  total_seats: number;
+  shuttle_phone?: string | null;
+  version?: number;
+  available_seats?: number;
+  total_seats?: number;
   price_override?: number;
   remarks?: string;
   created_at?: string;
   updated_at?: string;
 }
+
 
 // ==========================================
 // 6. Booking, Traveler, SeatHold
