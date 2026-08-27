@@ -64,7 +64,6 @@ export function RouteForm({
   initialRoute?: JourneyRoute | null;
 }) {
   const navigate = useNavigate();
-  const draftKey = mode === 'create' ? 'superdong_routes_draft_create' : `superdong_routes_draft_edit_${routeId}`;
 
   const [locations, setLocations] = useState<Location[]>([]);
   const [initialData, setInitialData] = useState<RouteFormData | null>(null);
@@ -87,14 +86,7 @@ export function RouteForm({
 
       setLocations(locationRows);
       setInitialData(serverForm);
-
-      let nextForm = mode === 'edit' ? serverForm : emptyForm;
-      try {
-        const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
-        if (draft) nextForm = { ...nextForm, ...draft };
-      } catch {}
-
-      setFormData(nextForm);
+      setFormData(mode === 'edit' ? serverForm : emptyForm);
     } catch (err: any) {
       const message = err?.response?.data?.message || err?.message || 'Không thể tải dữ liệu bến tàu';
       setApiError(message);
@@ -110,18 +102,9 @@ export function RouteForm({
 
   const { isDirty } = useFormDirty(initialData, formData);
 
-  useEffect(() => {
-    if (!loading && !apiError && isDirty) {
-      localStorage.setItem(draftKey, JSON.stringify(formData));
-    }
-  }, [formData, loading, apiError, draftKey, isDirty]);
-
   const handleReset = () => {
     const target = initialData || emptyForm;
     setFormData(target);
-    try {
-      localStorage.removeItem(draftKey);
-    } catch {}
     toast.info(mode === 'edit' ? 'Đã khôi phục dữ liệu ban đầu' : 'Đã làm sạch dữ liệu nhập');
   };
 
@@ -213,10 +196,6 @@ export function RouteForm({
         await updateRoute(routeId, payload);
         toast.success(`Cập nhật luồng tuyến '${formData.name}' thành công`);
       }
-
-      try {
-        localStorage.removeItem(draftKey);
-      } catch {}
 
       navigate({ to: '/routes' as any });
     } catch (err: any) {

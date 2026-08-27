@@ -46,8 +46,6 @@ function UserEditPage() {
   const { userId } = Route.useParams();
   const navigate = useNavigate();
 
-  const draftKey = `superdong_user_draft_edit_${userId}`;
-
   // DYNAMIC ROLES FROM REAL BACKEND API `/v1/roles` & DEDUPLICATE
   const [dynamicRoles, setDynamicRoles] = useState<Array<{ name: string; display_name: string }>>([]);
   const [loadingRoles, setLoadingRoles] = useState<boolean>(true);
@@ -97,12 +95,11 @@ function UserEditPage() {
       }
     }
     fetchRolesFromApi();
-    
 
-  return () => { isMounted = false; };
+    return () => { isMounted = false; };
   }, []);
 
-  // HYDRATE REAL USER DETAILS + F5 DRAFT PERSISTENCE (Rule 6 & 10)
+  // HYDRATE REAL USER DETAILS
   const fetchUserDetails = async () => {
     setLoading(true);
     setFetchError(null);
@@ -123,17 +120,8 @@ function UserEditPage() {
           notes: '',
         };
 
-        // F5 Draft Recovery if draft exists for this userId
-        let finalData = serverData;
-        try {
-          const draftStr = localStorage.getItem(draftKey);
-          if (draftStr) {
-            finalData = { ...serverData, ...JSON.parse(draftStr) };
-          }
-        } catch (_) {}
-
         setInitialData(serverData);
-          setFormData(finalData);
+        setFormData(serverData);
       } else {
         setFetchError('Không tìm thấy dữ liệu người dùng từ hệ thống.');
       }
@@ -150,15 +138,6 @@ function UserEditPage() {
   useEffect(() => {
     if (userId) fetchUserDetails();
   }, [userId]);
-
-  // Save F5 Draft on form change after initial load
-  useEffect(() => {
-    if (!loading && !fetchError && formData.name) {
-      try {
-        localStorage.setItem(draftKey, JSON.stringify(formData));
-      } catch (_) {}
-    }
-  }, [formData, loading, fetchError, draftKey]);
 
   const isSuperAdmin = (formData.email || '').toLowerCase() === 'admin@admin.com' || formData.role_name === 'Super Admin';
 
@@ -191,11 +170,6 @@ function UserEditPage() {
         phone: cleanPhone,
         status: isSuperAdmin ? 'active' : (formData.is_active ? 'active' : 'inactive'),
       });
-
-      // Clear draft on successful save (Rule 6)
-      try {
-        localStorage.removeItem(draftKey);
-      } catch (_) {}
 
       toast.success(`Đã cập nhật thông tin tài khoản ${formData.name} thành công!`);
       navigate({ to: '/users' as any });
@@ -428,9 +402,6 @@ function UserEditPage() {
             type="button"
             variant="outline"
             onClick={() => {
-              try {
-                localStorage.removeItem(draftKey);
-              } catch (_) {}
               navigate({ to: '/users' as any });
             }}
           >

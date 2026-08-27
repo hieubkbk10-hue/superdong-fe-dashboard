@@ -4,7 +4,7 @@ import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { findRoute } from '@/apis/journeys';
 import { Route as JourneyRoute } from '@/types';
-import { RouteForm } from './-route-form';
+import { RouteForm } from '@/components/routes/RouteForm';
 
 export const Route = createFileRoute('/_admin/routes/$routeId/edit')({
   component: RouteEditPage,

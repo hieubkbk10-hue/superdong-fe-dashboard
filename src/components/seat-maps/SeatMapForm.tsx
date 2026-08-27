@@ -1,20 +1,15 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Link } from '@tanstack/react-router';
 import {
   Plus,
   Trash2,
-  Save,
-  RotateCcw,
   Sparkles,
   LayoutGrid,
   Check,
   Search,
-  Layers,
-  RefreshCw,
   AlertCircle,
   ChevronLeft,
   ChevronRight,
-  Footprints,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Boat, SeatClass, SeatMap } from '@/types';
@@ -65,7 +60,6 @@ type SeatMapFormProps = {
 };
 
 const ALL_COLUMNS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
-const DRAFT_STORAGE_KEY = 'superdong_seatmap_draft_form';
 
 const emptyGenerator: GeneratorState = {
   deck_code: '',
@@ -166,14 +160,6 @@ const defaultPayload: SeatMapPayload = {
 export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onSubmit }: SeatMapFormProps) {
   const [form, setForm] = useState<SeatMapPayload>(() => {
     if (initial) return initial;
-    if (mode === 'create') {
-      try {
-        const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
-        if (saved) return JSON.parse(saved);
-      } catch (e) {
-        // Ignore JSON error
-      }
-    }
     return defaultPayload;
   });
 
@@ -188,17 +174,6 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
 
   const activeSeatClasses = useMemo(() => seatClasses.filter((sc) => sc.status !== 'inactive' && sc.is_active !== false), [seatClasses]);
   const seatClassById = useMemo(() => new Map(seatClasses.map((seatClass) => [String(seatClass.id), seatClass])), [seatClasses]);
-
-  // Save form draft on F5
-  useEffect(() => {
-    if (mode === 'create') {
-      try {
-        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(form));
-      } catch (e) {
-        // Storage quota fallback
-      }
-    }
-  }, [form, mode]);
 
   useEffect(() => {
     if (form.decks.length > 0 && !generator.deck_code) {
@@ -404,7 +379,6 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
 
   const handleClearAllForm = () => {
     setForm(defaultPayload);
-    localStorage.removeItem(DRAFT_STORAGE_KEY);
     toast.info('Đã làm sạch toàn bộ dữ liệu mẫu');
   };
 
@@ -450,9 +424,6 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
       : `Cập nhật sơ đồ ghế ${form.name.trim()} từ dashboard vận hành`;
 
     await onSubmit({ ...form, name: form.name.trim(), reason: autoReason });
-    if (mode === 'create') {
-      localStorage.removeItem(DRAFT_STORAGE_KEY);
-    }
   };
 
   const filteredSeats = useMemo(() => {
@@ -474,13 +445,7 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
     <form onSubmit={validateAndSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-6 font-sans">
       {/* SECTION I */}
       <div className="space-y-3">
-        <SectionBanner title="I. Thông tin sơ đồ">
-          {mode === 'create' && (
-            <Badge variant="secondary" className="text-[11px] font-normal lowercase italic">
-              Tự động lưu nháp (F5 không mất)
-            </Badge>
-          )}
-        </SectionBanner>
+        <SectionBanner title="I. Thông tin sơ đồ" />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
           {mode === 'create' && (
@@ -541,24 +506,27 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
           headers={['Mã tầng', 'Tên tầng', 'Thứ tự tầng', '']}
           rows={form.decks.map((deck, index) => [
             <input
+              key="code"
               value={deck.code}
               onChange={(e) => updateDeck(index, { code: e.target.value })}
               className={`${inputClass} font-mono`}
               placeholder="VD: deck-1"
             />,
             <input
+              key="name"
               value={deck.name}
               onChange={(e) => updateDeck(index, { name: e.target.value })}
               placeholder="VD: Khoang dưới"
               className={inputClass}
             />,
             <input
+              key="floor_order"
               type="number"
               value={deck.floor_order}
               onChange={(e) => updateDeck(index, { floor_order: Number(e.target.value) })}
               className={`${inputClass} w-24`}
             />,
-            <IconDelete onClick={() => setForm((prev) => ({ ...prev, decks: prev.decks.filter((_, idx) => idx !== index) }))} />,
+            <IconDelete key="delete" onClick={() => setForm((prev) => ({ ...prev, decks: prev.decks.filter((_, idx) => idx !== index) }))} />,
           ])}
         />
       </div>
@@ -570,6 +538,7 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
           headers={['Tầng áp dụng', 'Mã khu vực', 'Tên khu vực', 'Thứ tự khu', '']}
           rows={form.zones.map((zone, index) => [
             <select
+              key="deck_code"
               value={zone.deck_code}
               onChange={(e) => updateZone(index, { deck_code: e.target.value })}
               className={inputClass}
@@ -581,24 +550,27 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
               ))}
             </select>,
             <input
+              key="code"
               value={zone.code}
               onChange={(e) => updateZone(index, { code: e.target.value })}
               className={`${inputClass} font-mono`}
               placeholder="VD: zone-1"
             />,
             <input
+              key="name"
               value={zone.name}
               onChange={(e) => updateZone(index, { name: e.target.value })}
               placeholder="VD: Khu phổ thông"
               className={inputClass}
             />,
             <input
+              key="zone_order"
               type="number"
               value={zone.zone_order}
               onChange={(e) => updateZone(index, { zone_order: Number(e.target.value) })}
               className={`${inputClass} w-24`}
             />,
-            <IconDelete onClick={() => setForm((prev) => ({ ...prev, zones: prev.zones.filter((_, idx) => idx !== index) }))} />,
+            <IconDelete key="delete" onClick={() => setForm((prev) => ({ ...prev, zones: prev.zones.filter((_, idx) => idx !== index) }))} />,
           ])}
         />
       </div>
@@ -1031,6 +1003,7 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
               const globalIndex = form.seats.findIndex((s) => s === seat);
               return [
                 <select
+                  key="deck_code"
                   value={seat.deck_code}
                   onChange={(e) => updateSeat(globalIndex, { deck_code: e.target.value })}
                   className={inputClass}
@@ -1042,6 +1015,7 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
                   ))}
                 </select>,
                 <select
+                  key="zone_code"
                   value={seat.zone_code}
                   onChange={(e) => updateSeat(globalIndex, { zone_code: e.target.value })}
                   className={inputClass}
@@ -1055,6 +1029,7 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
                     ))}
                 </select>,
                 <select
+                  key="seat_class_id"
                   value={seat.seat_class_id}
                   onChange={(e) => updateSeat(globalIndex, { seat_class_id: e.target.value })}
                   className={`${inputClass} font-semibold`}
@@ -1066,23 +1041,26 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
                   ))}
                 </select>,
                 <input
+                  key="seat_number"
                   value={seat.seat_number}
                   onChange={(e) => updateSeat(globalIndex, { seat_number: e.target.value })}
                   className={`${inputClass} font-bold text-blue-600 dark:text-blue-400`}
                 />,
                 <input
+                  key="row"
                   type="number"
                   value={seat.row}
                   onChange={(e) => updateSeat(globalIndex, { row: Number(e.target.value) })}
                   className={`${inputClass} w-20`}
                 />,
                 <input
+                  key="column"
                   type="number"
                   value={seat.column}
                   onChange={(e) => updateSeat(globalIndex, { column: Number(e.target.value) })}
                   className={`${inputClass} w-20`}
                 />,
-                <IconDelete onClick={() => setForm((prev) => ({ ...prev, seats: prev.seats.filter((_, idx) => idx !== globalIndex) }))} />,
+                <IconDelete key="delete" onClick={() => setForm((prev) => ({ ...prev, seats: prev.seats.filter((_, idx) => idx !== globalIndex) }))} />,
               ];
             })}
           />
@@ -1127,6 +1105,7 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
           headers={['Tầng', 'Loại tiện ích', 'Hàng', 'Cột', 'Số ô rộng', 'Nhãn hiển thị', '']}
           rows={form.elements.map((element, index) => [
             <select
+              key="deck_code"
               value={element.deck_code}
               onChange={(e) => updateElement(index, { deck_code: e.target.value })}
               className={inputClass}
@@ -1138,6 +1117,7 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
               ))}
             </select>,
             <select
+              key="type"
               value={element.type}
               onChange={(e) => updateElement(index, { type: e.target.value as FormElement['type'] })}
               className={inputClass}
@@ -1147,30 +1127,34 @@ export function SeatMapForm({ mode, boats, seatClasses, initial, submitting, onS
               <option value="block">Tiện ích (WC, Cầu thang)</option>
             </select>,
             <input
+              key="row"
               type="number"
               value={element.row}
               onChange={(e) => updateElement(index, { row: Number(e.target.value) })}
               className={`${inputClass} w-20`}
             />,
             <input
+              key="column"
               type="number"
               value={element.column}
               onChange={(e) => updateElement(index, { column: Number(e.target.value) })}
               className={`${inputClass} w-20`}
             />,
             <input
+              key="width"
               type="number"
               value={element.width || 1}
               onChange={(e) => updateElement(index, { width: Number(e.target.value) })}
               className={`${inputClass} w-20`}
             />,
             <input
+              key="label"
               value={element.label || ''}
               onChange={(e) => updateElement(index, { label: e.target.value })}
               placeholder="VD: WC"
               className={inputClass}
             />,
-            <IconDelete onClick={() => setForm((prev) => ({ ...prev, elements: prev.elements.filter((_, idx) => idx !== index) }))} />,
+            <IconDelete key="delete" onClick={() => setForm((prev) => ({ ...prev, elements: prev.elements.filter((_, idx) => idx !== index) }))} />,
           ])}
         />
       </div>

@@ -52,7 +52,6 @@ const SEAT_CLASS_LABELS: Record<string, string> = {
 function SeatClassEditPage() {
   const { classId } = Route.useParams();
   const navigate = useNavigate();
-  const draftKey = `superdong_seat_class_draft_edit_${classId}`;
 
   const [initialData, setInitialData] = useState<FormData | null>(null);
   const [formData, setFormData] = useState<FormData>(emptyFormData);
@@ -77,16 +76,7 @@ function SeatClassEditPage() {
         };
 
         setInitialData(serverForm);
-
-        let finalData = serverForm;
-        try {
-          const draftStr = localStorage.getItem(draftKey);
-          if (draftStr) {
-            finalData = { ...serverForm, ...JSON.parse(draftStr) };
-          }
-        } catch (_) {}
-
-        setFormData(finalData);
+        setFormData(serverForm);
       } else {
         setLoadError('Không tìm thấy dữ liệu Hạng ghế từ hệ thống.');
       }
@@ -106,20 +96,9 @@ function SeatClassEditPage() {
 
   const { isDirty } = useFormDirty(initialData, formData, ['version']);
 
-  useEffect(() => {
-    if (!loading && !loadError && formData.code && isDirty) {
-      try {
-        localStorage.setItem(draftKey, JSON.stringify(formData));
-      } catch (_) {}
-    }
-  }, [formData, loading, loadError, draftKey, isDirty]);
-
   const handleReset = () => {
     if (initialData) {
       setFormData(initialData);
-      try {
-        localStorage.removeItem(draftKey);
-      } catch (_) {}
       toast.info('Đã khôi phục dữ liệu ban đầu');
     }
   };
@@ -166,10 +145,6 @@ function SeatClassEditPage() {
       if (formData.color.trim()) payload.color = formData.color.trim();
 
       await updateSeatClass(classId, payload);
-
-      try {
-        localStorage.removeItem(draftKey);
-      } catch (_) {}
 
       toast.success(`Cập nhật hạng ghế '${formData.name}' thành công!`);
       navigate({ to: '/seat-classes' as any });

@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { createSeatMap, getBoats, getSeatClasses } from '@/apis/boats';
 import { Boat, SeatClass } from '@/types';
 import { AdminFormHeader } from '@/components/common/FormUtilities';
-import { SeatMapForm, SeatMapPayload } from './-seat-map-form';
+import { SeatMapForm, SeatMapPayload } from '@/components/seat-maps/SeatMapForm';
 
 export const Route = createFileRoute('/_admin/seat-maps/create')({ component: SeatMapCreatePage });
 
@@ -28,9 +28,6 @@ function SeatMapCreatePage() {
   }, []);
 
   const handleClear = () => {
-    try {
-      localStorage.removeItem('superdong_seatmap_draft_form');
-    } catch (_) {}
     setFormKey((k) => k + 1);
     toast.success('Đã làm sạch toàn bộ dữ liệu nhập');
   };

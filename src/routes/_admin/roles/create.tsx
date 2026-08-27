@@ -11,14 +11,12 @@ import { Button } from '@/components/common/Button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Permission } from '@/types';
-import { getPermissionGroupLabel, getPermissionLabel, sortPermissionsForAdmin } from './-permission-ui';
-import { normalizeApiatoCollection } from './-role-normalizer';
+import { getPermissionGroupLabel, getPermissionLabel, sortPermissionsForAdmin } from '@/helpers/permissionUi';
+import { normalizeApiatoCollection } from '@/helpers/roleNormalizer';
 
 export const Route = createFileRoute('/_admin/roles/create')({
   component: RoleCreatePage,
 });
-
-const DRAFT_KEY = 'superdong_role_draft_create';
 
 interface RoleFormData {
   name: string;
@@ -39,24 +37,13 @@ function normalizePermissionList(response: unknown): Permission[] {
 
 function RoleCreatePage() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState<RoleFormData>(() => {
-    try {
-      const saved = localStorage.getItem(DRAFT_KEY);
-      return saved ? { ...DEFAULT_FORM, ...JSON.parse(saved) } : DEFAULT_FORM;
-    } catch (_) {
-      return DEFAULT_FORM;
-    }
-  });
+  const [formData, setFormData] = useState<RoleFormData>(DEFAULT_FORM);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<Array<string | number>>([]);
   const [loadingPermissions, setLoadingPermissions] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [initialData] = useState(formData);
   const { isDirty } = useFormDirty(initialData, formData);
-
-  useEffect(() => {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(formData));
-  }, [formData]);
 
   useEffect(() => {
     let isMounted = true;
@@ -73,10 +60,8 @@ function RoleCreatePage() {
       }
     }
     fetchPermissions();
-    
-  
 
-  return () => { isMounted = false; };
+    return () => { isMounted = false; };
   }, []);
 
   const groupedPermissions = useMemo(() => {
@@ -98,7 +83,6 @@ function RoleCreatePage() {
   const clearForm = () => {
     setFormData(DEFAULT_FORM);
     setSelectedPermissionIds([]);
-    localStorage.removeItem(DRAFT_KEY);
     toast.success('Đã làm sạch dữ liệu nhập');
   };
 
@@ -109,24 +93,23 @@ function RoleCreatePage() {
   const toggleGroup = (items: Permission[]) => {
     const ids = items.map((item) => item.id);
     const allSelected = ids.every((id) => selectedPermissionIds.includes(id));
-    setSelectedPermissionIds((prev) => allSelected
-      ? prev.filter((id) => !ids.includes(id))
-      : Array.from(new Set([...prev, ...ids])));
+    if (allSelected) {
+      setSelectedPermissionIds((prev) => prev.filter((id) => !ids.includes(id)));
+    } else {
+      setSelectedPermissionIds((prev) => Array.from(new Set([...prev, ...ids])));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
 
-    const roleName = formData.name.trim().toLowerCase();
-    if (!roleName || !formData.display_name.trim()) {
-      toast.error('Vui lòng nhập mã vai trò và tên vai trò', { id: 'role-create-toast' });
+    if (!formData.name.trim() || !formData.display_name.trim()) {
+      toast.error('Vui lòng nhập Mã vai trò và Tên hiển thị!', { id: 'role-create-toast' });
       return;
     }
-    if (!/^[a-z0-9_]+$/.test(roleName)) {
-      toast.error('Mã vai trò chỉ dùng chữ thường, số và dấu gạch dưới, ví dụ: shift_manager', { id: 'role-create-toast' });
-      return;
-    }
+
+    const roleName = formData.name.trim().toLowerCase().replace(/\s+/g, '-');
     if (roleName.length > 20) {
       toast.error('Mã vai trò tối đa 20 ký tự theo chuẩn Backend', { id: 'role-create-toast' });
       return;
@@ -145,7 +128,6 @@ function RoleCreatePage() {
         await syncRolePermissions(roleId, selectedPermissionIds);
       }
 
-      localStorage.removeItem(DRAFT_KEY);
       toast.success(`Đã tạo vai trò ${formData.display_name.trim()} thành công`, { id: 'role-create-toast' });
       navigate({ to: '/roles' as any });
     } catch (err: any) {

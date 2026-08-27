@@ -42,7 +42,6 @@ function normalizeForm(data: any): LocationFormData {
 function LocationEditPage() {
   const { locationId } = Route.useParams();
   const navigate = useNavigate();
-  const draftKey = `superdong_locations_draft_edit_${locationId}`;
 
   const [initialData, setInitialData] = useState<LocationFormData | null>(null);
   const [formData, setFormData] = useState<LocationFormData>(emptyForm);
@@ -57,14 +56,7 @@ function LocationEditPage() {
       const res = await findAdminLocation(locationId);
       const serverForm = normalizeForm(res?.data);
       setInitialData(serverForm);
-
-      let nextForm = serverForm;
-      try {
-        const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
-        if (draft) nextForm = { ...serverForm, ...draft };
-      } catch {}
-
-      setFormData(nextForm);
+      setFormData(serverForm);
     } catch (err: any) {
       const message = err?.response?.data?.message || err?.message || 'Không thể tải dữ liệu bến tàu';
       setApiError(message);
@@ -80,18 +72,9 @@ function LocationEditPage() {
 
   const { isDirty } = useFormDirty(initialData, formData);
 
-  useEffect(() => {
-    if (!loading && !apiError && isDirty) {
-      localStorage.setItem(draftKey, JSON.stringify(formData));
-    }
-  }, [formData, loading, apiError, draftKey, isDirty]);
-
   const handleReset = () => {
     if (initialData) {
       setFormData(initialData);
-      try {
-        localStorage.removeItem(draftKey);
-      } catch {}
       toast.info('Đã khôi phục dữ liệu ban đầu');
     }
   };
@@ -116,10 +99,6 @@ function LocationEditPage() {
         name: formData.name.trim(),
         status: formData.status,
       });
-
-      try {
-        localStorage.removeItem(draftKey);
-      } catch {}
 
       toast.success(`Cập nhật bến tàu '${formData.name}' thành công`);
       navigate({ to: '/locations' as any });

@@ -70,7 +70,6 @@ const normalizeJourneyForm = (journey: Journey): JourneyFormData => ({
 function JourneyEditPage() {
   const { journeyId } = Route.useParams();
   const navigate = useNavigate();
-  const draftKey = `superdong_journeys_draft_edit_${journeyId}`;
 
   const [initialData, setInitialData] = useState<JourneyFormData | null>(null);
   const [formData, setFormData] = useState<JourneyFormData>(emptyForm);
@@ -105,14 +104,7 @@ function JourneyEditPage() {
 
       setRoutes(routeRows);
       setInitialData(serverForm);
-
-      let nextForm = serverForm;
-      try {
-        const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
-        if (draft) nextForm = { ...serverForm, ...draft };
-      } catch {}
-
-      setFormData(nextForm);
+      setFormData(serverForm);
     } catch (err: any) {
       const message = err?.response?.data?.message || err?.message || 'Không thể tải dữ liệu hành trình';
       setApiError(message);
@@ -128,18 +120,9 @@ function JourneyEditPage() {
 
   const { isDirty } = useFormDirty(initialData, formData);
 
-  useEffect(() => {
-    if (!loading && !apiError && isDirty) {
-      localStorage.setItem(draftKey, JSON.stringify(formData));
-    }
-  }, [formData, loading, apiError, draftKey, isDirty]);
-
   const handleReset = () => {
     if (initialData) {
       setFormData(initialData);
-      try {
-        localStorage.removeItem(draftKey);
-      } catch {}
       toast.info('Đã khôi phục dữ liệu ban đầu');
     }
   };
@@ -196,10 +179,6 @@ function JourneyEditPage() {
         to_location_id: formData.to_location_id,
         status: formData.status,
       });
-
-      try {
-        localStorage.removeItem(draftKey);
-      } catch {}
 
       toast.success('Cập nhật hành trình thành công');
       navigate({ to: '/journeys' as any });

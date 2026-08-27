@@ -49,19 +49,10 @@ const emptyForm: TripCreateFormData = {
   shuttlePhone: '',
 };
 
-const draftKey = 'superdong_trip_draft_create';
-
 function TripCreatePage() {
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState<TripCreateFormData>(() => {
-    try {
-      const saved = localStorage.getItem(draftKey);
-      return saved ? { ...emptyForm, ...JSON.parse(saved) } : emptyForm;
-    } catch {
-      return emptyForm;
-    }
-  });
+  const [formData, setFormData] = useState<TripCreateFormData>(emptyForm);
 
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [routes, setRoutes] = useState<JourneyRoute[]>([]);
@@ -109,21 +100,11 @@ function TripCreatePage() {
     fetchData();
   }, []);
 
-  // Form draft persistence
-  useEffect(() => {
-    if (!loadingData) {
-      try {
-        localStorage.setItem(draftKey, JSON.stringify(formData));
-      } catch {}
-    }
-  }, [formData, loadingData]);
-
   const updateField = <K extends keyof TripCreateFormData>(field: K, value: TripCreateFormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleClearData = () => {
-    localStorage.removeItem(draftKey);
     const today = getTodayDateTime();
     setFormData({
       ...emptyForm,
@@ -194,7 +175,6 @@ function TripCreatePage() {
         });
       }
 
-      localStorage.removeItem(draftKey);
       toast.success('Đã khởi tạo chuyến tàu mới thành công! Kho ghế đã được tự động kích hoạt.');
       navigate({ to: '/trips' as any });
     } catch (err: any) {
@@ -216,7 +196,6 @@ function TripCreatePage() {
         <div className="flex items-center gap-3">
           <Link
             to={'/trips' as any}
-            onClick={() => localStorage.removeItem(draftKey)}
             className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
             title="Quay lại danh sách chuyến tàu"
           >
@@ -451,7 +430,6 @@ function TripCreatePage() {
         <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
           <Link
             to={'/trips' as any}
-            onClick={() => localStorage.removeItem(draftKey)}
             className="px-5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
             Hủy bỏ

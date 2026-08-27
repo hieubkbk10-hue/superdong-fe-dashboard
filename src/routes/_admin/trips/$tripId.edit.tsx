@@ -82,7 +82,6 @@ const STATUS_LABELS: Record<string, { label: string; badgeClass: string }> = {
 
 function TripEditPage() {
   const { tripId } = Route.useParams();
-  const draftKey = `superdong_trip_draft_edit_${tripId}`;
   const cacheKey = `superdong_trip_cache_${tripId}`;
 
   const [trip, setTrip] = useState<Trip | null>(null);
@@ -128,13 +127,8 @@ function TripEditPage() {
         arrivalTime: eParts[1] ? eParts[1].slice(0, 5) : '10:30',
       };
 
-      let nextForm = serverForm;
-      try {
-        const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
-        if (draft) nextForm = { ...serverForm, ...draft };
-      } catch {}
-
-      setFormData(nextForm);
+      setInitialData(serverForm);
+      setFormData(serverForm);
       localStorage.setItem(cacheKey, JSON.stringify({ id: String(tripId), ...serverForm }));
     } catch (err: any) {
       console.error('Fetch trip error:', err);
@@ -149,15 +143,6 @@ function TripEditPage() {
   useEffect(() => {
     hydrateTrip();
   }, [tripId]);
-
-  // Save draft
-  useEffect(() => {
-    if (!loading && !apiError) {
-      try {
-        localStorage.setItem(draftKey, JSON.stringify(formData));
-      } catch {}
-    }
-  }, [formData, loading, apiError, draftKey]);
 
   const updateField = <K extends keyof TripEditFormData>(field: K, value: TripEditFormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -204,7 +189,6 @@ function TripEditPage() {
       });
       toast.success('Đã cập nhật giờ chạy chuyến tàu thành công!');
 
-      localStorage.removeItem(draftKey);
       await hydrateTrip();
     } catch (err: any) {
       console.error('Update trip disruption error:', err);
@@ -266,7 +250,6 @@ function TripEditPage() {
         <div className="flex items-center gap-3">
           <Link
             to={'/trips' as any}
-            onClick={() => localStorage.removeItem(draftKey)}
             className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
             title="Quay lại danh sách chuyến"
           >
@@ -479,7 +462,6 @@ function TripEditPage() {
           <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
             <Link
               to={'/trips' as any}
-              onClick={() => localStorage.removeItem(draftKey)}
               className="px-5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               Hủy bỏ

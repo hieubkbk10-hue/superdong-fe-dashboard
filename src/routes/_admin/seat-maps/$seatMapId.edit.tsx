@@ -7,7 +7,7 @@ import { Boat, SeatClass } from '@/types';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
 import { AdminFormHeader } from '@/components/common/FormUtilities';
-import { mapSeatMapToPayload, SeatMapForm, SeatMapPayload } from './-seat-map-form';
+import { mapSeatMapToPayload, SeatMapForm, SeatMapPayload } from '@/components/seat-maps/SeatMapForm';
 
 export const Route = createFileRoute('/_admin/seat-maps/$seatMapId/edit')({ component: SeatMapEditPage });
 

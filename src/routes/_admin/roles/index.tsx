@@ -8,8 +8,8 @@ import { Badge } from '@/components/common/Badge';
 import { Button } from '@/components/common/Button';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { AdminTablePage, ColumnDef } from '@/components/common/TableUtilities';
-import { getPermissionLabel, sortPermissionsForAdmin } from './-permission-ui';
-import { normalizeRolesResponse } from './-role-normalizer';
+import { getPermissionLabel, sortPermissionsForAdmin } from '@/helpers/permissionUi';
+import { normalizeRolesResponse } from '@/helpers/roleNormalizer';
 
 export interface RolesSearch {
   page?: number;

@@ -42,8 +42,6 @@ const emptyForm: JourneyFormData = {
   status: 'active',
 };
 
-const draftKey = 'superdong_journeys_draft_create';
-
 const normalizeRoute = (route: JourneyRoute, locationsById: Map<string, Location>): RouteOption => {
   const stops = normalizeRouteStops(route, locationsById);
   const normalized = {
@@ -63,13 +61,7 @@ const normalizeRoute = (route: JourneyRoute, locationsById: Map<string, Location
 function JourneyCreatePage() {
   const navigate = useNavigate();
   const [initialData] = useState(emptyForm);
-  const [formData, setFormData] = useState<JourneyFormData>(() => {
-    try {
-      return { ...emptyForm, ...JSON.parse(localStorage.getItem(draftKey) || '{}') };
-    } catch {
-      return emptyForm;
-    }
-  });
+  const [formData, setFormData] = useState<JourneyFormData>(emptyForm);
   const [routes, setRoutes] = useState<RouteOption[]>([]);
   const [loadingRoutes, setLoadingRoutes] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -108,17 +100,8 @@ function JourneyCreatePage() {
 
   const { isDirty } = useFormDirty(initialData, formData);
 
-  useEffect(() => {
-    if (isDirty) {
-      localStorage.setItem(draftKey, JSON.stringify(formData));
-    }
-  }, [formData, isDirty]);
-
   const handleReset = () => {
     setFormData(emptyForm);
-    try {
-      localStorage.removeItem(draftKey);
-    } catch {}
     toast.info('Đã làm sạch dữ liệu nhập');
   };
 
@@ -174,10 +157,6 @@ function JourneyCreatePage() {
         to_location_id: formData.to_location_id,
         status: formData.status,
       });
-
-      try {
-        localStorage.removeItem(draftKey);
-      } catch {}
 
       toast.success('Tạo hành trình mới thành công');
       navigate({ to: '/journeys' as any });

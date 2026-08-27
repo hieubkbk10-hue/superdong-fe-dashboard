@@ -34,8 +34,6 @@ const emptyForm: ScheduleFormData = {
   status: 'active',
 };
 
-const draftKey = 'superdong_schedules_draft_create';
-
 const WEEKDAYS = [
   { label: 'Thứ 2', code: 'mon' },
   { label: 'Thứ 3', code: 'tue' },
@@ -48,13 +46,7 @@ const WEEKDAYS = [
 
 function ScheduleCreatePage() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState<ScheduleFormData>(() => {
-    try {
-      return { ...emptyForm, ...JSON.parse(localStorage.getItem(draftKey) || '{}') };
-    } catch {
-      return emptyForm;
-    }
-  });
+  const [formData, setFormData] = useState<ScheduleFormData>(emptyForm);
 
   const [routes, setRoutes] = useState<JourneyRoute[]>([]);
   const [boats, setBoats] = useState<Boat[]>([]);
@@ -86,10 +78,6 @@ function ScheduleCreatePage() {
     fetchOptions();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(draftKey, JSON.stringify(formData));
-  }, [formData]);
-
   const updateField = <K extends keyof ScheduleFormData>(field: K, value: ScheduleFormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -105,7 +93,6 @@ function ScheduleCreatePage() {
 
   const clearDraft = () => {
     setFormData(emptyForm);
-    localStorage.removeItem(draftKey);
     toast.success('Đã làm sạch dữ liệu lịch chạy tàu');
   };
 
@@ -140,7 +127,6 @@ function ScheduleCreatePage() {
         reason: `Tạo lịch chạy định kỳ ${formData.name} từ dashboard`,
       } as any);
 
-      localStorage.removeItem(draftKey);
       toast.success(`Tạo thành công lịch chạy định kỳ: ${formData.name.trim()}`);
       navigate({ to: '/schedules' as any });
     } catch (err: any) {
@@ -152,9 +138,6 @@ function ScheduleCreatePage() {
     }
   };
 
-  
-  
-
   return (
     <div className="space-y-6 w-full font-sans">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -163,7 +146,6 @@ function ScheduleCreatePage() {
             to="/schedules"
             className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
             title="Quay lại danh sách lịch"
-            onClick={() => localStorage.removeItem(draftKey)}
           >
             <ArrowLeft size={18} />
           </Link>
@@ -325,7 +307,6 @@ function ScheduleCreatePage() {
         <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
           <Link
             to="/schedules"
-            onClick={() => localStorage.removeItem(draftKey)}
             className="px-5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
             Hủy bỏ

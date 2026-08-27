@@ -20,7 +20,6 @@ export const Route = createFileRoute('/_admin/seat-classes/create')({
   component: SeatClassCreatePage,
 });
 
-const draftKey = 'superdong_seat_class_draft_create';
 const defaultFormData = {
   code: '',
   name: '',
@@ -32,30 +31,13 @@ const defaultFormData = {
 function SeatClassCreatePage() {
   const navigate = useNavigate();
   const [initialData] = useState(defaultFormData);
-  const [formData, setFormData] = useState(() => {
-    try {
-      const saved = localStorage.getItem(draftKey);
-      if (saved) return { ...defaultFormData, ...JSON.parse(saved) };
-    } catch (_) {}
-    return defaultFormData;
-  });
+  const [formData, setFormData] = useState(defaultFormData);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { isDirty } = useFormDirty(initialData, formData);
 
-  useEffect(() => {
-    if (isDirty) {
-      try {
-        localStorage.setItem(draftKey, JSON.stringify(formData));
-      } catch (_) {}
-    }
-  }, [formData, isDirty]);
-
   const handleReset = () => {
     setFormData(defaultFormData);
-    try {
-      localStorage.removeItem(draftKey);
-    } catch (_) {}
     toast.info('Đã làm sạch dữ liệu nhập');
   };
 
@@ -92,10 +74,6 @@ function SeatClassCreatePage() {
       if (formData.color.trim()) payload.color = formData.color.trim();
 
       await createSeatClass(payload);
-
-      try {
-        localStorage.removeItem(draftKey);
-      } catch (_) {}
 
       toast.success(`Tạo thành công hạng ghế mới: ${formData.name.trim()}`);
       navigate({ to: '/seat-classes' as any });

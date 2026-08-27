@@ -17,8 +17,6 @@ export const Route = createFileRoute('/_admin/users/create')({
   component: UserCreatePage,
 });
 
-const DRAFT_KEY = 'superdong_user_draft_create';
-
 const DEFAULT_FORM_DATA = {
   name: 'Trần Mạnh Hiếu',
   email: '',
@@ -37,17 +35,7 @@ function UserCreatePage() {
   const [dynamicRoles, setDynamicRoles] = useState<Array<{ name: string; display_name: string }>>([]);
   const [loadingRoles, setLoadingRoles] = useState<boolean>(true);
 
-  // DRAFT FORM PERSISTENCE ON F5: Đọc nháp từ localStorage nếu có
-  const [formData, setFormData] = useState(() => {
-    try {
-      const savedDraft = localStorage.getItem(DRAFT_KEY);
-      if (savedDraft) {
-        return JSON.parse(savedDraft);
-      }
-    } catch (_) {}
-
-    return DEFAULT_FORM_DATA;
-  });
+  const [formData, setFormData] = useState(DEFAULT_FORM_DATA);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [initialData] = useState(formData);
@@ -86,24 +74,9 @@ function UserCreatePage() {
       }
     }
     fetchRolesFromApi();
-    
-  
 
-  return () => { isMounted = false; };
+    return () => { isMounted = false; };
   }, []);
-
-  // Tự động sao lưu bản nháp đang nhập dở vào localStorage mỗi khi thay đổi bất kỳ ô input nào
-  useEffect(() => {
-    try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(formData));
-    } catch (_) {}
-  }, [formData]);
-
-  const handleClearDraft = () => {
-    try {
-      localStorage.removeItem(DRAFT_KEY);
-    } catch (_) {}
-  };
 
   const handleResetForm = () => {
     setFormData({
@@ -116,8 +89,7 @@ function UserCreatePage() {
       is_active: true,
       notes: '',
     });
-    handleClearDraft();
-    toast.success('Đã làm sạch toàn bộ dữ liệu trên form và xóa bản nháp!', { id: 'user-create-toast' });
+    toast.success('Đã làm sạch toàn bộ dữ liệu trên form!', { id: 'user-create-toast' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -169,8 +141,6 @@ function UserCreatePage() {
         status: formData.is_active ? 'active' : 'inactive',
       });
 
-      handleClearDraft();
-
       const newId = res?.data?.id || `new_${Date.now()}`;
       try {
         localStorage.setItem(`superdong_user_cache_${newId}`, JSON.stringify({
@@ -206,7 +176,7 @@ function UserCreatePage() {
       {/* Top Header Navigation Bar */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <Button variant="light" size="icon" className="h-8 w-8" asChild onClick={handleClearDraft}>
+          <Button variant="light" size="icon" className="h-8 w-8" asChild>
             <Link to={'/users' as any} title="Quay lại danh sách">
               <ArrowLeft size={16} />
             </Link>
@@ -395,7 +365,7 @@ function UserCreatePage() {
 
         {/* Bottom Right Floating Action Bar */}
         <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-200 dark:border-slate-800">
-          <Button variant="outline" type="button" asChild className="px-5 h-9 text-xs" onClick={handleClearDraft}>
+          <Button variant="outline" type="button" asChild className="px-5 h-9 text-xs">
             <Link to={'/users' as any}>Hủy Bỏ</Link>
           </Button>
           <Button

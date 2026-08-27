@@ -143,7 +143,6 @@ function getFutureDateString(daysAhead: number) {
 
 function ScheduleEditPage() {
   const { scheduleId } = Route.useParams();
-  const draftKey = `superdong_schedule_draft_edit_${scheduleId}`;
   const cacheKey = `superdong_schedule_cache_${scheduleId}`;
 
   const [initialData, setInitialData] = useState<ScheduleFormData | null>(null);
@@ -215,14 +214,8 @@ function ScheduleEditPage() {
         version: typeof sch.version === 'number' ? sch.version : 1,
       };
 
-      let nextForm = serverForm;
-      try {
-        const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
-        if (draft) nextForm = { ...serverForm, ...draft };
-      } catch {}
-
       setInitialData(serverForm);
-      setFormData(nextForm);
+      setFormData(serverForm);
       localStorage.setItem(cacheKey, JSON.stringify({ id: String(scheduleId), ...serverForm }));
 
       // Filter linked trips
@@ -244,15 +237,6 @@ function ScheduleEditPage() {
   useEffect(() => {
     hydrateSchedule();
   }, [scheduleId]);
-
-  // Draft persistence
-  useEffect(() => {
-    if (!loading && !apiError) {
-      try {
-        localStorage.setItem(draftKey, JSON.stringify(formData));
-      } catch {}
-    }
-  }, [formData, loading, apiError, draftKey]);
 
   const updateField = <K extends keyof ScheduleFormData>(field: K, value: ScheduleFormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -302,7 +286,6 @@ function ScheduleEditPage() {
         reason: `Cập nhật lịch chạy định kỳ ${formData.name} từ dashboard`,
       } as any);
 
-      localStorage.removeItem(draftKey);
       toast.success(`Đã lưu thay đổi cho lịch chạy ${formData.name} thành công!`);
       await hydrateSchedule();
     } catch (err: any) {
@@ -377,7 +360,6 @@ function ScheduleEditPage() {
             to="/schedules"
             className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
             title="Quay lại danh sách lịch"
-            onClick={() => localStorage.removeItem(draftKey)}
           >
             <ArrowLeft size={18} />
           </Link>
@@ -587,7 +569,6 @@ function ScheduleEditPage() {
             <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
               <Link
                 to="/schedules"
-                onClick={() => localStorage.removeItem(draftKey)}
                 className="px-5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
                 Hủy bỏ

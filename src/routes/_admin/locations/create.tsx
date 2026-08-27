@@ -31,33 +31,15 @@ const emptyForm: LocationFormData = {
 
 function LocationCreatePage() {
   const navigate = useNavigate();
-  const draftKey = 'superdong_locations_draft_create';
 
   const [initialData] = useState(emptyForm);
-  const [formData, setFormData] = useState<LocationFormData>(() => {
-    try {
-      const draft = localStorage.getItem(draftKey);
-      if (draft) return { ...emptyForm, ...JSON.parse(draft) };
-    } catch {}
-    return emptyForm;
-  });
+  const [formData, setFormData] = useState<LocationFormData>(emptyForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { isDirty } = useFormDirty(initialData, formData);
 
-  useEffect(() => {
-    if (isDirty) {
-      try {
-        localStorage.setItem(draftKey, JSON.stringify(formData));
-      } catch {}
-    }
-  }, [formData, isDirty]);
-
   const handleReset = () => {
     setFormData(emptyForm);
-    try {
-      localStorage.removeItem(draftKey);
-    } catch {}
     toast.info('Đã làm sạch dữ liệu nhập');
   };
 
@@ -81,10 +63,6 @@ function LocationCreatePage() {
         name: formData.name.trim(),
         status: formData.status,
       });
-
-      try {
-        localStorage.removeItem(draftKey);
-      } catch {}
 
       toast.success(`Tạo mới bến tàu '${formData.name}' thành công`);
       navigate({ to: '/locations' as any });

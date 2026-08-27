@@ -42,7 +42,6 @@ const emptyFormData: BoatFormData = {
 function BoatEditPage() {
   const { boatId } = Route.useParams();
   const navigate = useNavigate();
-  const draftKey = `superdong_boat_draft_edit_${boatId}`;
 
   const [initialData, setInitialData] = useState<BoatFormData | null>(null);
   const [formData, setFormData] = useState<BoatFormData>(emptyFormData);
@@ -50,7 +49,6 @@ function BoatEditPage() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // HYDRATE REAL BOAT DETAILS + F5 DRAFT PERSISTENCE
   useEffect(() => {
     let isMounted = true;
     const fetchBoatDetails = async () => {
@@ -70,17 +68,7 @@ function BoatEditPage() {
           };
 
           setInitialData(serverData);
-
-          // Recover F5 draft if draft exists
-          let finalData = serverData;
-          try {
-            const draftStr = localStorage.getItem(draftKey);
-            if (draftStr) {
-              finalData = { ...serverData, ...JSON.parse(draftStr) };
-            }
-          } catch (_) {}
-
-          setFormData(finalData);
+          setFormData(serverData);
         } else {
           if (isMounted) setFetchError('Không tìm thấy dữ liệu tàu từ hệ thống Backend.');
         }
@@ -96,26 +84,14 @@ function BoatEditPage() {
 
     if (boatId) fetchBoatDetails();
     return () => { isMounted = false; };
-  }, [boatId, draftKey]);
+  }, [boatId]);
 
   // Dirty State Detection
   const { isDirty } = useFormDirty(initialData, formData);
 
-  // Save F5 Draft on form change after initial load
-  useEffect(() => {
-    if (!loading && !fetchError && formData.code && isDirty) {
-      try {
-        localStorage.setItem(draftKey, JSON.stringify(formData));
-      } catch (_) {}
-    }
-  }, [formData, loading, fetchError, draftKey, isDirty]);
-
   const handleReset = () => {
     if (initialData) {
       setFormData(initialData);
-      try {
-        localStorage.removeItem(draftKey);
-      } catch (_) {}
       toast.info('Đã khôi phục dữ liệu ban đầu');
     }
   };
@@ -151,11 +127,6 @@ function BoatEditPage() {
         is_express: formData.is_express,
         status: formData.status,
       });
-
-      // Clear draft on successful save
-      try {
-        localStorage.removeItem(draftKey);
-      } catch (_) {}
 
       toast.success(`Đã lưu thay đổi cho tàu ${formData.name} thành công!`);
       navigate({ to: '/boats' as any });

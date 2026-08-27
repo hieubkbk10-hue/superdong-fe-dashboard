@@ -39,33 +39,15 @@ const emptyFormData: BoatFormData = {
 
 function BoatCreatePage() {
   const navigate = useNavigate();
-  const draftKey = 'superdong_boat_draft_create';
 
   const [initialData] = useState<BoatFormData>(emptyFormData);
-  const [formData, setFormData] = useState<BoatFormData>(() => {
-    try {
-      const draft = localStorage.getItem(draftKey);
-      if (draft) return { ...emptyFormData, ...JSON.parse(draft) };
-    } catch (_) {}
-    return emptyFormData;
-  });
+  const [formData, setFormData] = useState<BoatFormData>(emptyFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { isDirty } = useFormDirty(initialData, formData);
 
-  useEffect(() => {
-    if (isDirty) {
-      try {
-        localStorage.setItem(draftKey, JSON.stringify(formData));
-      } catch (_) {}
-    }
-  }, [formData, isDirty]);
-
   const handleReset = () => {
     setFormData(emptyFormData);
-    try {
-      localStorage.removeItem(draftKey);
-    } catch (_) {}
     toast.info('Đã làm sạch dữ liệu biểu mẫu');
   };
 
@@ -95,10 +77,6 @@ function BoatCreatePage() {
         is_express: formData.is_express,
         status: formData.status,
       });
-
-      try {
-        localStorage.removeItem(draftKey);
-      } catch (_) {}
 
       toast.success(`Tạo mới tàu ${formData.name} thành công!`);
       navigate({ to: '/boats' as any });

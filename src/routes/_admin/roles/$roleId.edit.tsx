@@ -11,8 +11,8 @@ import { Button } from '@/components/common/Button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Permission } from '@/types';
-import { getPermissionGroupLabel, getPermissionLabel, sortPermissionsForAdmin } from './-permission-ui';
-import { normalizeApiatoCollection, normalizeRoleItem } from './-role-normalizer';
+import { getPermissionGroupLabel, getPermissionLabel, sortPermissionsForAdmin } from '@/helpers/permissionUi';
+import { normalizeApiatoCollection, normalizeRoleItem } from '@/helpers/roleNormalizer';
 
 export const Route = createFileRoute('/_admin/roles/$roleId/edit')({
   component: RoleEditPage,
@@ -37,7 +37,6 @@ function normalizePermissionList(response: unknown): Permission[] {
 
 function RoleEditPage() {
   const { roleId } = Route.useParams();
-  const draftKey = `superdong_role_draft_edit_${roleId}`;
   const [initialData, setInitialData] = useState<RoleFormData | null>(null);
   const [formData, setFormData] = useState<RoleFormData>(DEFAULT_FORM);
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -62,14 +61,7 @@ function RoleEditPage() {
       };
 
       setInitialData(serverForm);
-
-      let nextForm = serverForm;
-      try {
-        const saved = localStorage.getItem(draftKey);
-        if (saved) nextForm = { ...serverForm, ...JSON.parse(saved) };
-      } catch (_) {}
-
-      setFormData(nextForm);
+      setFormData(serverForm);
       setSelectedPermissionIds(role.permissions.map((permission) => permission.id).filter(Boolean));
       setIsSystemRole(role.name === 'admin');
     } catch (err: any) {
@@ -96,14 +88,9 @@ function RoleEditPage() {
     }
     hydrateRole();
     fetchPermissions();
-    
 
-  return () => { isMounted = false; };
+    return () => { isMounted = false; };
   }, [roleId]);
-
-  useEffect(() => {
-    if (!loading) localStorage.setItem(draftKey, JSON.stringify(formData));
-  }, [draftKey, formData, loading]);
 
   const groupedPermissions = useMemo(() => {
     return permissions.reduce<Record<string, Permission[]>>((groups, permission) => {
@@ -159,7 +146,6 @@ function RoleEditPage() {
         await syncRolePermissions(roleId, selectedPermissionIds);
       }
 
-      localStorage.removeItem(draftKey);
       toast.success(`Đã lưu vai trò ${formData.display_name.trim()} thành công`, { id: 'role-edit-toast' });
       await hydrateRole();
     } catch (err: any) {

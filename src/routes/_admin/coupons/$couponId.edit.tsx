@@ -20,9 +20,7 @@ function CouponEditPage() {
   const { couponId } = Route.useParams();
   const navigate = useNavigate();
 
-  const draftKey = `superdong_coupon_draft_edit_${couponId}`;
-
-  const [expectedVersion, setExpectedVersion] = useState<number>(1);
+  const [expectedVersion, setExpectedVersion] = useState<number | undefined>(undefined);
 
   // NO FAKE FALLBACK DATA IN INITIAL STATE (Rule 10 SKILL.md)
   const [initialData, setInitialData] = useState<any>(null);
@@ -45,7 +43,7 @@ function CouponEditPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { isDirty } = useFormDirty(initialData, formData, ['reason', 'notes', 'expected_version']);
 
-  // HYDRATE REAL COUPON DETAILS + F5 DRAFT PERSISTENCE (Rule 6 & 10)
+  // HYDRATE REAL COUPON DETAILS
   useEffect(() => {
     let isMounted = true;
     const fetchCoupon = async () => {
@@ -94,17 +92,8 @@ function CouponEditPage() {
               reason: c.reason || '',
             };
 
-            // Recover F5 draft if user was editing
-            let finalData = serverData;
-            try {
-              const draftStr = localStorage.getItem(draftKey);
-              if (draftStr) {
-                finalData = { ...serverData, ...JSON.parse(draftStr) };
-              }
-            } catch (_) {}
-
             setInitialData(serverData);
-            setFormData(finalData);
+            setFormData(serverData);
           } else {
             setFetchError('Không tìm thấy dữ liệu Mã khuyến mãi từ Backend API.');
           }
@@ -125,16 +114,7 @@ function CouponEditPage() {
     
 
   return () => { isMounted = false; };
-  }, [couponId, draftKey]);
-
-  // Auto save draft when user edits form (Rule 6)
-  useEffect(() => {
-    if (!loading && !fetchError && formData.code) {
-      try {
-        localStorage.setItem(draftKey, JSON.stringify(formData));
-      } catch (_) {}
-    }
-  }, [formData, loading, fetchError, draftKey]);
+  }, [couponId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,11 +159,6 @@ function CouponEditPage() {
       }
 
       await updateCoupon(couponId, payload as any);
-
-      // Clear F5 draft on successful save (Rule 6)
-      try {
-        localStorage.removeItem(draftKey);
-      } catch (_) {}
 
       toast.success(`Đã lưu thay đổi mã khuyến mãi ${formData.code} thành công!`);
       navigate({ to: '/coupons' as any });
@@ -444,9 +419,6 @@ function CouponEditPage() {
             type="button"
             variant="outline"
             onClick={() => {
-              try {
-                localStorage.removeItem(draftKey);
-              } catch (_) {}
               navigate({ to: '/coupons' as any });
             }}
           >
