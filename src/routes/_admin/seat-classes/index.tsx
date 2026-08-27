@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Layers, Edit, Trash2, CheckCircle2, XCircle, Ban } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -7,9 +7,22 @@ import { deactivateSeatClass, deleteSeatClass, getSeatClasses } from '@/apis/boa
 import { SeatClass } from '@/types';
 import { Button } from '@/components/common/Button';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { AdminTablePage, ColumnDef } from '@/components/common/TableUtilities';
+import { AdminTablePage, ColumnDef, FilterOption } from '@/components/common/TableUtilities';
+
+export interface SeatClassesSearch {
+  page?: number;
+  search?: string;
+  status?: string;
+}
 
 export const Route = createFileRoute('/_admin/seat-classes/')({
+  validateSearch: (search: Record<string, unknown>): SeatClassesSearch => {
+    const result: SeatClassesSearch = {};
+    if (Number(search?.page) > 1) result.page = Number(search.page);
+    if (typeof search?.search === 'string' && search.search.trim()) result.search = search.search.trim();
+    if (typeof search?.status === 'string' && search.status !== 'all') result.status = search.status;
+    return result;
+  },
   component: SeatClassesPage,
 });
 
@@ -38,14 +51,23 @@ const normalizeSeatClass = (sc: SeatClass): SeatClassItem => ({
   status: sc.status === 'inactive' || (sc as any).is_active === false ? 'inactive' : 'active',
 });
 
+const statusOptions: FilterOption[] = [
+  { value: 'all', label: 'Tất cả trạng thái' },
+  { value: 'active', label: 'Đang áp dụng' },
+  { value: 'inactive', label: 'Tạm ngưng' },
+];
+
 function SeatClassesPage() {
+  const navigate = useNavigate({ from: Route.fullPath });
+  const searchParams = Route.useSearch();
+
+  const currentPage = searchParams.page || 1;
+  const searchTerm = searchParams.search || '';
+  const statusFilter = searchParams.status || 'all';
+
   const [seatClasses, setSeatClasses] = useState<SeatClassItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [pageSize, setPageSize] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
 
   const [deactivateTarget, setDeactivateTarget] = useState<SeatClassItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SeatClassItem | null>(null);
@@ -73,6 +95,50 @@ function SeatClassesPage() {
     fetchSeatClasses();
   }, []);
 
+  const handleSearchChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value.trim()) {
+          next.search = value.trim();
+        } else {
+          delete next.search;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value !== 'all') {
+          next.status = value;
+        } else {
+          delete next.status;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (page > 1) {
+          next.page = page;
+        } else {
+          delete next.page;
+        }
+        return next;
+      },
+    });
+  };
+
   const filteredSeatClasses = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
     return seatClasses.filter((sc) => {
@@ -81,10 +147,6 @@ function SeatClassesPage() {
       return matchesSearch && matchesStatus;
     });
   }, [seatClasses, searchTerm, statusFilter]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, pageSize]);
 
   const executeDeactivate = async () => {
     if (!deactivateTarget || deactivating) return;
@@ -124,34 +186,32 @@ function SeatClassesPage() {
     }
   };
 
-  const statusOptions = [
-    { value: 'all', label: 'Tất cả trạng thái' },
-    { value: 'active', label: 'Đang áp dụng' },
-    { value: 'inactive', label: 'Tạm ngưng' },
-  ];
-
   const columns: ColumnDef<SeatClassItem>[] = [
     {
       key: 'code',
-      label: 'Mã Hạng',
+      label: 'MÃ HẠNG',
       sortable: true,
-      render: (sc) => <span className="font-mono font-bold text-blue-600 dark:text-blue-400 uppercase whitespace-nowrap">{sc.code}</span>,
+      render: (sc) => (
+        <span className="font-mono font-bold text-blue-600 dark:text-blue-400 uppercase bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800 whitespace-nowrap">
+          {sc.code}
+        </span>
+      ),
     },
     {
       key: 'name',
-      label: 'Tên Hạng',
+      label: 'TÊN HẠNG',
       sortable: true,
       render: (sc) => <span className="font-bold text-slate-900 dark:text-white whitespace-nowrap">{sc.name}</span>,
     },
     {
       key: 'price',
-      label: 'Giá Cơ Sở',
+      label: 'GIÁ CƠ SỞ',
       sortable: true,
       render: (sc) => <span className="font-mono font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{formatCurrency(sc.price)}</span>,
     },
     {
       key: 'color',
-      label: 'Màu Sắc',
+      label: 'MÀU SẮC',
       render: (sc) =>
         sc.color ? (
           <div className="flex items-center gap-2 whitespace-nowrap">
@@ -164,7 +224,7 @@ function SeatClassesPage() {
     },
     {
       key: 'status',
-      label: 'Trạng Thái',
+      label: 'TRẠNG THÁI',
       sortable: true,
       render: (sc) =>
         sc.status === 'active' ? (
@@ -179,10 +239,10 @@ function SeatClassesPage() {
     },
     {
       key: 'actions',
-      label: 'Thao Tác',
+      label: 'THAO TÁC',
       align: 'right',
       render: (sc) => (
-        <div className="space-x-1">
+        <div className="flex items-center justify-end gap-1">
           <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 dark:text-blue-400" asChild>
             <Link to={'/seat-classes/$classId/edit' as any} params={{ classId: sc.id } as any} title="Chỉnh sửa hạng ghế">
               <Edit size={15} />
@@ -204,30 +264,29 @@ function SeatClassesPage() {
   return (
     <>
       <AdminTablePage
-        title="Quản lý hạng ghế"
+        title="Quản Lý Hạng Ghế Tàu"
         subtitle="Thiết lập hạng ghế, giá cơ sở và trạng thái áp dụng cho bán vé Superdong"
         icon={Layers}
         apiError={apiError}
         searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Tìm theo tên hạng hoặc mã hạng ghế..."
         filterValue={statusFilter}
-        onFilterChange={setStatusFilter}
+        onFilterChange={handleStatusFilterChange}
         filterOptions={statusOptions}
         columns={columns}
         columnStorageKey="superdong_seat_classes_columns"
         onRefresh={fetchSeatClasses}
         refreshing={loading}
         createLink="/seat-classes/create"
-        createLabel="Thêm hạng ghế"
+        createLabel="Thêm Hạng Ghế"
         data={filteredSeatClasses}
         loading={loading}
         emptyText="Chưa có dữ liệu hạng ghế nào phù hợp với bộ lọc."
         keyExtractor={(sc) => sc.id}
+        entityLabel="hạng ghế"
         currentPage={currentPage}
-        pageSize={pageSize}
-        onPageChange={setCurrentPage}
-        onPageSizeChange={setPageSize}
+        onPageChange={handlePageChange}
       />
 
       <ConfirmModal
@@ -258,3 +317,4 @@ function SeatClassesPage() {
     </>
   );
 }
+

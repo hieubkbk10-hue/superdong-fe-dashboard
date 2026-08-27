@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { Ship, Edit, Trash2, CheckCircle2, XCircle, Anchor } from 'lucide-react';
+import { Ship, Edit, Trash2, CheckCircle2, XCircle, Anchor, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { getBoats, deleteBoat } from '@/apis/boats';
@@ -9,7 +9,20 @@ import { Button } from '@/components/common/Button';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { AdminTablePage, ColumnDef } from '@/components/common/TableUtilities';
 
+export type BoatsSearch = {
+  page?: number;
+  search?: string;
+  status?: 'active' | 'maintenance' | 'inactive';
+};
+
 export const Route = createFileRoute('/_admin/boats/')({
+  validateSearch: (search: Record<string, unknown>): BoatsSearch => {
+    const result: BoatsSearch = {};
+    if (Number(search?.page) > 1) result.page = Number(search.page);
+    if (typeof search?.search === 'string' && search.search.trim()) result.search = search.search.trim();
+    if (['active', 'maintenance', 'inactive'].includes(search?.status as any)) result.status = search.status as any;
+    return result;
+  },
   component: BoatsPage,
 });
 
@@ -24,13 +37,16 @@ export interface BoatItem {
 }
 
 function BoatsPage() {
+  const searchParams = Route.useSearch();
+  const navigate = Route.useNavigate();
+
+  const searchTerm = searchParams.search || '';
+  const statusFilter = searchParams.status || 'all';
+  const currentPage = searchParams.page || 1;
+
   const [boats, setBoats] = useState<BoatItem[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const [deleteTarget, setDeleteTarget] = useState<BoatItem | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -67,6 +83,51 @@ function BoatsPage() {
     fetchBoats();
   }, []);
 
+  // URL Sync Handlers
+  const handleSearchChange = (term: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (term && term.trim()) {
+          next.search = term.trim();
+        } else {
+          delete next.search;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handleStatusChange = (status: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (status && status !== 'all') {
+          next.status = status;
+        } else {
+          delete next.status;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handlePageChange = (newPage: number) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (newPage > 1) {
+          next.page = newPage;
+        } else {
+          delete next.page;
+        }
+        return next;
+      },
+    });
+  };
+
   const filteredBoats = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
     return boats.filter((b) => {
@@ -81,10 +142,11 @@ function BoatsPage() {
     setDeleting(true);
     try {
       await deleteBoat(deleteTarget.id);
-      toast.success(`Đã xóa tàu ${deleteTarget.name} thành công`);
+      toast.success(`Đã xóa tàu ${deleteTarget.name} thành công!`);
       setDeleteTarget(null);
-      fetchBoats();
+      await fetchBoats();
     } catch (err: any) {
+      console.error('Delete boat error:', err);
       const serverMsg = err?.response?.data?.message || err?.message || 'Không thể thực hiện';
       toast.error(`Lỗi xóa tàu: ${serverMsg}`);
     } finally {
@@ -165,7 +227,7 @@ function BoatsPage() {
         if (b.status === 'maintenance') {
           return (
             <span className="inline-flex items-center gap-1 text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800 whitespace-nowrap">
-              <XCircle size={12} /> Đang bảo trì
+              <Wrench size={12} /> Đang bảo trì
             </span>
           );
         }
@@ -203,10 +265,10 @@ function BoatsPage() {
         icon={Ship}
         apiError={apiError}
         searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Tìm theo Mã tàu hoặc Tên tàu..."
         filterValue={statusFilter}
-        onFilterChange={setStatusFilter}
+        onFilterChange={handleStatusChange}
         filterOptions={statusOptions}
         columns={columns}
         columnStorageKey="superdong_boats_columns"
@@ -218,10 +280,9 @@ function BoatsPage() {
         loading={isLoading}
         emptyText={apiError ? '⚠️ Không thể lấy dữ liệu từ Backend API.' : 'Chưa có thông tin tàu phù hợp.'}
         keyExtractor={(b) => b.id}
+        entityLabel="tàu"
         currentPage={currentPage}
-        pageSize={pageSize}
-        onPageChange={setCurrentPage}
-        onPageSizeChange={setPageSize}
+        onPageChange={handlePageChange}
       />
 
       <ConfirmModal

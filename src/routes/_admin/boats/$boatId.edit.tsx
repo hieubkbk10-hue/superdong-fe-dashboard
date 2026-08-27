@@ -13,9 +13,9 @@ import {
   FormSectionBlock,
   FormInputField,
   FormSelectField,
+  AdminFormActionBar,
   useFormDirty,
 } from '@/components/common/FormUtilities';
-import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
 
 export const Route = createFileRoute('/_admin/boats/$boatId/edit')({
   component: BoatEditPage,
@@ -289,15 +289,17 @@ function BoatEditPage() {
             </Label>
           </div>
         </FormSectionBlock>
-      </AdminFormCard>
 
-      {/* Floating Unsaved Changes Bar */}
-      <UnsavedChangesBar
-        isDirty={isDirty}
-        isSaving={isSubmitting}
-        onSave={() => handleSubmit()}
-        onReset={handleReset}
-      />
+        {/* Master Form Action Bar with Dirty State */}
+        <AdminFormActionBar
+          mode="edit"
+          isDirty={isDirty}
+          isSubmitting={isSubmitting}
+          cancelTo="/boats"
+          submitLabel="Lưu Thay Đổi"
+          savedLabel="Đã lưu"
+        />
+      </AdminFormCard>
     </div>
   );
 }

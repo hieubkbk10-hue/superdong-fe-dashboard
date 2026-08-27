@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { GitBranch, Edit, Trash2, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -8,9 +8,22 @@ import { formatRouteOptionLabel, normalizeRouteStops, StopOption } from '@/helpe
 import { Location, Route as JourneyRoute } from '@/types';
 import { Button } from '@/components/common/Button';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { AdminTablePage, ColumnDef } from '@/components/common/TableUtilities';
+import { AdminTablePage, ColumnDef, FilterOption } from '@/components/common/TableUtilities';
+
+export interface RoutesSearch {
+  page?: number;
+  search?: string;
+  status?: string;
+}
 
 export const Route = createFileRoute('/_admin/routes/')({
+  validateSearch: (search: Record<string, unknown>): RoutesSearch => {
+    const result: RoutesSearch = {};
+    if (Number(search?.page) > 1) result.page = Number(search.page);
+    if (typeof search?.search === 'string' && search.search.trim()) result.search = search.search.trim();
+    if (typeof search?.status === 'string' && search.status !== 'all') result.status = search.status;
+    return result;
+  },
   component: RoutesPage,
 });
 
@@ -49,14 +62,23 @@ const formatDateTime = (value?: string) => {
   return date.toLocaleDateString('vi-VN');
 };
 
+const statusOptions: FilterOption[] = [
+  { value: 'all', label: 'Tất cả trạng thái' },
+  { value: 'active', label: 'Đang hoạt động' },
+  { value: 'inactive', label: 'Tạm ngưng' },
+];
+
 function RoutesPage() {
+  const navigate = useNavigate({ from: Route.fullPath });
+  const searchParams = Route.useSearch();
+
+  const currentPage = searchParams.page || 1;
+  const searchTerm = searchParams.search || '';
+  const statusFilter = searchParams.status || 'all';
+
   const [routes, setRoutes] = useState<RouteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [pageSize, setPageSize] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
 
   const [deleteTarget, setDeleteTarget] = useState<RouteRow | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -87,9 +109,49 @@ function RoutesPage() {
     fetchRoutes();
   }, []);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, pageSize]);
+  const handleSearchChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value.trim()) {
+          next.search = value.trim();
+        } else {
+          delete next.search;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value !== 'all') {
+          next.status = value;
+        } else {
+          delete next.status;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (page > 1) {
+          next.page = page;
+        } else {
+          delete next.page;
+        }
+        return next;
+      },
+    });
+  };
 
   const filteredRoutes = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
@@ -124,28 +186,26 @@ function RoutesPage() {
     }
   };
 
-  const statusOptions = [
-    { value: 'all', label: 'Tất cả trạng thái' },
-    { value: 'active', label: 'Đang hoạt động' },
-    { value: 'inactive', label: 'Tạm ngưng' },
-  ];
-
   const columns: ColumnDef<RouteRow>[] = [
     {
       key: 'code',
-      label: 'Mã Tuyến',
+      label: 'MÃ TUYẾN',
       sortable: true,
-      render: (item) => <span className="font-mono font-bold text-blue-600 dark:text-blue-400 uppercase whitespace-nowrap">{item.code}</span>,
+      render: (item) => (
+        <span className="font-mono font-bold text-blue-600 dark:text-blue-400 uppercase bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800 whitespace-nowrap">
+          {item.code}
+        </span>
+      ),
     },
     {
       key: 'name',
-      label: 'Tên Tuyến',
+      label: 'TÊN TUYẾN',
       sortable: true,
       render: (item) => <span className="font-bold text-slate-900 dark:text-white whitespace-nowrap">{item.name || item.label || 'Chưa cập nhật'}</span>,
     },
     {
       key: 'stops',
-      label: 'Bến Dừng',
+      label: 'BẾN DỪNG',
       render: (item) => (
         <div className="flex items-center gap-1.5 flex-wrap whitespace-nowrap">
           {item.stops && item.stops.length > 0 ? (
@@ -165,7 +225,7 @@ function RoutesPage() {
     },
     {
       key: 'status',
-      label: 'Trạng Thái',
+      label: 'TRẠNG THÁI',
       sortable: true,
       render: (item) =>
         item.status === 'active' ? (
@@ -180,16 +240,16 @@ function RoutesPage() {
     },
     {
       key: 'updated_at',
-      label: 'Cập Nhật',
+      label: 'CẬP NHẬT',
       sortable: true,
       render: (item) => <span className="text-slate-600 dark:text-slate-400 text-xs whitespace-nowrap">{formatDateTime(item.updated_at)}</span>,
     },
     {
       key: 'actions',
-      label: 'Thao Tác',
+      label: 'THAO TÁC',
       align: 'right',
       render: (item) => (
-        <div className="space-x-1">
+        <div className="flex items-center justify-end gap-1">
           <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 dark:text-blue-400" asChild>
             <Link to={'/routes/$routeId/edit' as any} params={{ routeId: item.id } as any} title="Chỉnh sửa luồng tuyến">
               <Edit size={15} />
@@ -206,30 +266,29 @@ function RoutesPage() {
   return (
     <>
       <AdminTablePage
-        title="Quản lý luồng tuyến"
+        title="Quản Lý Luồng Tuyến Tàu"
         subtitle="Quản lý mã luồng tuyến và thứ tự bến dừng. Hành trình bán vé Superdong chọn cặp bến từ dữ liệu này"
         icon={GitBranch}
         apiError={apiError}
         searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Tìm theo tên, mã hoặc bến dừng..."
         filterValue={statusFilter}
-        onFilterChange={setStatusFilter}
+        onFilterChange={handleStatusFilterChange}
         filterOptions={statusOptions}
         columns={columns}
         columnStorageKey="superdong_routes_columns"
         onRefresh={fetchRoutes}
         refreshing={loading}
         createLink="/routes/create"
-        createLabel="Thêm luồng tuyến"
+        createLabel="Thêm Luồng Tuyến"
         data={filteredRoutes}
         loading={loading}
         emptyText="Chưa có luồng tuyến nào phù hợp với bộ lọc."
         keyExtractor={(item) => item.id}
+        entityLabel="tuyến tàu"
         currentPage={currentPage}
-        pageSize={pageSize}
-        onPageChange={setCurrentPage}
-        onPageSizeChange={setPageSize}
+        onPageChange={handlePageChange}
       />
 
       <ConfirmModal
@@ -247,3 +306,4 @@ function RoutesPage() {
     </>
   );
 }
+

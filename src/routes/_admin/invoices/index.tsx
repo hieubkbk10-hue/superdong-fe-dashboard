@@ -1,11 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { createFileRoute } from '@tanstack/react-router';
-import { FileText, Search, CheckCircle2, Clock, XCircle, Eye, Download, X, RefreshCw, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { FileText, CheckCircle2, Clock, Eye, Download, X, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Payment } from '@/types';
 import { getPayments } from '@/apis/payments';
+import { Button } from '@/components/common/Button';
+import { AdminTablePage, ColumnDef, FilterOption } from '@/components/common/TableUtilities';
+import { Badge } from '@/components/common/Badge';
+
+export interface InvoicesSearch {
+  page?: number;
+  search?: string;
+  status?: string;
+}
 
 export const Route = createFileRoute('/_admin/invoices/')({
+  validateSearch: (search: Record<string, unknown>): InvoicesSearch => {
+    const result: InvoicesSearch = {};
+    if (Number(search?.page) > 1) result.page = Number(search.page);
+    if (typeof search?.search === 'string' && search.search.trim()) result.search = search.search.trim();
+    if (typeof search?.status === 'string' && search.status !== 'all') result.status = search.status;
+    return result;
+  },
   component: InvoicesPage,
 });
 
@@ -24,12 +40,27 @@ export interface InvoiceItem {
   issued_at: string;
 }
 
+const statusOptions: FilterOption[] = [
+  { value: 'all', label: 'Tất cả trạng thái' },
+  { value: 'issued', label: 'Đã phát hành VAT' },
+  { value: 'pending', label: 'Chờ phát hành' },
+];
+
+const formatCurrency = (val: number) => {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+};
+
 function InvoicesPage() {
+  const navigate = useNavigate({ from: Route.fullPath });
+  const searchParams = Route.useSearch();
+
+  const currentPage = searchParams.page || 1;
+  const searchTerm = searchParams.search || '';
+  const statusFilter = searchParams.status || 'all';
+
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceItem | null>(null);
 
   const fetchInvoices = async () => {
@@ -45,16 +76,16 @@ function InvoicesPage() {
           return {
             id: String(p.id),
             invoice_number: `HD2026-${String(p.id).padStart(5, '0')}`,
-            booking_code: p.booking_code || `BK-${p.booking_id}`,
-            customer_name: 'Khách hàng Superdong',
-            company_name: 'Công ty Cổ phần Vận tải Biển',
-            tax_code: '0314998877',
+            booking_code: p.booking_code || (p.booking_id ? `BK-${p.booking_id}` : '--'),
+            customer_name: 'Khách hàng',
+            company_name: '',
+            tax_code: '',
             subtotal: sub,
             vat_rate: 10,
             vat_amount: vat,
             total_amount: total,
             status: p.status === 'completed' || p.status === 'success' ? 'issued' : 'pending',
-            issued_at: p.created_at || new Date().toISOString().slice(0, 10),
+            issued_at: p.created_at ? p.created_at.substring(0, 10) : new Date().toISOString().slice(0, 10),
           };
         });
         setInvoices(mapped);
@@ -75,185 +106,206 @@ function InvoicesPage() {
     fetchInvoices();
   }, []);
 
-  const filteredInvoices = invoices.filter((inv) => {
-    const matchesSearch =
-      inv.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inv.booking_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inv.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (inv.company_name && inv.company_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (inv.tax_code && inv.tax_code.includes(searchTerm));
-
-    const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+  const handleSearchChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value.trim()) {
+          next.search = value.trim();
+        } else {
+          delete next.search;
+        }
+        delete next.page;
+        return next;
+      },
+    });
   };
 
-  return (
-    <div className="space-y-6 font-sans">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+  const handleStatusFilterChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value !== 'all') {
+          next.status = value;
+        } else {
+          delete next.status;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (page > 1) {
+          next.page = page;
+        } else {
+          delete next.page;
+        }
+        return next;
+      },
+    });
+  };
+
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter((inv) => {
+      const q = searchTerm.trim().toLowerCase();
+      const matchesSearch =
+        !q ||
+        inv.invoice_number.toLowerCase().includes(q) ||
+        inv.booking_code.toLowerCase().includes(q) ||
+        inv.customer_name.toLowerCase().includes(q) ||
+        (inv.company_name && inv.company_name.toLowerCase().includes(q)) ||
+        (inv.tax_code && inv.tax_code.includes(q));
+
+      const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [invoices, searchTerm, statusFilter]);
+
+  const columns: ColumnDef<InvoiceItem>[] = [
+    {
+      key: 'invoice_number',
+      label: 'SỐ HÓA ĐƠN',
+      sortable: true,
+      render: (inv) => (
+        <div className="flex items-center gap-2">
+          <FileText size={15} className="text-blue-600 dark:text-blue-400 shrink-0" />
+          <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{inv.invoice_number}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'booking_code',
+      label: 'MÃ ĐƠN VÉ',
+      sortable: true,
+      render: (inv) => (
+        <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{inv.booking_code}</span>
+      ),
+    },
+    {
+      key: 'customer_name',
+      label: 'ĐƠN VỊ / KHÁCH MUA',
+      sortable: true,
+      render: (inv) => (
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <FileText className="h-6 w-6 text-blue-600" />
-              Quản Lý Hóa Đơn VAT Điện Tử Live
-            </h1>
-            {!apiError && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                <CheckCircle2 size={13} /> Live API Backend
-              </span>
-            )}
+          <div className="font-bold text-slate-900 dark:text-slate-100">
+            {inv.company_name || inv.customer_name}
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Đối soát và xuất hóa đơn VAT giá trị gia tăng kết nối từ Server Backend Superdong
-          </p>
+          {inv.tax_code ? (
+            <div className="text-[11px] font-mono text-slate-500">MST: {inv.tax_code}</div>
+          ) : (
+            <div className="text-[11px] text-slate-400">Khách hàng cá nhân</div>
+          )}
         </div>
-        <button
-          onClick={fetchInvoices}
-          disabled={loading}
-          className="h-9 w-9 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-700 dark:text-slate-200 flex items-center justify-center cursor-pointer shadow-xs"
-          title="Làm mới dữ liệu"
+      ),
+    },
+    {
+      key: 'subtotal',
+      label: 'TIỀN TRƯỚC THUẾ',
+      sortable: true,
+      render: (inv) => (
+        <span className="font-medium text-slate-600 dark:text-slate-400">{formatCurrency(inv.subtotal)}</span>
+      ),
+    },
+    {
+      key: 'vat_amount',
+      label: 'THUẾ VAT (10%)',
+      sortable: true,
+      render: (inv) => (
+        <span className="font-semibold text-amber-600 dark:text-amber-400">{formatCurrency(inv.vat_amount)}</span>
+      ),
+    },
+    {
+      key: 'total_amount',
+      label: 'TỔNG CỘNG',
+      sortable: true,
+      render: (inv) => (
+        <span className="font-mono font-bold text-slate-900 dark:text-white">
+          {formatCurrency(inv.total_amount)}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'TRẠNG THÁI',
+      sortable: true,
+      render: (inv) => {
+        if (inv.status === 'issued') {
+          return (
+            <Badge variant="success" className="gap-1 text-[11px] font-semibold">
+              <CheckCircle2 size={12} /> Đã phát hành
+            </Badge>
+          );
+        }
+        return (
+          <Badge variant="warning" className="gap-1 text-[11px] font-semibold">
+            <Clock size={12} /> Chờ phát hành
+          </Badge>
+        );
+      },
+    },
+    {
+      key: 'actions',
+      label: 'THAO TÁC',
+      align: 'right',
+      render: (inv) => (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-blue-600 hover:text-blue-700 dark:text-blue-400"
+          onClick={() => setSelectedInvoice(inv)}
+          title="Xem chi tiết hóa đơn VAT"
         >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-        </button>
-      </div>
+          <Eye size={15} />
+        </Button>
+      ),
+    },
+  ];
 
-      {/* API Error Alert */}
-      {apiError && (
-        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2.5">
-          <AlertTriangle size={18} className="shrink-0 text-rose-500" />
-          <span>⚠️ Không thể lấy dữ liệu từ Backend API: {apiError}. Vui lòng kiểm tra lại Server Backend!</span>
-        </div>
-      )}
-
-      {/* Filter and Search Bar */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs flex flex-col md:flex-row gap-3 justify-between">
-        <div className="relative max-w-md w-full">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm theo Số hóa đơn, Mã đơn vé, Tên công ty, MST..."
-            className="w-full h-10 pl-9 pr-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-blue-500 font-mono"
-          />
-        </div>
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-10 px-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 outline-none cursor-pointer"
-        >
-          <option value="all">Tất cả trạng thái</option>
-          <option value="issued">Đã phát hành VAT</option>
-          <option value="pending">Chờ phát hành</option>
-        </select>
-      </div>
-
-      {/* Invoices Data Table */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-800">
-              <tr>
-                <th className="p-4">Số Hóa Đơn</th>
-                <th className="p-4">Mã Đơn Vé</th>
-                <th className="p-4">Khách Hàng / Đơn Vị Mua</th>
-                <th className="p-4">Doanh Thu Chưa Thuế</th>
-                <th className="p-4">Thuế VAT (10%)</th>
-                <th className="p-4">Tổng Tiền Đã Gồm VAT</th>
-                <th className="p-4">Trạng Thái</th>
-                <th className="p-4 text-right">Thao Tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {loading ? (
-                <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-500">
-                    <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-blue-600" />
-                    Đang tải dữ liệu hóa đơn từ Backend API...
-                  </td>
-                </tr>
-              ) : filteredInvoices.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-500">
-                    {apiError ? '⚠️ Không thể lấy dữ liệu từ Backend API.' : 'Không có hóa đơn VAT nào.'}
-                  </td>
-                </tr>
-              ) : (
-                filteredInvoices.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                    <td className="p-4 font-mono font-bold text-blue-600 dark:text-blue-400">
-                      {inv.invoice_number}
-                    </td>
-                    <td className="p-4 font-mono font-semibold text-slate-700 dark:text-slate-300">
-                      {inv.booking_code}
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 dark:text-slate-100">
-                        {inv.company_name || inv.customer_name}
-                      </div>
-                      {inv.tax_code && (
-                        <div className="text-xs font-mono text-slate-500 mt-0.5">
-                          MST: {inv.tax_code}
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-4 font-medium text-slate-600 dark:text-slate-400">
-                      {formatCurrency(inv.subtotal)}
-                    </td>
-                    <td className="p-4 font-semibold text-amber-600 dark:text-amber-400">
-                      {formatCurrency(inv.vat_amount)}
-                    </td>
-                    <td className="p-4 font-extrabold text-slate-900 dark:text-white">
-                      {formatCurrency(inv.total_amount)}
-                    </td>
-                    <td className="p-4">
-                      {inv.status === 'issued' && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500 text-white">
-                          <CheckCircle2 size={12} /> Đã phát hành
-                        </span>
-                      )}
-                      {inv.status === 'pending' && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500 text-white">
-                          <Clock size={12} /> Chờ phát hành
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-4 text-right space-x-1">
-                      <button
-                        onClick={() => setSelectedInvoice(inv)}
-                        className="p-1.5 inline-flex items-center justify-center rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-blue-600 cursor-pointer"
-                        title="Xem hóa đơn PDF điện tử"
-                      >
-                        <Eye size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+  return (
+    <>
+      <AdminTablePage
+        title="Quản Lý Hóa Đơn VAT Điện Tử"
+        subtitle="Đối soát và xuất hóa đơn VAT giá trị gia tăng kết nối từ Server Backend Superdong"
+        icon={FileText}
+        apiError={apiError}
+        searchValue={searchTerm}
+        onSearchChange={handleSearchChange}
+        searchPlaceholder="Tìm theo Số hóa đơn, Mã đơn vé..."
+        filterValue={statusFilter}
+        onFilterChange={handleStatusFilterChange}
+        filterOptions={statusOptions}
+        columns={columns}
+        columnStorageKey="superdong_invoices_columns"
+        onRefresh={fetchInvoices}
+        refreshing={loading}
+        data={filteredInvoices}
+        loading={loading}
+        emptyText={apiError ? '⚠️ Không thể lấy dữ liệu từ Backend API.' : 'Không có hóa đơn VAT nào phù hợp.'}
+        keyExtractor={(inv) => inv.id}
+        entityLabel="hóa đơn"
+        currentPage={currentPage}
+        onPageChange={handlePageChange}
+      />
 
       {/* Invoice Preview Modal */}
       {selectedInvoice && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-xl max-w-xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-              <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
-                <FileText size={18} className="text-blue-600" />
+              <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                <FileText size={16} className="text-blue-600" />
                 Hóa Đơn Giá Trị Gia Tăng (VAT): {selectedInvoice.invoice_number}
               </h3>
               <button
                 onClick={() => setSelectedInvoice(null)}
                 className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 cursor-pointer"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
@@ -316,23 +368,28 @@ function InvoicesPage() {
               </div>
             </div>
 
-            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
-              <button
+            <div className="px-6 py-3.5 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2.5">
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => toast.success(`Đã tải file PDF hóa đơn ${selectedInvoice.invoice_number}`)}
-                className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs flex items-center gap-1.5 hover:bg-slate-100 cursor-pointer"
+                className="gap-1.5 text-xs rounded-lg"
               >
                 <Download size={14} /> Tải PDF
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => setSelectedInvoice(null)}
-                className="px-5 py-2 rounded-lg bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 cursor-pointer"
+                className="text-xs rounded-lg"
               >
                 Đóng
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
+

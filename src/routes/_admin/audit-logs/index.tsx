@@ -1,13 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import {
   FileCode2,
   Clock,
   X,
   Database,
-  RefreshCw,
-  AlertTriangle,
-  ShieldAlert,
   UserCheck,
   Users,
   Layers,
@@ -20,18 +17,44 @@ import {
   Ticket,
   User as UserIcon,
   Activity,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AuditRecord } from '@/types';
 import { getAuditRecords } from '@/apis/audits';
-import { PageHeader, TableToolbar } from '@/components/common/TableUtilities';
+import { AdminTablePage, ColumnDef, FilterOption } from '@/components/common/TableUtilities';
 import { Button } from '@/components/common/Button';
 
+export interface AuditLogsSearch {
+  page?: number;
+  search?: string;
+  module?: string;
+  actor?: string;
+}
+
 export const Route = createFileRoute('/_admin/audit-logs/')({
+  validateSearch: (search: Record<string, unknown>): AuditLogsSearch => {
+    const result: AuditLogsSearch = {};
+    if (Number(search?.page) > 1) result.page = Number(search.page);
+    if (typeof search?.search === 'string' && search.search.trim()) result.search = search.search.trim();
+    if (typeof search?.module === 'string' && search.module !== 'all') result.module = search.module;
+    if (typeof search?.actor === 'string' && search.actor !== 'all') result.actor = search.actor;
+    return result;
+  },
   component: AuditLogsPage,
 });
 
-// Helper định dạng thời gian thân thiện
+const moduleOptions: FilterOption[] = [
+  { value: 'all', label: 'Tất cả phân hệ' },
+  { value: 'booking', label: 'Đơn Vé (Booking)' },
+  { value: 'trip', label: 'Chuyến Tàu (Trip)' },
+  { value: 'boat', label: 'Đội Tàu (Boat)' },
+  { value: 'schedule', label: 'Lịch Chạy (Schedule)' },
+  { value: 'coupon', label: 'Khuyến Mãi (Coupon)' },
+  { value: 'user', label: 'Tài Khoản (User)' },
+];
+
 function formatDateTime(isoStr?: string) {
   if (!isoStr) return '--:-- --/--/----';
   try {
@@ -45,7 +68,6 @@ function formatDateTime(isoStr?: string) {
   }
 }
 
-// Helper tính khoảng thời gian tương đối
 function timeAgo(isoStr?: string) {
   if (!isoStr) return '';
   try {
@@ -61,7 +83,6 @@ function timeAgo(isoStr?: string) {
   }
 }
 
-// Helper mapping Icon & Color cho từng phân hệ Aggregate
 function getAggregateMeta(aggregateType?: string) {
   const type = (aggregateType || '').toLowerCase();
   switch (type) {
@@ -82,7 +103,6 @@ function getAggregateMeta(aggregateType?: string) {
   }
 }
 
-// Helper mapping Action Badge
 function getActionMeta(action?: string) {
   const act = (action || '').toLowerCase();
   if (act.includes('create')) {
@@ -100,7 +120,6 @@ function getActionMeta(action?: string) {
   return { label: action || 'Thao tác', bgClass: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20' };
 }
 
-// Helper mapping Actor Type
 function getActorMeta(actorType?: string) {
   const actor = (actorType || '').toLowerCase();
   switch (actor) {
@@ -115,13 +134,16 @@ function getActorMeta(actorType?: string) {
 }
 
 function AuditLogsPage() {
+  const navigate = useNavigate({ from: Route.fullPath });
+  const searchParams = Route.useSearch();
+
+  const currentPage = searchParams.page || 1;
+  const searchTerm = searchParams.search || '';
+  const moduleFilter = searchParams.module || 'all';
+
   const [logs, setLogs] = useState<AuditRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [moduleFilter, setModuleFilter] = useState<string>('all');
-  const [actorFilter, setActorFilter] = useState<string>('all');
-  const [actionFilter, setActionFilter] = useState<string>('all');
   const [selectedRecord, setSelectedRecord] = useState<AuditRecord | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
@@ -150,7 +172,57 @@ function AuditLogsPage() {
     fetchLogs();
   }, []);
 
-  // Lọc thông minh
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    toast.success('Đã sao chép dữ liệu JSON');
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const handleSearchChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value.trim()) {
+          next.search = value.trim();
+        } else {
+          delete next.search;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handleModuleFilterChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value !== 'all') {
+          next.module = value;
+        } else {
+          delete next.module;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (page > 1) {
+          next.page = page;
+        } else {
+          delete next.page;
+        }
+        return next;
+      },
+    });
+  };
+
   const filteredLogs = useMemo(() => {
     return logs.filter((record) => {
       const term = searchTerm.toLowerCase().trim();
@@ -164,231 +236,153 @@ function AuditLogsPage() {
         (record.actor_type && record.actor_type.toLowerCase().includes(term));
 
       const matchesModule = moduleFilter === 'all' || (record.aggregate_type || '').toLowerCase() === moduleFilter.toLowerCase();
-      const matchesActor = actorFilter === 'all' || (record.actor_type || '').toLowerCase() === actorFilter.toLowerCase();
-      const matchesAction = actionFilter === 'all' || (record.action || '').toLowerCase().includes(actionFilter.toLowerCase());
 
-      return matchesSearch && matchesModule && matchesActor && matchesAction;
+      return matchesSearch && matchesModule;
     });
-  }, [logs, searchTerm, moduleFilter, actorFilter, actionFilter]);
+  }, [logs, searchTerm, moduleFilter]);
 
-  // Thống kê nhanh KPI
-  const stats = useMemo(() => {
-    const total = logs.length;
-    const staffCount = logs.filter((l) => (l.actor_type || '').toLowerCase() === 'staff' || (l.actor_type || '').toLowerCase() === 'admin').length;
-    const guestCount = logs.filter((l) => (l.actor_type || '').toLowerCase() === 'guest').length;
-    const tripOpsCount = logs.filter((l) => (l.aggregate_type || '').toLowerCase() === 'trip' || (l.aggregate_type || '').toLowerCase() === 'boat').length;
-
-    return { total, staffCount, guestCount, tripOpsCount };
-  }, [logs]);
-
-  const copyToClipboard = (text: string, key: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedKey(key);
-    toast.success('Đã sao chép vào clipboard');
-    setTimeout(() => setCopiedKey(null), 2000);
-  };
+  const columns: ColumnDef<AuditRecord>[] = [
+    {
+      key: 'occurred_at',
+      label: 'THỜI GIAN & ID',
+      sortable: true,
+      render: (record) => (
+        <div>
+          <div className="font-mono font-medium text-slate-900 dark:text-slate-100 text-xs">
+            {formatDateTime(record.occurred_at || record.created_at)}
+          </div>
+          <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+            <Clock size={10} />
+            <span>{timeAgo(record.occurred_at || record.created_at)}</span>
+            <span className="font-mono opacity-60">· #{String(record.id).slice(-6)}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'aggregate_type',
+      label: 'PHÂN HỆ (ENTITY)',
+      sortable: true,
+      render: (record) => {
+        const aggMeta = getAggregateMeta(record.aggregate_type);
+        const AggIcon = aggMeta.icon;
+        return (
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${aggMeta.badgeClass}`}>
+            <AggIcon size={12} />
+            <span>{aggMeta.label} #{record.aggregate_id || 'N/A'}</span>
+          </span>
+        );
+      },
+    },
+    {
+      key: 'action',
+      label: 'HÀNH ĐỘNG',
+      sortable: true,
+      render: (record) => {
+        const actMeta = getActionMeta(record.action);
+        return (
+          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border font-mono ${actMeta.bgClass}`}>
+            {actMeta.label}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'actor_type',
+      label: 'TÁC NHÂN',
+      sortable: true,
+      render: (record) => {
+        const actorMeta = getActorMeta(record.actor_type);
+        const ActorIcon = actorMeta.icon;
+        return (
+          <div className="flex items-center gap-1.5">
+            <ActorIcon size={13} className={actorMeta.class} />
+            <span className={`text-xs ${actorMeta.class}`}>
+              {actorMeta.label}
+              {record.actor_id ? ` (${String(record.actor_id).slice(-4)})` : ''}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'reason',
+      label: 'MÔ TẢ NGHIỆP VỤ',
+      render: (record) => (
+        <div>
+          <div className="text-xs font-medium text-slate-800 dark:text-slate-200">
+            {record.reason || record.description || 'Thao tác nghiệp vụ hệ thống'}
+          </div>
+          {record.tracking_id && (
+            <div className="text-[10px] font-mono text-slate-400 mt-0.5">
+              Trace: {record.tracking_id}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'THAO TÁC',
+      align: 'right',
+      render: (record) => {
+        const hasDiff = Boolean(record.before_json || record.after_json);
+        return (
+          <>
+            {hasDiff ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedRecord(record)}
+                className="h-8 px-2.5 text-xs font-semibold gap-1.5 border-blue-200/80 bg-blue-50/40 hover:bg-blue-100/80 text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300 rounded-lg"
+                title="So sánh chi tiết thay đổi dữ liệu Before vs After"
+              >
+                <FileDiff size={14} className="text-blue-600 dark:text-blue-400" />
+                <span>So sánh Diff</span>
+              </Button>
+            ) : (
+              <span className="text-[11px] text-slate-400 italic">Không có payload</span>
+            )}
+          </>
+        );
+      },
+    },
+  ];
 
   return (
-    <div className="space-y-4 w-full font-sans pb-12">
-      {/* Header */}
-      <PageHeader
-        title="Nhật Ký Thao Tác Hệ Thống (Audit Trail & Activity Logs)"
-        subtitle="Theo dõi toàn diện lịch sử biến động dữ liệu, phân hệ và tác nhân thao tác thời gian thực từ Backend API."
+    <>
+      <AdminTablePage
+        title="Nhật Ký Kiểm Toán Hệ Thống (Audit Logs)"
+        subtitle="Theo dõi toàn bộ biến động dữ liệu, lịch sử thao tác của nhân viên và sự kiện hệ thống"
         icon={FileCode2}
+        apiError={apiError}
+        searchValue={searchTerm}
+        onSearchChange={handleSearchChange}
+        searchPlaceholder="Tìm theo Entity, ID, Lý do, Mã Trace..."
+        filterValue={moduleFilter}
+        onFilterChange={handleModuleFilterChange}
+        filterOptions={moduleOptions}
+        columns={columns}
+        columnStorageKey="superdong_audit_logs_columns"
         onRefresh={fetchLogs}
         refreshing={loading}
+        data={filteredLogs}
+        loading={loading}
+        emptyText={apiError ? '⚠️ Không thể lấy dữ liệu từ Backend API.' : 'Không tìm thấy bản ghi nhật ký phù hợp.'}
+        keyExtractor={(record) => String(record.id)}
+        entityLabel="nhật ký"
+        currentPage={currentPage}
+        onPageChange={handlePageChange}
       />
-
-      {/* API Error Alert */}
-      {apiError && (
-        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-2xl text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <AlertTriangle size={18} className="shrink-0 text-rose-500" />
-            <span>⚠️ Không thể kết nối lấy nhật ký: {apiError}. Vui lòng kiểm tra lại Backend Server.</span>
-          </div>
-          <Button size="sm" variant="outline" onClick={fetchLogs} className="h-7 text-xs border-rose-300 dark:border-rose-800">
-            Thử lại
-          </Button>
-        </div>
-      )}
-
-      {/* Filter Bar */}
-      <TableToolbar
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Tìm theo mã ID, phân hệ, lý do nghiệp vụ..."
-      >
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Filter Phân Hệ */}
-          <select
-            value={moduleFilter}
-            onChange={(e) => setModuleFilter(e.target.value)}
-            className="h-9 px-3 text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl text-slate-900 dark:text-slate-100 outline-none cursor-pointer focus:border-blue-500 font-medium"
-          >
-            <option value="all">Tất cả Phân hệ</option>
-            <option value="Booking">Đơn vé (Booking)</option>
-            <option value="Trip">Chuyến tàu (Trip)</option>
-            <option value="Boat">Đội tàu (Boat)</option>
-            <option value="Schedule">Lịch chạy (Schedule)</option>
-            <option value="Coupon">Mã giảm giá (Coupon)</option>
-            <option value="User">Tài khoản (User)</option>
-          </select>
-
-          {/* Filter Tác Nhân */}
-          <select
-            value={actorFilter}
-            onChange={(e) => setActorFilter(e.target.value)}
-            className="h-9 px-3 text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl text-slate-900 dark:text-slate-100 outline-none cursor-pointer focus:border-blue-500 font-medium"
-          >
-            <option value="all">Tất cả Tác nhân</option>
-            <option value="staff">Quản trị viên (Staff/Admin)</option>
-            <option value="guest">Khách đặt vé (Guest)</option>
-            <option value="system">Hệ thống ngầm (System)</option>
-          </select>
-
-          {/* Filter Hành Động */}
-          <select
-            value={actionFilter}
-            onChange={(e) => setActionFilter(e.target.value)}
-            className="h-9 px-3 text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl text-slate-900 dark:text-slate-100 outline-none cursor-pointer focus:border-blue-500 font-medium"
-          >
-            <option value="all">Tất cả Hành động</option>
-            <option value="create">Tạo mới (Created)</option>
-            <option value="boat">Đổi tàu / Ghế (Boat Change)</option>
-            <option value="update">Cập nhật (Updated)</option>
-            <option value="status">Đổi trạng thái (Status Change)</option>
-          </select>
-        </div>
-      </TableToolbar>
-
-      {/* Audit Logs Table */}
-      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50/80 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 font-semibold border-b border-slate-200/60 dark:border-slate-800 uppercase tracking-wider text-[11px]">
-              <tr>
-                <th className="py-3 px-4">Thời Gian &amp; ID</th>
-                <th className="py-3 px-4">Phân Hệ (Entity)</th>
-                <th className="py-3 px-4">Hành Động</th>
-                <th className="py-3 px-4">Tác Nhân</th>
-                <th className="py-3 px-4 min-w-[280px]">Mô Tả Nghiệp Vụ / Lý Do</th>
-                <th className="py-3 px-4 text-right">Biến Động Dữ Liệu</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="py-16 text-center text-slate-500">
-                    <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-600" />
-                    <span className="font-medium">Đang tải nhật ký thao tác từ Backend Server...</span>
-                  </td>
-                </tr>
-              ) : filteredLogs.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-16 text-center text-slate-500">
-                    <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-400">
-                      <FileCode2 size={24} />
-                    </div>
-                    <div className="font-semibold text-slate-700 dark:text-slate-300">Không tìm thấy bản ghi nhật ký phù hợp</div>
-                    <div className="text-[11px] text-slate-400 mt-1">Thử thay đổi từ khóa tìm kiếm hoặc điều chỉnh lại bộ lọc phân hệ</div>
-                  </td>
-                </tr>
-              ) : (
-                filteredLogs.map((record) => {
-                  const aggMeta = getAggregateMeta(record.aggregate_type);
-                  const actMeta = getActionMeta(record.action);
-                  const actorMeta = getActorMeta(record.actor_type);
-                  const AggIcon = aggMeta.icon;
-                  const ActorIcon = actorMeta.icon;
-
-                  const hasDiff = Boolean(record.before_json || record.after_json);
-
-                  return (
-                    <tr key={record.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
-                      {/* Thời gian */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="font-mono font-medium text-slate-900 dark:text-slate-100 text-xs">
-                          {formatDateTime(record.occurred_at || record.created_at)}
-                        </div>
-                        <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
-                          <Clock size={10} />
-                          <span>{timeAgo(record.occurred_at || record.created_at)}</span>
-                          <span className="font-mono opacity-60">· #{String(record.id).slice(-6)}</span>
-                        </div>
-                      </td>
-
-                      {/* Phân hệ Entity */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${aggMeta.badgeClass}`}>
-                          <AggIcon size={12} />
-                          <span>{aggMeta.label} #{record.aggregate_id || 'N/A'}</span>
-                        </span>
-                      </td>
-
-                      {/* Hành động */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border font-mono ${actMeta.bgClass}`}>
-                          {actMeta.label}
-                        </span>
-                      </td>
-
-                      {/* Tác nhân */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <ActorIcon size={13} className={actorMeta.class} />
-                          <span className={`text-xs ${actorMeta.class}`}>
-                            {actorMeta.label}
-                            {record.actor_id ? ` (${String(record.actor_id).slice(-4)})` : ''}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Mô tả / Lý do */}
-                      <td className="py-3.5 px-4">
-                        <div className="text-xs font-medium text-slate-800 dark:text-slate-200">
-                          {record.reason || record.description || 'Thao tác nghiệp vụ hệ thống'}
-                        </div>
-                        {record.tracking_id && (
-                          <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                            Trace: {record.tracking_id}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Nút Xem Biến Động Diff */}
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        {hasDiff ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedRecord(record)}
-                            className="h-8 px-2.5 text-xs font-semibold gap-1.5 border-blue-200/80 bg-blue-50/40 hover:bg-blue-100/80 text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300"
-                            title="So sánh chi tiết thay đổi dữ liệu Before vs After"
-                          >
-                            <FileDiff size={14} className="text-blue-600 dark:text-blue-400" />
-                            <span>So sánh Diff</span>
-                          </Button>
-                        ) : (
-                          <span className="text-[11px] text-slate-400 italic">Không có payload</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
 
       {/* Visual JSON Diff Modal */}
       {selectedRecord && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-3xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]">
+          <div className="bg-white dark:bg-slate-900 rounded-xl max-w-3xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]">
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-200/80 dark:border-slate-800 flex justify-between items-center bg-slate-50/80 dark:bg-slate-800/60">
               <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 flex items-center justify-center border border-blue-200/60 dark:border-blue-800/60">
+                <div className="h-9 w-9 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 flex items-center justify-center border border-blue-200/60 dark:border-blue-800/60">
                   <Database size={18} />
                 </div>
                 <div>
@@ -413,7 +407,7 @@ function AuditLogsPage() {
             {/* Modal Body */}
             <div className="p-6 space-y-5 overflow-y-auto font-sans text-xs">
               {/* Business Reason Box */}
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
                 <span className="text-slate-500 font-bold block mb-1 uppercase tracking-wider text-[10px]">Lý do &amp; Mô tả nghiệp vụ:</span>
                 <p className="text-slate-800 dark:text-slate-200 font-medium text-xs">
                   {selectedRecord.reason || selectedRecord.description || 'Thao tác trực tiếp từ giao diện quản trị'}
@@ -439,7 +433,7 @@ function AuditLogsPage() {
                       </button>
                     )}
                   </div>
-                  <pre className="p-3.5 bg-rose-50/40 dark:bg-rose-950/20 text-rose-950 dark:text-rose-200 rounded-xl font-mono text-[11px] leading-relaxed overflow-x-auto border border-rose-200/60 dark:border-rose-900/40 min-h-[140px]">
+                  <pre className="p-3.5 bg-rose-50/40 dark:bg-rose-950/20 text-rose-950 dark:text-rose-200 rounded-lg font-mono text-[11px] leading-relaxed overflow-x-auto border border-rose-200/60 dark:border-rose-900/40 min-h-[140px]">
                     {selectedRecord.before_json
                       ? JSON.stringify(selectedRecord.before_json, null, 2)
                       : '// Không có dữ liệu cũ (Bản ghi khởi tạo mới)'}
@@ -463,7 +457,7 @@ function AuditLogsPage() {
                       </button>
                     )}
                   </div>
-                  <pre className="p-3.5 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-950 dark:text-emerald-200 rounded-xl font-mono text-[11px] leading-relaxed overflow-x-auto border border-emerald-200/60 dark:border-emerald-900/40 min-h-[140px]">
+                  <pre className="p-3.5 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-950 dark:text-emerald-200 rounded-lg font-mono text-[11px] leading-relaxed overflow-x-auto border border-emerald-200/60 dark:border-emerald-900/40 min-h-[140px]">
                     {selectedRecord.after_json
                       ? JSON.stringify(selectedRecord.after_json, null, 2)
                       : '// Đã bị xóa hoàn toàn'}
@@ -481,7 +475,7 @@ function AuditLogsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedRecord(null)}
-                className="h-8 text-xs font-semibold"
+                className="h-8 text-xs font-semibold rounded-lg"
               >
                 Đóng cửa sổ
               </Button>
@@ -489,6 +483,6 @@ function AuditLogsPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

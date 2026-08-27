@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { MapPin, Edit, Trash2, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -7,9 +7,22 @@ import { deleteLocation, getAdminLocations } from '@/apis/journeys';
 import { Location } from '@/types';
 import { Button } from '@/components/common/Button';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { AdminTablePage, ColumnDef } from '@/components/common/TableUtilities';
+import { AdminTablePage, ColumnDef, FilterOption } from '@/components/common/TableUtilities';
+
+export interface LocationsSearch {
+  page?: number;
+  search?: string;
+  status?: string;
+}
 
 export const Route = createFileRoute('/_admin/locations/')({
+  validateSearch: (search: Record<string, unknown>): LocationsSearch => {
+    const result: LocationsSearch = {};
+    if (Number(search?.page) > 1) result.page = Number(search.page);
+    if (typeof search?.search === 'string' && search.search.trim()) result.search = search.search.trim();
+    if (typeof search?.status === 'string' && search.status !== 'all') result.status = search.status;
+    return result;
+  },
   component: LocationsPage,
 });
 
@@ -42,14 +55,23 @@ const formatDateTime = (value?: string) => {
   return date.toLocaleDateString('vi-VN');
 };
 
+const statusOptions: FilterOption[] = [
+  { value: 'all', label: 'Tất cả trạng thái' },
+  { value: 'active', label: 'Đang hoạt động' },
+  { value: 'inactive', label: 'Tạm ngưng' },
+];
+
 function LocationsPage() {
+  const navigate = useNavigate({ from: Route.fullPath });
+  const searchParams = Route.useSearch();
+
+  const currentPage = searchParams.page || 1;
+  const searchTerm = searchParams.search || '';
+  const statusFilter = searchParams.status || 'all';
+
   const [locations, setLocations] = useState<LocationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [pageSize, setPageSize] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
 
   const [deleteTarget, setDeleteTarget] = useState<LocationRow | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -76,9 +98,49 @@ function LocationsPage() {
     fetchLocations();
   }, []);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, pageSize]);
+  const handleSearchChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value.trim()) {
+          next.search = value.trim();
+        } else {
+          delete next.search;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value !== 'all') {
+          next.status = value;
+        } else {
+          delete next.status;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (page > 1) {
+          next.page = page;
+        } else {
+          delete next.page;
+        }
+        return next;
+      },
+    });
+  };
 
   const filteredLocations = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
@@ -111,28 +173,26 @@ function LocationsPage() {
     }
   };
 
-  const statusOptions = [
-    { value: 'all', label: 'Tất cả trạng thái' },
-    { value: 'active', label: 'Đang hoạt động' },
-    { value: 'inactive', label: 'Tạm ngưng' },
-  ];
-
   const columns: ColumnDef<LocationRow>[] = [
     {
       key: 'code',
-      label: 'Mã Bến',
+      label: 'MÃ BẾN',
       sortable: true,
-      render: (item) => <span className="font-mono font-bold text-blue-600 dark:text-blue-400 uppercase whitespace-nowrap">{item.code}</span>,
+      render: (item) => (
+        <span className="font-mono font-bold text-blue-600 dark:text-blue-400 uppercase bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800 whitespace-nowrap">
+          {item.code}
+        </span>
+      ),
     },
     {
       key: 'name',
-      label: 'Tên Bến',
+      label: 'TÊN BẾN',
       sortable: true,
       render: (item) => <span className="font-bold text-slate-900 dark:text-white whitespace-nowrap">{item.name || 'Chưa cập nhật'}</span>,
     },
     {
       key: 'status',
-      label: 'Trạng Thái',
+      label: 'TRẠNG THÁI',
       sortable: true,
       render: (item) =>
         item.status === 'active' ? (
@@ -147,16 +207,16 @@ function LocationsPage() {
     },
     {
       key: 'updated_at',
-      label: 'Cập Nhật',
+      label: 'CẬP NHẬT',
       sortable: true,
       render: (item) => <span className="text-slate-600 dark:text-slate-400 text-xs whitespace-nowrap">{formatDateTime(item.updated_at)}</span>,
     },
     {
       key: 'actions',
-      label: 'Thao Tác',
+      label: 'THAO TÁC',
       align: 'right',
       render: (item) => (
-        <div className="space-x-1">
+        <div className="flex items-center justify-end gap-1">
           <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 dark:text-blue-400" asChild>
             <Link to={'/locations/$locationId/edit' as any} params={{ locationId: item.id } as any} title="Chỉnh sửa bến tàu">
               <Edit size={15} />
@@ -173,30 +233,29 @@ function LocationsPage() {
   return (
     <>
       <AdminTablePage
-        title="Quản lý bến tàu"
+        title="Quản Lý Bến Tàu &amp; Địa Điểm"
         subtitle="Quản lý mã bến, tên bến và trạng thái sử dụng trong mạng lưới tuyến tàu Superdong"
         icon={MapPin}
         apiError={apiError}
         searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Tìm theo tên bến hoặc mã bến..."
         filterValue={statusFilter}
-        onFilterChange={setStatusFilter}
+        onFilterChange={handleStatusFilterChange}
         filterOptions={statusOptions}
         columns={columns}
         columnStorageKey="superdong_locations_columns"
         onRefresh={fetchLocations}
         refreshing={loading}
         createLink="/locations/create"
-        createLabel="Thêm bến tàu"
+        createLabel="Thêm Bến Tàu"
         data={filteredLocations}
         loading={loading}
         emptyText="Chưa có bến tàu nào phù hợp với bộ lọc."
         keyExtractor={(item) => item.id}
+        entityLabel="bến cảng / địa điểm"
         currentPage={currentPage}
-        pageSize={pageSize}
-        onPageChange={setCurrentPage}
-        onPageSizeChange={setPageSize}
+        onPageChange={handlePageChange}
       />
 
       <ConfirmModal
@@ -214,3 +273,4 @@ function LocationsPage() {
     </>
   );
 }
+

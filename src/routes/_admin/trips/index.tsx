@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import {
   Ship,
   Edit,
@@ -32,9 +32,22 @@ import { getBoats } from '@/apis/boats';
 import { Trip, TripStatus, Boat, Route as JourneyRoute } from '@/types';
 import { Button } from '@/components/common/Button';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { AdminTablePage, ColumnDef } from '@/components/common/TableUtilities';
+import { AdminTablePage, ColumnDef, FilterOption } from '@/components/common/TableUtilities';
+
+export interface TripsSearch {
+  page?: number;
+  search?: string;
+  status?: string;
+}
 
 export const Route = createFileRoute('/_admin/trips/')({
+  validateSearch: (search: Record<string, unknown>): TripsSearch => {
+    const result: TripsSearch = {};
+    if (Number(search?.page) > 1) result.page = Number(search.page);
+    if (typeof search?.search === 'string' && search.search.trim()) result.search = search.search.trim();
+    if (typeof search?.status === 'string' && search.status !== 'all') result.status = search.status;
+    return result;
+  },
   component: TripsPage,
 });
 
@@ -88,6 +101,16 @@ const STATUS_LABELS: Record<string, { label: string; colorClass: string; icon: a
   },
 };
 
+const statusOptions: FilterOption[] = [
+  { value: 'all', label: 'Tất cả trạng thái' },
+  { value: 'draft', label: 'Bản nháp' },
+  { value: 'selling', label: 'Đang mở bán' },
+  { value: 'closed', label: 'Đã khóa sổ' },
+  { value: 'started', label: 'Đã xuất bến' },
+  { value: 'completed', label: 'Hoàn thành' },
+  { value: 'cancelled', label: 'Đã hủy' },
+];
+
 function formatTime(isoStr?: string) {
   if (!isoStr) return '--:--';
   try {
@@ -111,13 +134,16 @@ function formatDate(isoStr?: string) {
 }
 
 function TripsPage() {
+  const navigate = useNavigate({ from: Route.fullPath });
+  const searchParams = Route.useSearch();
+
+  const currentPage = searchParams.page || 1;
+  const searchTerm = searchParams.search || '';
+  const statusFilter = searchParams.status || 'all';
+
   const [trips, setTrips] = useState<TripRowItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(10);
 
   // Status Action Modal State
   const [actionTarget, setActionTarget] = useState<{
@@ -198,9 +224,49 @@ function TripsPage() {
     fetchTripsData();
   }, []);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, pageSize]);
+  const handleSearchChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value.trim()) {
+          next.search = value.trim();
+        } else {
+          delete next.search;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value !== 'all') {
+          next.status = value;
+        } else {
+          delete next.status;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (page > 1) {
+          next.page = page;
+        } else {
+          delete next.page;
+        }
+        return next;
+      },
+    });
+  };
 
   const filteredTrips = useMemo(() => {
     return trips.filter((t) => {
@@ -209,8 +275,7 @@ function TripsPage() {
         !keyword ||
         t.code.toLowerCase().includes(keyword) ||
         t.routeName.toLowerCase().includes(keyword) ||
-        t.boatName.toLowerCase().includes(keyword) ||
-        t.departureDateText.includes(keyword);
+        t.boatName.toLowerCase().includes(keyword);
 
       const matchesStatus = statusFilter === 'all' || t.status === statusFilter;
       return matchesSearch && matchesStatus;
@@ -347,7 +412,7 @@ function TripsPage() {
     },
     {
       key: 'actions',
-      label: 'ĐIỀU HÀNH CHUYẾN',
+      label: 'THAO TÁC',
       align: 'right',
       render: (t) => (
         <div className="flex items-center justify-end gap-1">
@@ -471,18 +536,18 @@ function TripsPage() {
   return (
     <>
       <AdminTablePage
-        title="Quản lý chuyến tàu thực tế"
+        title="Quản Lý Chuyến Tàu Khởi Hành"
         subtitle="Danh sách các chuyến tàu thực tế khởi hành trong ngày, kiểm soát trạng thái bán vé và điều hành chuyến Superdong"
         icon={Ship}
         apiError={apiError}
         searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Tìm theo mã chuyến (TRIP-...), tuyến hoặc tàu..."
         filterValue={statusFilter}
-        onFilterChange={setStatusFilter}
+        onFilterChange={handleStatusFilterChange}
         filterOptions={statusOptions}
         columns={columns}
-        columnStorageKey="superdong_trips_visible_columns"
+        columnStorageKey="superdong_trips_columns"
         onRefresh={fetchTripsData}
         refreshing={loading}
         createLink="/trips/create"
@@ -491,10 +556,9 @@ function TripsPage() {
         loading={loading}
         emptyText="Chưa có chuyến tàu nào phù hợp với bộ lọc."
         keyExtractor={(t) => String(t.id)}
+        entityLabel="chuyến tàu"
         currentPage={currentPage}
-        pageSize={pageSize}
-        onPageChange={setCurrentPage}
-        onPageSizeChange={setPageSize}
+        onPageChange={handlePageChange}
       />
 
       {/* Confirmation Modal for Status Actions */}

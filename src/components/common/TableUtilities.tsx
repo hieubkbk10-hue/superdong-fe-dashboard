@@ -46,7 +46,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className={cn(
-        'w-full pl-9 pr-8 h-9 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 outline-none transition-all',
+        'w-full pl-9 pr-8 h-9 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 outline-none transition-all',
         className
       )}
     />
@@ -54,7 +54,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       <button
         type="button"
         onClick={() => onChange('')}
-        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
         title="Xóa từ khóa tìm kiếm"
       >
         <X size={14} />
@@ -165,7 +165,7 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
           size="sm"
           onClick={() => handleOpen(!open)}
           className={cn(
-            'gap-1.5 h-9 px-3 text-xs sm:text-sm font-medium transition-all select-none whitespace-nowrap justify-between',
+            'gap-1.5 h-9 px-3 rounded-lg text-xs sm:text-sm font-medium transition-all select-none whitespace-nowrap justify-between',
             isSelected
               ? 'border-blue-500/60 bg-blue-50/80 text-blue-700 dark:border-blue-500/40 dark:bg-blue-950/40 dark:text-blue-300 font-semibold'
               : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800',
@@ -182,7 +182,7 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
             <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
             <div
               className={cn(
-                'absolute top-full mt-1 min-w-[200px] max-w-[320px] bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in-80 zoom-in-95 duration-100',
+                'absolute top-full mt-1 min-w-[200px] max-w-[320px] bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50 overflow-hidden animate-in fade-in-80 zoom-in-95 duration-100',
                 align === 'right' ? 'right-0' : 'left-0'
               )}
             >
@@ -197,7 +197,7 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
                       value={filterSearch}
                       onChange={(e) => setFilterSearch(e.target.value)}
                       autoFocus
-                      className="w-full pl-8 pr-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-slate-800 dark:text-slate-200 placeholder:text-slate-400"
+                      className="w-full pl-8 pr-2.5 py-1 text-xs rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-slate-800 dark:text-slate-200 placeholder:text-slate-400"
                     />
                   </div>
                 </div>
@@ -285,7 +285,7 @@ export const ColumnToggleDropdown: React.FC<ColumnToggleDropdownProps> = ({
         variant="outline"
         size="sm"
         onClick={() => setOpen(!open)}
-        className="gap-1.5 h-9 px-3 text-xs sm:text-sm font-medium border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+        className="gap-1.5 h-9 px-3 rounded-lg text-xs sm:text-sm font-medium border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
         title="Tuỳ chỉnh cột hiển thị"
       >
         <Columns3 size={14} className="text-slate-500 dark:text-slate-400" />
@@ -315,7 +315,7 @@ export const ColumnToggleDropdown: React.FC<ColumnToggleDropdownProps> = ({
                 return (
                   <label
                     key={col.key}
-                    className="flex items-center gap-2 px-2 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded cursor-pointer select-none"
+                    className="flex items-center gap-2 px-2 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md cursor-pointer select-none"
                   >
                     <input
                       type="checkbox"
@@ -476,7 +476,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           size="icon"
           onClick={onRefresh}
           disabled={refreshing}
-          className="h-9 w-9 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+          className="h-9 w-9 rounded-lg border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
           title="Làm mới dữ liệu"
         >
           <RefreshCw size={15} className={cn('text-slate-500 dark:text-slate-400', refreshing && 'animate-spin')} />
@@ -487,7 +487,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         <Button
           size="sm"
           asChild
-          className="gap-1.5 h-9 px-3.5 rounded-xl text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs"
+          className="gap-1.5 h-9 px-3.5 rounded-lg text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs"
         >
           <Link to={createLink as any}>
             <Plus size={15} />
@@ -500,7 +500,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         <Button
           size="sm"
           onClick={onCreateClick}
-          className="gap-1.5 h-9 px-3.5 rounded-xl text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs"
+          className="gap-1.5 h-9 px-3.5 rounded-lg text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs"
         >
           <Plus size={15} />
           <span>{createLabel}</span>
@@ -541,7 +541,7 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({
   children,
 }) => {
   return (
-    <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 p-3 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+    <div className="rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 p-3 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
       {/* Left side: Search input */}
       <SearchInput
         value={searchValue}
@@ -601,8 +601,8 @@ export interface AdminTablePageProps<T> {
   banner?: React.ReactNode;
 
   // Search & Filter state
-  searchValue: string;
-  onSearchChange: (value: string) => void;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
 
   filterValue?: string;
@@ -624,13 +624,14 @@ export interface AdminTablePageProps<T> {
   data: T[];
   loading?: boolean;
   emptyText?: string;
-  keyExtractor: (item: T) => string;
+  keyExtractor: (item: T, idx?: number) => string | number;
+  entityLabel?: string;
 
   // Pagination State
-  currentPage: number;
-  pageSize: number;
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (pageSize: number) => void;
+  currentPage?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
 }
 
 export function AdminTablePage<T>({
@@ -657,11 +658,25 @@ export function AdminTablePage<T>({
   loading = false,
   emptyText = 'Chưa có dữ liệu phù hợp với bộ lọc.',
   keyExtractor,
-  currentPage,
+  entityLabel = 'mục',
+  currentPage: externalPage,
   pageSize,
-  onPageChange,
+  onPageChange: externalOnPageChange,
   onPageSizeChange,
 }: AdminTablePageProps<T>) {
+  // Internal fallback states when uncontrolled
+  const [internalPage, setInternalPage] = useState(1);
+  const [internalSearch, setInternalSearch] = useState('');
+  const [internalFilter, setInternalFilter] = useState('all');
+
+  const currentPage = externalPage !== undefined ? externalPage : internalPage;
+  const onPageChange = externalOnPageChange || setInternalPage;
+
+  const currentSearchValue = searchValue !== undefined ? searchValue : internalSearch;
+  const handleSearchChangeValue = onSearchChange || setInternalSearch;
+
+  const currentFilterValue = filterValue !== undefined ? filterValue : internalFilter;
+  const handleFilterChangeValue = onFilterChange || setInternalFilter;
   // Sorting State
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: 'asc' });
 
@@ -675,7 +690,10 @@ export function AdminTablePage<T>({
 
   const sortedData = useSortableData(data, sortConfig);
 
-  // Column Toggle State
+  // Column Toggle State (Zustand Persisted)
+  const setTableVisibleColumns = useTablePreferencesStore((s) => s.setTableVisibleColumns);
+  const getTableVisibleColumns = useTablePreferencesStore((s) => s.getTableVisibleColumns);
+
   const defaultVisibleColumns = useMemo(() => {
     const initial: Record<string, boolean> = {};
     columns.forEach((c) => {
@@ -686,23 +704,30 @@ export function AdminTablePage<T>({
 
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
     if (!columnStorageKey) return defaultVisibleColumns;
+    const saved = getTableVisibleColumns(columnStorageKey);
+    if (saved) return { ...defaultVisibleColumns, ...saved };
     try {
-      const saved = localStorage.getItem(columnStorageKey);
-      if (saved) return { ...defaultVisibleColumns, ...JSON.parse(saved) };
+      const legacy = localStorage.getItem(columnStorageKey);
+      if (legacy) return { ...defaultVisibleColumns, ...JSON.parse(legacy) };
     } catch (_) {}
     return defaultVisibleColumns;
   });
 
-  useEffect(() => {
-    if (columnStorageKey) {
-      try {
-        localStorage.setItem(columnStorageKey, JSON.stringify(visibleColumns));
-      } catch (_) {}
-    }
-  }, [visibleColumns, columnStorageKey]);
-
   const handleColumnToggle = (key: string, visible: boolean) => {
-    setVisibleColumns((prev) => ({ ...prev, [key]: visible }));
+    setVisibleColumns((prev) => {
+      const updated = { ...prev, [key]: visible };
+      if (columnStorageKey) {
+        setTableVisibleColumns(columnStorageKey, updated);
+      }
+      return updated;
+    });
+  };
+
+  const handleColumnReset = () => {
+    setVisibleColumns(defaultVisibleColumns);
+    if (columnStorageKey) {
+      setTableVisibleColumns(columnStorageKey, defaultVisibleColumns);
+    }
   };
 
   const columnToggleOptions = useMemo(
@@ -710,11 +735,29 @@ export function AdminTablePage<T>({
     [columns]
   );
 
+  // Page Size & Preferences (Zustand Persisted - Reactive Selector)
+  const storedPageSize = useTablePreferencesStore((s) =>
+    columnStorageKey ? (s.tablePageSizes[columnStorageKey] || s.defaultPageSize) : s.defaultPageSize
+  );
+  const setTablePageSize = useTablePreferencesStore((s) => s.setTablePageSize);
+
+  const effectivePageSize = pageSize || storedPageSize || 10;
+
+  const handlePageSizeChangeInternal = (newSize: number) => {
+    if (columnStorageKey) {
+      setTablePageSize(columnStorageKey, newSize);
+    }
+    onPageChange(1);
+    if (onPageSizeChange) {
+      onPageSizeChange(newSize);
+    }
+  };
+
   // Paginated Slice
   const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return sortedData.slice(start, start + pageSize);
-  }, [sortedData, currentPage, pageSize]);
+    const start = (currentPage - 1) * effectivePageSize;
+    return sortedData.slice(start, start + effectivePageSize);
+  }, [sortedData, currentPage, effectivePageSize]);
 
   const visibleColumnDefs = useMemo(
     () => columns.filter((col) => visibleColumns[col.key] !== false),
@@ -739,7 +782,7 @@ export function AdminTablePage<T>({
 
       {/* API Error Warning Alert */}
       {apiError && (
-        <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-700 dark:text-rose-400 font-medium flex items-center gap-2.5">
+        <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-lg text-xs text-rose-700 dark:text-rose-400 font-medium flex items-center gap-2.5">
           <AlertTriangle size={18} className="shrink-0 text-rose-500" />
           <span>Không thể lấy dữ liệu từ Backend API: {apiError}. Vui lòng kiểm tra lại Server Backend!</span>
         </div>
@@ -750,20 +793,20 @@ export function AdminTablePage<T>({
 
       {/* Filter Bar (Search, Status Filter, Column Toggle) */}
       <TableToolbar
-        searchValue={searchValue}
-        onSearchChange={onSearchChange}
+        searchValue={currentSearchValue}
+        onSearchChange={handleSearchChangeValue}
         searchPlaceholder={searchPlaceholder}
-        filterValue={filterValue}
-        onFilterChange={onFilterChange}
+        filterValue={currentFilterValue}
+        onFilterChange={handleFilterChangeValue}
         filterOptions={filterOptions}
         columns={columnToggleOptions}
         visibleColumns={visibleColumns}
         onColumnToggle={handleColumnToggle}
-        onColumnReset={() => setVisibleColumns(defaultVisibleColumns)}
+        onColumnReset={handleColumnReset}
       />
 
-      {/* Data Table Container */}
-      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
+      {/* Data Table Container - Enterprise Crisp Rounded-XL */}
+      <div className="rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50/80 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-semibold uppercase text-xs border-b border-slate-200/80 dark:border-slate-800/80">
@@ -773,23 +816,46 @@ export function AdminTablePage<T>({
                   const isSortable = col.sortable === true;
                   if (isSortable) {
                     return (
-                      <SortableHeader
+                      <th
                         key={col.key}
-                        label={col.label}
-                        sortKey={col.key}
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                        align={col.align}
-                        className={col.className}
-                        isFirst={isFirst}
-                      />
+                        onClick={() => handleSort(col.key)}
+                        className={cn(
+                          'p-4 cursor-pointer select-none transition-colors hover:bg-slate-100/70 dark:hover:bg-slate-800/70',
+                          isFirst && 'pl-6 pr-4',
+                          col.align === 'right' && 'text-right',
+                          col.align === 'center' && 'text-center',
+                          col.className
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'inline-flex items-center gap-1.5 font-semibold text-xs tracking-wider',
+                            col.align === 'right' && 'justify-end w-full',
+                            col.align === 'center' && 'justify-center w-full'
+                          )}
+                        >
+                          <span>{col.label}</span>
+                          <span className="text-slate-400 dark:text-slate-500">
+                            {sortConfig.key === col.key ? (
+                              sortConfig.direction === 'asc' ? (
+                                <ChevronUp size={14} className="text-blue-600 dark:text-blue-400" />
+                              ) : (
+                                <ChevronDown size={14} className="text-blue-600 dark:text-blue-400" />
+                              )
+                            ) : (
+                              <ChevronsUpDown size={14} className="opacity-40 hover:opacity-100" />
+                            )}
+                          </span>
+                        </div>
+                      </th>
                     );
                   }
+
                   return (
                     <th
                       key={col.key}
                       className={cn(
-                        'p-3.5 text-xs font-bold uppercase tracking-wider whitespace-nowrap',
+                        'p-4 font-semibold text-xs tracking-wider',
                         isFirst && 'pl-6 pr-4',
                         col.align === 'right' && 'text-right',
                         col.align === 'center' && 'text-center',
@@ -804,46 +870,68 @@ export function AdminTablePage<T>({
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loading ? (
-                <tr>
-                  <td colSpan={visibleColumnDefs.length} className="p-8 text-center text-slate-500">
-                    <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-blue-600 dark:text-blue-400" />
-                    Đang tải dữ liệu từ Backend API...
-                  </td>
-                </tr>
+                Array.from({ length: Math.min(effectivePageSize, 5) }).map((_, rIdx) => (
+                  <tr key={`skeleton-${rIdx}`} className="animate-pulse">
+                    {visibleColumnDefs.map((col, cIdx) => (
+                      <td
+                        key={`skel-${rIdx}-${col.key}`}
+                        className={cn(
+                          'p-4 whitespace-nowrap',
+                          cIdx === 0 && 'pl-6 pr-4'
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'h-4 bg-slate-200/70 dark:bg-slate-800 rounded-sm',
+                            cIdx === 0 ? 'w-20' : cIdx === 1 ? 'w-36' : 'w-24'
+                          )}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))
               ) : paginatedData.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={visibleColumnDefs.length}
-                    className="p-8 text-center text-slate-500 dark:text-slate-400 text-xs"
-                  >
-                    {emptyText}
+                  <td colSpan={visibleColumnDefs.length} className="py-16 text-center text-slate-500 dark:text-slate-400">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Search size={32} className="text-slate-300 dark:text-slate-700" />
+                      <p className="text-sm font-medium">{emptyText}</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
-                paginatedData.map((item) => (
-                  <tr
-                    key={keyExtractor(item)}
-                    className="hover:bg-slate-50/80 dark:hover:bg-slate-900/50 transition-colors"
-                  >
-                    {visibleColumnDefs.map((col, idx) => {
-                      const isFirst = idx === 0;
-                      return (
-                        <td
-                          key={col.key}
-                          className={cn(
-                            'p-3.5 whitespace-nowrap',
-                            isFirst && 'pl-6 pr-4',
-                            col.align === 'right' && 'text-right',
-                            col.align === 'center' && 'text-center',
-                            col.className
-                          )}
-                        >
-                          {col.render(item)}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))
+                paginatedData.map((item, rowIdx) => {
+                  const isEven = rowIdx % 2 === 0;
+                  return (
+                    <tr
+                      key={keyExtractor(item, rowIdx)}
+                      className={cn(
+                        'transition-colors duration-150',
+                        isEven
+                          ? 'bg-white dark:bg-slate-900 hover:bg-slate-50/80 dark:hover:bg-slate-800/40'
+                          : 'bg-slate-50/40 dark:bg-slate-800/20 hover:bg-slate-100/60 dark:hover:bg-slate-800/60'
+                      )}
+                    >
+                      {visibleColumnDefs.map((col, cIdx) => {
+                        const isFirst = cIdx === 0;
+                        return (
+                          <td
+                            key={`${keyExtractor(item, rowIdx)}-${col.key}`}
+                            className={cn(
+                              'p-4 text-xs font-medium',
+                              isFirst && 'pl-6 pr-4',
+                              col.align === 'right' && 'text-right',
+                              col.align === 'center' && 'text-center',
+                              col.className
+                            )}
+                          >
+                            {col.render(item)}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -853,9 +941,10 @@ export function AdminTablePage<T>({
         <PaginationBar
           totalItems={data.length}
           currentPage={currentPage}
-          pageSize={pageSize}
+          pageSize={effectivePageSize}
           onPageChange={onPageChange}
-          onPageSizeChange={onPageSizeChange}
+          onPageSizeChange={handlePageSizeChangeInternal}
+          entityLabel={entityLabel}
         />
       </div>
     </div>
@@ -886,3 +975,100 @@ export function useTablePagination(tableKey: string = 'global', defaultPageSize:
   };
 }
 
+/* ==========================================================================
+   10. useAdminTableUrlState - Hook đồng bộ Search / Filter / Page vào TanStack Router Clean URL
+   ========================================================================== */
+export interface UseAdminTableUrlStateOptions {
+  navigate: (opts: { search: any }) => void;
+  searchParams: Record<string, any>;
+  defaultStatus?: string;
+  filterParamKey?: string;
+}
+
+export function useAdminTableUrlState({
+  navigate,
+  searchParams,
+  defaultStatus = 'all',
+  filterParamKey = 'status',
+}: UseAdminTableUrlStateOptions) {
+  const currentPage = Number(searchParams?.page) > 1 ? Number(searchParams.page) : 1;
+  const searchValue = typeof searchParams?.search === 'string' ? searchParams.search : '';
+  const filterValue = typeof searchParams?.[filterParamKey] === 'string' ? searchParams[filterParamKey] : defaultStatus;
+
+  const onSearchChange = (term: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (term && term.trim()) {
+          next.search = term.trim();
+        } else {
+          delete next.search;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const onFilterChange = (status: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (status && status !== defaultStatus) {
+          next[filterParamKey] = status;
+        } else {
+          delete next[filterParamKey];
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const onPageChange = (newPage: number) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (newPage > 1) {
+          next.page = newPage;
+        } else {
+          delete next.page;
+        }
+        return next;
+      },
+    });
+  };
+
+  return {
+    currentPage,
+    searchValue,
+    searchTerm: searchValue,
+    filterValue,
+    statusFilter: filterValue,
+    onSearchChange,
+    handleSearchChange: onSearchChange,
+    onFilterChange,
+    handleStatusFilterChange: onFilterChange,
+    onPageChange,
+    handlePageChange: onPageChange,
+  };
+}
+
+/* ==========================================================================
+   11. cleanSearchValidator - Helper chuẩn hóa validateSearch cho mọi Route TanStack
+   ========================================================================== */
+export function cleanSearchValidator<T extends Record<string, unknown>>(
+  search: Record<string, unknown>,
+  allowedStatusList?: string[],
+  filterKey: string = 'status'
+): T {
+  const result: Record<string, unknown> = {};
+  if (Number(search?.page) > 1) result.page = Number(search.page);
+  if (typeof search?.search === 'string' && search.search.trim()) result.search = search.search.trim();
+  if (typeof search?.[filterKey] === 'string' && search[filterKey] !== 'all') {
+    if (!allowedStatusList || allowedStatusList.includes(search[filterKey] as string)) {
+      result[filterKey] = search[filterKey];
+    }
+  }
+  return result as T;
+}

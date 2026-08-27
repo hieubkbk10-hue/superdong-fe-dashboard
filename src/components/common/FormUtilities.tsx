@@ -51,7 +51,7 @@ export const AdminFormHeader: React.FC<AdminFormHeaderProps> = ({
           <Button
             variant="light"
             size="icon"
-            className="h-9 w-9 shrink-0 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="h-9 w-9 shrink-0 rounded-lg border border-slate-200/80 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             asChild
           >
             <Link to={backTo as any} title={backLabel}>
@@ -62,7 +62,7 @@ export const AdminFormHeader: React.FC<AdminFormHeaderProps> = ({
           <Button
             variant="light"
             size="icon"
-            className="h-9 w-9 shrink-0 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="h-9 w-9 shrink-0 rounded-lg border border-slate-200/80 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             onClick={onBack}
             title={backLabel}
             type="button"
@@ -89,7 +89,7 @@ export const AdminFormHeader: React.FC<AdminFormHeaderProps> = ({
             variant="outline"
             size="sm"
             onClick={onClear}
-            className="gap-1.5 text-xs text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 h-9 px-3 rounded-xl"
+            className="gap-1.5 text-xs text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 h-9 px-3 rounded-lg"
             title="Làm sạch toàn bộ ô nhập liệu về rỗng"
           >
             <RotateCcw size={13} className="text-slate-400" />
@@ -125,7 +125,7 @@ export const FormSection: React.FC<FormSectionProps> = ({
   return (
     <div
       className={cn(
-        'bg-slate-100/70 dark:bg-slate-800/60 px-3.5 py-2 rounded-xl text-slate-800 dark:text-slate-200 font-bold text-xs uppercase tracking-wide border border-slate-200/60 dark:border-slate-800/80 flex items-center justify-between select-none',
+        'bg-slate-100/70 dark:bg-slate-800/60 px-3.5 py-2 rounded-lg text-slate-800 dark:text-slate-200 font-bold text-xs uppercase tracking-wide border border-slate-200/60 dark:border-slate-800/80 flex items-center justify-between select-none',
         className
       )}
     >
@@ -139,7 +139,7 @@ export const FormSection: React.FC<FormSectionProps> = ({
             variant="primary"
             size="xs"
             onClick={onAdd}
-            className="font-semibold gap-1 text-xs h-6 px-2.5 rounded-lg"
+            className="font-semibold gap-1 text-xs h-6 px-2.5 rounded-md"
           >
             + {addLabel}
           </Button>
@@ -274,7 +274,7 @@ export const FormInputField: React.FC<FormInputFieldProps> = ({
         <input
           id={id}
           className={cn(
-            'w-full h-9 text-xs px-3 rounded-xl border bg-slate-50/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 border-slate-200 dark:border-slate-700 focus:border-blue-600 outline-none transition-all disabled:opacity-50',
+            'w-full h-9 text-xs px-3 rounded-lg border bg-slate-50/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 border-slate-200 dark:border-slate-700 focus:border-blue-600 outline-none transition-all disabled:opacity-50',
             leftIcon && 'pl-9',
             error && 'border-rose-400 focus:border-rose-500',
             className
@@ -322,7 +322,7 @@ export const FormSelectField: React.FC<FormSelectFieldProps> = ({
       <select
         id={id}
         className={cn(
-          'w-full h-9 text-xs px-3 rounded-xl border bg-slate-50/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus:border-blue-600 outline-none transition-all disabled:opacity-50 cursor-pointer',
+          'w-full h-9 text-xs px-3 rounded-lg border bg-slate-50/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus:border-blue-600 outline-none transition-all disabled:opacity-50 cursor-pointer',
           error && 'border-rose-400 focus:border-rose-500',
           className
         )}
@@ -341,7 +341,7 @@ export const FormSelectField: React.FC<FormSelectFieldProps> = ({
 };
 
 /* ==========================================================================
-   4. AdminFormCard - Khung Card duy nhất bọc form (Single Card rounded-2xl)
+   4. AdminFormCard - Khung Card duy nhất bọc form (Single Card rounded-lg)
    ========================================================================== */
 export interface AdminFormCardProps extends React.FormHTMLAttributes<HTMLFormElement> {
   children: React.ReactNode;
@@ -356,7 +356,7 @@ export const AdminFormCard: React.FC<AdminFormCardProps> = ({
   return (
     <form
       className={cn(
-        'bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-6 font-sans',
+        'bg-white dark:bg-slate-900 p-6 rounded-lg border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-6 font-sans',
         className
       )}
       {...props}
@@ -415,7 +415,7 @@ export const AdminFormActionBar: React.FC<AdminFormActionBarProps> = ({
           type="button"
           variant="light"
           onClick={onClear}
-          className="text-slate-600 hover:text-rose-600 hover:border-rose-200 dark:hover:border-rose-900 gap-1.5 text-xs h-9 px-3 rounded-xl"
+          className="text-slate-600 hover:text-rose-600 hover:border-rose-200 dark:hover:border-rose-900 gap-1.5 text-xs h-9 px-3 rounded-lg"
         >
           <RotateCcw size={13} /> {clearLabel}
         </Button>
@@ -430,7 +430,7 @@ export const AdminFormActionBar: React.FC<AdminFormActionBarProps> = ({
           <Button
             type="button"
             variant="outline"
-            className="h-9 px-4 rounded-xl text-xs border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
+            className="h-9 px-4 rounded-lg text-xs border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
             asChild
           >
             <Link to={cancelTo as any}>{cancelLabel}</Link>
@@ -440,7 +440,7 @@ export const AdminFormActionBar: React.FC<AdminFormActionBarProps> = ({
             type="button"
             variant="outline"
             onClick={onCancel}
-            className="h-9 px-4 rounded-xl text-xs border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
+            className="h-9 px-4 rounded-lg text-xs border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
           >
             {cancelLabel}
           </Button>
@@ -450,7 +450,7 @@ export const AdminFormActionBar: React.FC<AdminFormActionBarProps> = ({
           <button
             type="button"
             disabled
-            className="h-9 px-4 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 font-medium text-xs border border-slate-200 dark:border-slate-800 cursor-not-allowed select-none transition-all shadow-none"
+            className="h-9 px-4 rounded-lg bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 font-medium text-xs border border-slate-200 dark:border-slate-800 cursor-not-allowed select-none transition-all shadow-none"
             title="Form chưa có thay đổi nào để cập nhật"
           >
             {savedLabel}
@@ -459,7 +459,7 @@ export const AdminFormActionBar: React.FC<AdminFormActionBarProps> = ({
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="h-9 px-4 rounded-xl gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition-all"
+            className="h-9 px-4 rounded-lg gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition-all"
           >
             {isSubmitting ? (
               <>

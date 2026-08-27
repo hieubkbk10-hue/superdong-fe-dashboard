@@ -11,9 +11,9 @@ import {
   FormSectionBlock,
   FormInputField,
   FormSelectField,
+  AdminFormActionBar,
   useFormDirty,
 } from '@/components/common/FormUtilities';
-import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
 
 export const Route = createFileRoute('/_admin/boats/create')({
   component: BoatCreatePage,
@@ -32,7 +32,7 @@ const emptyFormData: BoatFormData = {
   code: '',
   name: '',
   capacity: '',
-  speed: '28 hải lý/giờ',
+  speed: '',
   is_express: true,
   status: 'active',
 };
@@ -119,7 +119,7 @@ function BoatCreatePage() {
         subtitle="Khai báo thông số kỹ thuật, sức chứa và đưa tàu vào danh mục vận hành"
         backTo="/boats"
         onClear={handleReset}
-        clearLabel="Làm sạch"
+        clearLabel="Làm sạch dữ liệu"
       />
 
       <AdminFormCard onSubmit={handleSubmit}>
@@ -191,15 +191,17 @@ function BoatCreatePage() {
             </Label>
           </div>
         </FormSectionBlock>
-      </AdminFormCard>
 
-      <UnsavedChangesBar
-        isDirty={isDirty}
-        isSaving={isSubmitting}
-        onSave={() => handleSubmit()}
-        onReset={handleReset}
-        message="Thông tin tàu chưa được tạo mới"
-      />
+        {/* Master Form Action Bar */}
+        <AdminFormActionBar
+          mode="create"
+          isSubmitting={isSubmitting}
+          cancelTo="/boats"
+          submitLabel="Tạo mới tàu"
+          onClear={handleReset}
+          clearLabel="Làm sạch"
+        />
+      </AdminFormCard>
     </div>
   );
 }

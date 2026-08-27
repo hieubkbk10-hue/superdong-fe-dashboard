@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Layers, Edit, Trash2, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -7,9 +7,22 @@ import { deleteSeatMap, getSeatMaps } from '@/apis/boats';
 import { SeatMap } from '@/types';
 import { Button } from '@/components/common/Button';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { AdminTablePage, ColumnDef } from '@/components/common/TableUtilities';
+import { AdminTablePage, ColumnDef, FilterOption } from '@/components/common/TableUtilities';
+
+export interface SeatMapsSearch {
+  page?: number;
+  search?: string;
+  status?: string;
+}
 
 export const Route = createFileRoute('/_admin/seat-maps/')({
+  validateSearch: (search: Record<string, unknown>): SeatMapsSearch => {
+    const result: SeatMapsSearch = {};
+    if (Number(search?.page) > 1) result.page = Number(search.page);
+    if (typeof search?.search === 'string' && search.search.trim()) result.search = search.search.trim();
+    if (typeof search?.status === 'string' && search.status !== 'all') result.status = search.status;
+    return result;
+  },
   component: SeatMapsPage,
 });
 
@@ -49,14 +62,23 @@ const normalizeSeatMap = (item: SeatMap): SeatMapRow => {
   };
 };
 
+const statusOptions: FilterOption[] = [
+  { value: 'all', label: 'Tất cả trạng thái' },
+  { value: 'active', label: 'Đang áp dụng' },
+  { value: 'inactive', label: 'Tạm ngưng' },
+];
+
 function SeatMapsPage() {
+  const navigate = useNavigate({ from: Route.fullPath });
+  const searchParams = Route.useSearch();
+
+  const currentPage = searchParams.page || 1;
+  const searchTerm = searchParams.search || '';
+  const statusFilter = searchParams.status || 'all';
+
   const [seatMaps, setSeatMaps] = useState<SeatMapRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
 
   const [deleteTarget, setDeleteTarget] = useState<SeatMapRow | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -80,6 +102,50 @@ function SeatMapsPage() {
   useEffect(() => {
     fetchSeatMaps();
   }, []);
+
+  const handleSearchChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value.trim()) {
+          next.search = value.trim();
+        } else {
+          delete next.search;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value !== 'all') {
+          next.status = value;
+        } else {
+          delete next.status;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (page > 1) {
+          next.page = page;
+        } else {
+          delete next.page;
+        }
+        return next;
+      },
+    });
+  };
 
   const filtered = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
@@ -126,22 +192,16 @@ function SeatMapsPage() {
     }
   };
 
-  const statusOptions = [
-    { value: 'all', label: 'Tất cả trạng thái' },
-    { value: 'active', label: 'Đang áp dụng' },
-    { value: 'inactive', label: 'Tạm ngưng' },
-  ];
-
   const columns: ColumnDef<SeatMapRow>[] = [
     {
       key: 'name',
-      label: 'Tên sơ đồ',
+      label: 'TÊN SƠ ĐỒ',
       sortable: true,
       render: (item) => <span className="font-bold text-slate-900 dark:text-white whitespace-nowrap">{item.name || 'Chưa cập nhật'}</span>,
     },
     {
       key: 'boat',
-      label: 'Tàu',
+      label: 'TÀU ĐẢM NHẬN',
       sortable: true,
       render: (item) => (
         <div className="whitespace-nowrap">
@@ -152,25 +212,25 @@ function SeatMapsPage() {
     },
     {
       key: 'version',
-      label: 'Phiên bản',
+      label: 'PHIÊN BẢN',
       sortable: true,
       render: (item) => <span className="font-mono text-xs text-slate-500 whitespace-nowrap">v{item.version}</span>,
     },
     {
       key: 'decks',
-      label: 'Số tầng',
+      label: 'SỐ TẦNG',
       sortable: true,
       render: (item) => <span className="font-medium whitespace-nowrap">{item.decks}</span>,
     },
     {
       key: 'seats',
-      label: 'Số ghế',
+      label: 'SỐ GHẾ',
       sortable: true,
       render: (item) => <span className="font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{item.seats}</span>,
     },
     {
       key: 'status',
-      label: 'Trạng thái',
+      label: 'TRẠNG THÁI',
       sortable: true,
       render: (item) =>
         item.status === 'active' ? (
@@ -185,10 +245,10 @@ function SeatMapsPage() {
     },
     {
       key: 'actions',
-      label: 'Thao tác',
+      label: 'THAO TÁC',
       align: 'right',
       render: (item) => (
-        <div className="space-x-1">
+        <div className="flex items-center justify-end gap-1">
           <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 dark:text-blue-400" asChild>
             <Link to={'/seat-maps/$seatMapId/edit' as any} params={{ seatMapId: item.id } as any} title="Chỉnh sửa sơ đồ ghế">
               <Edit size={15} />
@@ -205,7 +265,7 @@ function SeatMapsPage() {
   return (
     <>
       <AdminTablePage
-        title="Quản lý sơ đồ ghế"
+        title="Quản Lý Sơ Đồ Ghế Tàu"
         subtitle="Tạo, chỉnh sửa và quản lý layout tầng, khu vực, ghế và tiện ích của từng tàu"
         icon={Layers}
         apiError={apiError}
@@ -228,25 +288,24 @@ function SeatMapsPage() {
           ) : null
         }
         searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Tìm theo tên sơ đồ, mã tàu hoặc tên tàu..."
         filterValue={statusFilter}
-        onFilterChange={setStatusFilter}
+        onFilterChange={handleStatusFilterChange}
         filterOptions={statusOptions}
         columns={columns}
         columnStorageKey="superdong_seat_maps_columns"
         onRefresh={fetchSeatMaps}
         refreshing={loading}
         createLink="/seat-maps/create"
-        createLabel="Thêm sơ đồ ghế"
+        createLabel="Thêm Sơ Đồ Ghế"
         data={filtered}
         loading={loading}
         emptyText="Chưa có sơ đồ ghế nào phù hợp với bộ lọc."
         keyExtractor={(item) => item.id}
+        entityLabel="sơ đồ ghế"
         currentPage={currentPage}
-        pageSize={pageSize}
-        onPageChange={setCurrentPage}
-        onPageSizeChange={setPageSize}
+        onPageChange={handlePageChange}
       />
 
       <ConfirmModal
@@ -264,3 +323,4 @@ function SeatMapsPage() {
     </>
   );
 }
+

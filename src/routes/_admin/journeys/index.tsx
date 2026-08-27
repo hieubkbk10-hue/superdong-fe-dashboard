@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { Route as RouteIcon, Edit, Trash2, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { Route as RouteIcon, Edit, Trash2, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { deleteJourney, getJourneys } from '@/apis/journeys';
@@ -8,9 +8,22 @@ import { buildRouteDisplayName, unwrapData } from '@/helpers/journeyRoutes';
 import { Journey, Location, Route as JourneyRoute } from '@/types';
 import { Button } from '@/components/common/Button';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { AdminTablePage, ColumnDef } from '@/components/common/TableUtilities';
+import { AdminTablePage, ColumnDef, FilterOption } from '@/components/common/TableUtilities';
+
+export interface JourneysSearch {
+  page?: number;
+  search?: string;
+  status?: string;
+}
 
 export const Route = createFileRoute('/_admin/journeys/')({
+  validateSearch: (search: Record<string, unknown>): JourneysSearch => {
+    const result: JourneysSearch = {};
+    if (Number(search?.page) > 1) result.page = Number(search.page);
+    if (typeof search?.search === 'string' && search.search.trim()) result.search = search.search.trim();
+    if (typeof search?.status === 'string' && search.status !== 'all') result.status = search.status;
+    return result;
+  },
   component: JourneysPage,
 });
 
@@ -48,14 +61,23 @@ const formatDateTime = (value?: string) => {
   return date.toLocaleDateString('vi-VN');
 };
 
+const statusOptions: FilterOption[] = [
+  { value: 'all', label: 'Tất cả trạng thái' },
+  { value: 'active', label: 'Đang hoạt động' },
+  { value: 'inactive', label: 'Tạm ngưng' },
+];
+
 function JourneysPage() {
+  const navigate = useNavigate({ from: Route.fullPath });
+  const searchParams = Route.useSearch();
+
+  const currentPage = searchParams.page || 1;
+  const searchTerm = searchParams.search || '';
+  const statusFilter = searchParams.status || 'all';
+
   const [journeys, setJourneys] = useState<JourneyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [pageSize, setPageSize] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
 
   const [deleteTarget, setDeleteTarget] = useState<JourneyRow | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -82,9 +104,49 @@ function JourneysPage() {
     fetchJourneys();
   }, []);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, pageSize]);
+  const handleSearchChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value.trim()) {
+          next.search = value.trim();
+        } else {
+          delete next.search;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value !== 'all') {
+          next.status = value;
+        } else {
+          delete next.status;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (page > 1) {
+          next.page = page;
+        } else {
+          delete next.page;
+        }
+        return next;
+      },
+    });
+  };
 
   const filteredJourneys = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
@@ -117,12 +179,6 @@ function JourneysPage() {
       setDeleting(false);
     }
   };
-
-  const statusOptions = [
-    { value: 'all', label: 'Tất cả trạng thái' },
-    { value: 'active', label: 'Đang hoạt động' },
-    { value: 'inactive', label: 'Tạm ngưng' },
-  ];
 
   const columns: ColumnDef<JourneyRow>[] = [
     {
@@ -182,7 +238,7 @@ function JourneysPage() {
       label: 'THAO TÁC',
       align: 'right',
       render: (item) => (
-        <div className="space-x-1">
+        <div className="flex items-center justify-end gap-1">
           <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 dark:text-blue-400" asChild>
             <Link to={'/journeys/$journeyId/edit' as any} params={{ journeyId: item.id } as any} title="Chỉnh sửa hành trình">
               <Edit size={15} />
@@ -199,30 +255,29 @@ function JourneysPage() {
   return (
     <>
       <AdminTablePage
-        title="Quản lý hành trình"
+        title="Quản Lý Hải Trình Bán Vé"
         subtitle="Cấu hình cặp bến đi, bến đến hợp lệ trên từng luồng tuyến đang khai thác của Superdong"
         icon={RouteIcon}
         apiError={apiError}
         searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Tìm theo tuyến, bến đi hoặc bến đến..."
         filterValue={statusFilter}
-        onFilterChange={setStatusFilter}
+        onFilterChange={handleStatusFilterChange}
         filterOptions={statusOptions}
         columns={columns}
         columnStorageKey="superdong_journeys_columns"
         onRefresh={fetchJourneys}
         refreshing={loading}
         createLink="/journeys/create"
-        createLabel="Thêm hành trình"
+        createLabel="Thêm Hải Trình"
         data={filteredJourneys}
         loading={loading}
         emptyText="Chưa có hành trình nào phù hợp với bộ lọc."
         keyExtractor={(item) => item.id}
+        entityLabel="hải trình"
         currentPage={currentPage}
-        pageSize={pageSize}
-        onPageChange={setCurrentPage}
-        onPageSizeChange={setPageSize}
+        onPageChange={handlePageChange}
       />
 
       <ConfirmModal
@@ -240,3 +295,4 @@ function JourneysPage() {
     </>
   );
 }
+

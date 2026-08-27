@@ -34,7 +34,20 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+export interface SchedulesSearch {
+  page?: number;
+  search?: string;
+  status?: string;
+}
+
 export const Route = createFileRoute('/_admin/schedules/')({
+  validateSearch: (search: Record<string, unknown>): SchedulesSearch => {
+    const result: SchedulesSearch = {};
+    if (Number(search?.page) > 1) result.page = Number(search.page);
+    if (typeof search?.search === 'string' && search.search.trim()) result.search = search.search.trim();
+    if (typeof search?.status === 'string' && search.status !== 'all') result.status = search.status;
+    return result;
+  },
   component: SchedulesPage,
 });
 
@@ -88,14 +101,16 @@ function getFutureDateString(daysAhead: number) {
 }
 
 function SchedulesPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const searchParams = Route.useSearch();
+
+  const currentPage = searchParams.page || 1;
+  const searchTerm = searchParams.search || '';
+  const statusFilter = searchParams.status || 'all';
+
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(10);
 
   const [deleteTarget, setDeleteTarget] = useState<ScheduleItem | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -205,17 +220,59 @@ function SchedulesPage() {
     fetchSchedules();
   }, []);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, pageSize]);
+  const handleSearchChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value.trim()) {
+          next.search = value.trim();
+        } else {
+          delete next.search;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value !== 'all') {
+          next.status = value;
+        } else {
+          delete next.status;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (page > 1) {
+          next.page = page;
+        } else {
+          delete next.page;
+        }
+        return next;
+      },
+    });
+  };
 
   const filteredSchedules = useMemo(() => {
     return schedules.filter((sch) => {
+      const search = searchTerm.toLowerCase().trim();
       const matchesSearch =
-        sch.journey.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sch.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sch.boatName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sch.departureTime.toLowerCase().includes(searchTerm.toLowerCase());
+        !search ||
+        sch.journey.toLowerCase().includes(search) ||
+        sch.code.toLowerCase().includes(search) ||
+        sch.boatName.toLowerCase().includes(search) ||
+        sch.departureTime.toLowerCase().includes(search);
 
       const matchesStatus = statusFilter === 'all' || sch.status === statusFilter;
       return matchesSearch && matchesStatus;
@@ -423,18 +480,18 @@ function SchedulesPage() {
   return (
     <>
       <AdminTablePage
-        title="Quản lý lịch chạy tàu"
+        title="Quản Lý Lịch Chạy Tàu"
         subtitle="Thiết lập khung giờ xuất bến định kỳ, tần suất khai thác, sinh chuyến thực tế tự động và khởi tạo kho ghế"
         icon={Calendar}
         apiError={apiError}
         searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Tìm theo tuyến, mã lịch, tên tàu..."
         filterValue={statusFilter}
-        onFilterChange={setStatusFilter}
+        onFilterChange={handleStatusFilterChange}
         filterOptions={statusOptions}
         columns={columns}
-        columnStorageKey="superdong_schedules_visible_columns_v2"
+        columnStorageKey="superdong_schedules_columns"
         onRefresh={fetchSchedules}
         refreshing={loading}
         createLink="/schedules/create"
@@ -443,10 +500,9 @@ function SchedulesPage() {
         loading={loading}
         emptyText="Chưa có lịch chạy định kỳ nào phù hợp với bộ lọc."
         keyExtractor={(sch) => String(sch.id)}
+        entityLabel="lịch chạy"
         currentPage={currentPage}
-        pageSize={pageSize}
-        onPageChange={setCurrentPage}
-        onPageSizeChange={setPageSize}
+        onPageChange={handlePageChange}
       />
 
       {/* Modal: Sinh chuyến hàng loạt từ Schedule (To, thoáng, tối giản, chuyên nghiệp) */}

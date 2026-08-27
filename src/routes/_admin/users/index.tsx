@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import {
   UserCheck,
   Edit,
@@ -17,9 +17,24 @@ import { User } from '@/types';
 import { getUsers, deleteUser, getRoles } from '@/apis/users';
 import { Button } from '@/components/common/Button';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { AdminTablePage, ColumnDef, FilterSelect } from '@/components/common/TableUtilities';
+import { AdminTablePage, ColumnDef, FilterOption } from '@/components/common/TableUtilities';
+
+export interface UsersSearch {
+  page?: number;
+  search?: string;
+  role?: string;
+  status?: string;
+}
 
 export const Route = createFileRoute('/_admin/users/')({
+  validateSearch: (search: Record<string, unknown>): UsersSearch => {
+    const result: UsersSearch = {};
+    if (Number(search?.page) > 1) result.page = Number(search.page);
+    if (typeof search?.search === 'string' && search.search.trim()) result.search = search.search.trim();
+    if (typeof search?.role === 'string' && search.role !== 'all') result.role = search.role;
+    if (typeof search?.status === 'string' && search.status !== 'all') result.status = search.status;
+    return result;
+  },
   component: UsersPage,
 });
 
@@ -61,24 +76,29 @@ export interface UserRow {
   status: 'active' | 'inactive';
 }
 
+const statusOptions: FilterOption[] = [
+  { value: 'all', label: 'Tất cả trạng thái' },
+  { value: 'active', label: 'Hoạt động' },
+  { value: 'inactive', label: 'Đã vô hiệu hóa' },
+];
+
 function UsersPage() {
+  const navigate = useNavigate({ from: Route.fullPath });
+  const searchParams = Route.useSearch();
+
+  const currentPage = searchParams.page || 1;
+  const searchTerm = searchParams.search || '';
+  const statusFilter = searchParams.status || 'all';
+  const roleFilter = searchParams.role || 'all';
+
   const [users, setUsers] = useState<User[]>([]);
   const [dynamicRoles, setDynamicRoles] = useState<{ value: string; label: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  // Search & Filters
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-
   // Confirmation Modal state
   const [deleteTarget, setDeleteTarget] = useState<{ id: string | number; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  // Pagination
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(10);
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -140,9 +160,49 @@ function UsersPage() {
     fetchUsersFromApi();
   }, []);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, roleFilter, statusFilter, pageSize]);
+  const handleSearchChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value.trim()) {
+          next.search = value.trim();
+        } else {
+          delete next.search;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value !== 'all') {
+          next.status = value;
+        } else {
+          delete next.status;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (page > 1) {
+          next.page = page;
+        } else {
+          delete next.page;
+        }
+        return next;
+      },
+    });
+  };
 
   const executeDeleteUser = async () => {
     if (!deleteTarget) return;
@@ -168,7 +228,7 @@ function UsersPage() {
       const email = u.email || '';
       const phone = u.phone || '';
       const search = searchTerm.toLowerCase().trim();
-      const matchesSearch = name.toLowerCase().includes(search) || email.toLowerCase().includes(search) || phone.includes(search);
+      const matchesSearch = !search || name.toLowerCase().includes(search) || email.toLowerCase().includes(search) || phone.includes(search);
 
       const userRole = getUserRoleName(u);
       const matchesRole = roleFilter === 'all' || userRole === roleFilter;
@@ -197,35 +257,10 @@ function UsersPage() {
     });
   }, [filteredUsers]);
 
-  const roleOptions = useMemo(() => {
-    const base = [
-      { value: 'all', label: 'Tất cả vai trò' },
-      { value: 'Super Admin', label: 'Super Admin' },
-      { value: 'Manager', label: 'Manager' },
-      { value: 'Counter Staff', label: 'Counter Staff' },
-      { value: 'Check-in Staff', label: 'Check-in Staff' },
-    ];
-    if (dynamicRoles.length === 0) return base;
-
-    const merged = [...base];
-    dynamicRoles.forEach((dr) => {
-      if (!merged.some((m) => m.value === dr.value)) {
-        merged.push(dr);
-      }
-    });
-    return merged;
-  }, [dynamicRoles]);
-
-  const statusOptions = [
-    { value: 'all', label: 'Tất cả trạng thái' },
-    { value: 'active', label: 'Hoạt động' },
-    { value: 'inactive', label: 'Đã vô hiệu hóa' },
-  ];
-
   const columns: ColumnDef<UserRow>[] = [
     {
       key: 'name',
-      label: 'Họ và Tên',
+      label: 'HỌ VÀ TÊN',
       sortable: true,
       render: (u) => (
         <div>
@@ -242,7 +277,7 @@ function UsersPage() {
     },
     {
       key: 'email',
-      label: 'Email Liên Hệ',
+      label: 'EMAIL LIÊN HỆ',
       sortable: true,
       render: (u) => (
         <span className="text-slate-600 dark:text-slate-400 font-mono text-xs flex items-center gap-1">
@@ -252,7 +287,7 @@ function UsersPage() {
     },
     {
       key: 'phone',
-      label: 'Số Điện Thoại',
+      label: 'SỐ ĐIỆN THOẠI',
       sortable: true,
       render: (u) => (
         <span className="text-slate-600 dark:text-slate-400 font-mono text-xs flex items-center gap-1">
@@ -262,7 +297,7 @@ function UsersPage() {
     },
     {
       key: 'roleName',
-      label: 'Vai Trò Vận Hành',
+      label: 'VAI TRÒ VẬN HÀNH',
       sortable: true,
       render: (u) => (
         <span className="inline-flex items-center gap-1 text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
@@ -272,7 +307,7 @@ function UsersPage() {
     },
     {
       key: 'status',
-      label: 'Trạng Thái',
+      label: 'TRẠNG THÁI',
       sortable: true,
       render: (u) =>
         u.status === 'active' ? (
@@ -287,10 +322,10 @@ function UsersPage() {
     },
     {
       key: 'actions',
-      label: 'Thao Tác',
+      label: 'THAO TÁC',
       align: 'right',
       render: (u) => (
-        <div className="space-x-1">
+        <div className="flex items-center justify-end gap-1">
           <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 dark:text-blue-400" asChild>
             <Link to={'/users/$userId/edit' as any} params={{ userId: String(u.id) } as any} title="Chỉnh sửa thông tin tài khoản">
               <Edit size={15} />
@@ -313,18 +348,18 @@ function UsersPage() {
   return (
     <>
       <AdminTablePage
-        title="Quản lý tài khoản & phân quyền"
+        title="Quản Lý Tài Khoản & Phân Quyền"
         subtitle="Quản lý tài khoản nhân viên, phân quyền truy cập hệ thống và trạng thái hoạt động"
         icon={UserCheck}
         apiError={apiError}
         searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Tìm theo tên, email hoặc số điện thoại..."
         filterValue={statusFilter}
-        onFilterChange={setStatusFilter}
+        onFilterChange={handleStatusFilterChange}
         filterOptions={statusOptions}
         columns={columns}
-        columnStorageKey="superdong_users_visible_columns"
+        columnStorageKey="superdong_users_columns"
         onRefresh={fetchUsersFromApi}
         refreshing={loading}
         createLink="/users/create"
@@ -333,10 +368,9 @@ function UsersPage() {
         loading={loading}
         emptyText="Chưa có thông tin nhân viên nào phù hợp với bộ lọc."
         keyExtractor={(u) => String(u.id)}
+        entityLabel="người dùng"
         currentPage={currentPage}
-        pageSize={pageSize}
-        onPageChange={setCurrentPage}
-        onPageSizeChange={setPageSize}
+        onPageChange={handlePageChange}
       />
 
       <ConfirmModal
@@ -354,3 +388,4 @@ function UsersPage() {
     </>
   );
 }
+
