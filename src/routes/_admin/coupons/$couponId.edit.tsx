@@ -1,3 +1,5 @@
+import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
+import { useFormDirty } from '@/components/common/FormUtilities';
 import React, { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { Ticket, ArrowLeft, Save, RefreshCw, Loader2 } from 'lucide-react';
@@ -23,6 +25,7 @@ function CouponEditPage() {
   const [expectedVersion, setExpectedVersion] = useState<number>(1);
 
   // NO FAKE FALLBACK DATA IN INITIAL STATE (Rule 10 SKILL.md)
+  const [initialData, setInitialData] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: '',
     code: '',
@@ -40,6 +43,7 @@ function CouponEditPage() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { isDirty } = useFormDirty(initialData, formData, ['reason', 'notes', 'expected_version']);
 
   // HYDRATE REAL COUPON DETAILS + F5 DRAFT PERSISTENCE (Rule 6 & 10)
   useEffect(() => {
@@ -99,6 +103,7 @@ function CouponEditPage() {
               }
             } catch (_) {}
 
+            setInitialData(serverData);
             setFormData(finalData);
           } else {
             setFetchError('Không tìm thấy dữ liệu Mã khuyến mãi từ Backend API.');
@@ -117,7 +122,9 @@ function CouponEditPage() {
     if (couponId) {
       fetchCoupon();
     }
-    return () => { isMounted = false; };
+    
+
+  return () => { isMounted = false; };
   }, [couponId, draftKey]);
 
   // Auto save draft when user edits form (Rule 6)
@@ -258,7 +265,7 @@ function CouponEditPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-5">
         
         {/* SECTION 1: THÔNG TIN CƠ BẢN */}
         <div className="space-y-3">
@@ -459,6 +466,8 @@ function CouponEditPage() {
           </Button>
         </div>
       </form>
+
+      <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSubmit({ preventDefault: () => {} } as any)} onReset={() => { if (initialData) setFormData(initialData); }} />
     </div>
   );
 }

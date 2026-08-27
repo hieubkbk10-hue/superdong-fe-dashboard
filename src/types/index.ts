@@ -453,11 +453,16 @@ export interface OfficePaymentConfirm {
 
 export interface TravelerType {
   id: string | number;
-  name: string;
   code: string;
+  display_name?: string;
+  name?: string;
+  requires_seat?: boolean;
+  discount_percent?: number;
   discount_percentage?: number;
   description?: string;
-  is_active: boolean;
+  status?: 'active' | 'inactive';
+  is_active?: boolean;
+  version?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -509,15 +514,29 @@ export type ChangeReviewStatus = 'pending' | 'approved' | 'rejected';
 export interface BookingChange {
   id: string | number;
   booking_id: string | number;
-  booking_code: string;
-  change_type: BookingChangeType;
-  requested_by?: string;
+  booking_code?: string;
+  booking?: {
+    id: string;
+    booking_code: string;
+    state?: string;
+    total_amount_vnd?: number;
+    booker_name?: string;
+    booker_phone?: string;
+    booker_email?: string;
+  } | null;
+  type: BookingChangeType;
+  change_type?: string;
+  requested_by?: string | number | null;
+  requested_by_type?: string;
   reason?: string;
   status: ChangeReviewStatus;
+  policy_snapshot_id?: string | null;
+  payload?: Record<string, any> | null;
   details?: Record<string, any>;
   reviewed_by?: string | number;
   reviewed_at?: string;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface RefundRequest {
@@ -538,15 +557,27 @@ export interface RefundRequest {
 
 export interface AuditRecord {
   id: string | number;
+  aggregate_type?: string;
+  aggregate_id?: string | number;
+  action: string;
+  actor_id?: string | number | null;
+  actor_type?: string;
+  reason?: string;
+  before_json?: Record<string, any> | null;
+  after_json?: Record<string, any> | null;
+  occurred_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  tracking_id?: string | null;
+
+  // UI / Legacy mapped fields
   user_id?: string | number;
   user_name?: string;
-  action: string;
-  module: string;
-  description: string;
+  module?: string;
+  description?: string;
   ip_address?: string;
   old_values?: Record<string, any> | null;
   new_values?: Record<string, any> | null;
-  created_at: string;
 }
 
 export interface SystemSetting {

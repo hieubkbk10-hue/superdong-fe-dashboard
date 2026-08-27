@@ -13,9 +13,9 @@ import {
   FormSectionBlock,
   FormInputField,
   FormSelectField,
-  AdminFormActionBar,
   useFormDirty,
 } from '@/components/common/FormUtilities';
+import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
 
 export const Route = createFileRoute('/_admin/boats/$boatId/edit')({
   component: BoatEditPage,
@@ -42,7 +42,6 @@ const emptyFormData: BoatFormData = {
 function BoatEditPage() {
   const { boatId } = Route.useParams();
   const navigate = useNavigate();
-
   const draftKey = `superdong_boat_draft_edit_${boatId}`;
 
   const [initialData, setInitialData] = useState<BoatFormData | null>(null);
@@ -111,8 +110,18 @@ function BoatEditPage() {
     }
   }, [formData, loading, fetchError, draftKey, isDirty]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleReset = () => {
+    if (initialData) {
+      setFormData(initialData);
+      try {
+        localStorage.removeItem(draftKey);
+      } catch (_) {}
+      toast.info('Đã khôi phục dữ liệu ban đầu');
+    }
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
     if (!isDirty) {
       toast.info('Dữ liệu hiện tại chưa có thay đổi nào cần lưu');
@@ -163,7 +172,7 @@ function BoatEditPage() {
     return (
       <div className="h-96 w-full flex flex-col items-center justify-center gap-3">
         <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-        <span className="text-sm font-medium text-slate-500">Đang tải thông tin tàu cao tốc...</span>
+        <span className="text-xs font-medium text-slate-500">Đang tải thông tin tàu cao tốc...</span>
       </div>
     );
   }
@@ -171,7 +180,7 @@ function BoatEditPage() {
   if (fetchError) {
     return (
       <div className="p-8 text-center space-y-4">
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm font-medium">
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400 rounded-2xl text-xs font-medium">
           {fetchError}
         </div>
         <Button variant="outline" onClick={() => navigate({ to: '/boats' as any })}>
@@ -182,7 +191,7 @@ function BoatEditPage() {
   }
 
   return (
-    <div className="space-y-4 w-full font-sans pb-10 text-slate-800 dark:text-slate-200">
+    <div className="space-y-4 w-full font-sans pb-20 text-slate-800 dark:text-slate-200">
       {/* Top Header Navigation Bar */}
       <AdminFormHeader
         icon={Ship}
@@ -198,22 +207,16 @@ function BoatEditPage() {
         backTo="/boats"
         badge={
           formData.status === 'active' ? (
-            <Badge variant="success" className="px-3 py-1 text-xs">
-              Hoạt động tốt
-            </Badge>
+            <Badge variant="success">Hoạt động tốt</Badge>
           ) : formData.status === 'maintenance' ? (
-            <Badge variant="warning" className="px-3 py-1 text-xs">
-              Bảo trì định kỳ
-            </Badge>
+            <Badge variant="warning">Bảo trì định kỳ</Badge>
           ) : (
-            <Badge variant="danger" className="px-3 py-1 text-xs">
-              Tạm dừng vận hành
-            </Badge>
+            <Badge variant="danger">Tạm dừng vận hành</Badge>
           )
         }
       />
 
-      {/* Main Single Card Container matching SKILL.md */}
+      {/* Main Single Card Container */}
       <AdminFormCard onSubmit={handleSubmit}>
         {/* SECTION 1: THÔNG TIN CƠ BẢN */}
         <FormSectionBlock title="I. Thông tin cơ bản">
@@ -273,7 +276,7 @@ function BoatEditPage() {
             ]}
           />
 
-          <div className="flex items-center gap-2 pt-6">
+          <div className="flex items-center gap-2 pt-5">
             <input
               id="boat-is-express"
               type="checkbox"
@@ -286,23 +289,15 @@ function BoatEditPage() {
             </Label>
           </div>
         </FormSectionBlock>
-
-        {/* Action Buttons with Smart Dirty State */}
-        <AdminFormActionBar
-          mode="edit"
-          isDirty={isDirty}
-          isSubmitting={isSubmitting}
-          cancelTo="/boats"
-          submitLabel="Lưu Thay Đổi"
-          savedLabel="Đã lưu"
-          onCancel={() => {
-            try {
-              localStorage.removeItem(draftKey);
-            } catch (_) {}
-            navigate({ to: '/boats' as any });
-          }}
-        />
       </AdminFormCard>
+
+      {/* Floating Unsaved Changes Bar */}
+      <UnsavedChangesBar
+        isDirty={isDirty}
+        isSaving={isSubmitting}
+        onSave={() => handleSubmit()}
+        onReset={handleReset}
+      />
     </div>
   );
 }

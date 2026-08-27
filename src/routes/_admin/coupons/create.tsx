@@ -1,3 +1,5 @@
+import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
+import { useFormDirty } from '@/components/common/FormUtilities';
 import React, { useState } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { Ticket, ArrowLeft, Save, RefreshCw } from 'lucide-react';
@@ -29,6 +31,8 @@ function CouponCreatePage() {
     is_active: true,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [initialData] = useState(formData);
+  const { isDirty } = useFormDirty(initialData, formData, ['reason', 'notes']);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +82,9 @@ function CouponCreatePage() {
     }
   };
 
+  
+  
+
   return (
     <div className="space-y-4 w-full font-sans pb-10 text-slate-800 dark:text-slate-200">
       {/* Top Header Navigation Bar */}
@@ -106,7 +113,7 @@ function CouponCreatePage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-5">
         
         {/* Section 1: Thông tin cơ bản */}
         <div className="space-y-3">
@@ -300,6 +307,8 @@ function CouponCreatePage() {
           </Button>
         </div>
       </form>
+
+      <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSubmit({ preventDefault: () => {} } as any)} onReset={() => setFormData(formData)} message="Mã giảm giá chưa được tạo mới" />
     </div>
   );
 }

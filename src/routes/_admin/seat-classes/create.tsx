@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { Layers, WalletCards } from 'lucide-react';
+import { Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { createSeatClass } from '@/apis/boats';
 import { ColorPickerInput } from '@/components/common/ColorPickerInput';
@@ -11,9 +11,10 @@ import {
   FormField,
   FormInputField,
   FormSelectField,
-  AdminFormActionBar,
+  useFormDirty,
   generateDynamicAuditReason,
 } from '@/components/common/FormUtilities';
+import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
 
 export const Route = createFileRoute('/_admin/seat-classes/create')({
   component: SeatClassCreatePage,
@@ -30,8 +31,7 @@ const defaultFormData = {
 
 function SeatClassCreatePage() {
   const navigate = useNavigate();
-
-  // F5 Form Draft Recovery (Rule 6 SKILL.md)
+  const [initialData] = useState(defaultFormData);
   const [formData, setFormData] = useState(() => {
     try {
       const saved = localStorage.getItem(draftKey);
@@ -41,25 +41,26 @@ function SeatClassCreatePage() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { isDirty } = useFormDirty(initialData, formData);
 
-  // Auto Save F5 Draft on edit (Rule 6)
   useEffect(() => {
-    try {
-      localStorage.setItem(draftKey, JSON.stringify(formData));
-    } catch (_) {}
-  }, [formData]);
+    if (isDirty) {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(formData));
+      } catch (_) {}
+    }
+  }, [formData, isDirty]);
 
-  // Rule 3.1: Clear Data Button for Create Page
-  const clearForm = () => {
+  const handleReset = () => {
     setFormData(defaultFormData);
     try {
       localStorage.removeItem(draftKey);
     } catch (_) {}
-    toast.success('Đã làm sạch dữ liệu nhập');
+    toast.info('Đã làm sạch dữ liệu nhập');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!formData.code.trim() || !formData.name.trim()) {
       toast.error('Vui lòng nhập đầy đủ Mã hạng ghế và Tên hạng ghế!');
       return;
@@ -92,7 +93,6 @@ function SeatClassCreatePage() {
 
       await createSeatClass(payload);
 
-      // Clear draft on successful save (Rule 6)
       try {
         localStorage.removeItem(draftKey);
       } catch (_) {}
@@ -101,92 +101,87 @@ function SeatClassCreatePage() {
       navigate({ to: '/seat-classes' as any });
     } catch (err: any) {
       console.error('Create seat class error:', err);
-      const serverMsg = err?.response?.data?.message || err?.message || '';
-      toast.error(serverMsg || 'Không thể tạo hạng ghế mới trên Backend.');
+      const serverMsg = err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi tạo Hạng ghế mới.';
+      toast.error(serverMsg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-4 w-full font-sans pb-10 text-slate-800 dark:text-slate-200">
-      {/* Top Header Navigation Bar */}
+    <div className="space-y-4 w-full font-sans pb-20 text-slate-800 dark:text-slate-200">
       <AdminFormHeader
         icon={Layers}
-        title="Thêm Hạng Ghế Tàu Mới"
-        subtitle="Khai báo giá cơ sở và nhận diện màu sắc cho hạng ghế bán vé Superdong"
+        title="Thêm Mới Hạng Ghế Tàu"
+        subtitle="Khai báo mã định danh, bảng giá vé cơ sở và màu sắc nhận diện ghế"
         backTo="/seat-classes"
-        onClear={clearForm}
+        onClear={handleReset}
+        clearLabel="Làm sạch"
       />
 
-      {/* Main Single Card Container matching SKILL.md */}
       <AdminFormCard onSubmit={handleSubmit}>
-        {/* SECTION 1: THÔNG TIN HẠNG GHẾ */}
-        <FormSectionBlock title="I. Thông tin hạng ghế">
+        <FormSectionBlock title="I. Thông tin định danh hạng ghế">
           <FormInputField
-            id="seat-code"
-            label="Mã Hạng Ghế (Code)"
+            id="sc-code"
+            label="Mã Hạng Ghế (Seat Class Code)"
             required
             value={formData.code}
             onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-            placeholder="VD: STANDARD, VIP, BUSINESS"
+            placeholder="VD: ECO, VIP, ROOM"
             className="font-mono font-bold uppercase"
           />
           <FormInputField
-            id="seat-name"
-            label="Tên Hạng Ghế"
+            id="sc-name"
+            label="Tên Hạng Ghế Hiển Thị"
             required
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="VD: Ghế Phổ Thông, Ghế VIP"
+            placeholder="VD: Ghế Tiêu Chuẩn (Economy)"
           />
         </FormSectionBlock>
 
-        {/* SECTION 2: GIÁ VÉ VÀ NHẬN DIỆN */}
-        <FormSectionBlock title="II. Giá vé & Nhận diện">
+        <FormSectionBlock title="II. Chính sách giá vé & Màu sắc sơ đồ">
           <FormInputField
-            id="seat-price"
-            label="Giá Cơ Sở Hạng Ghế (VNĐ)"
+            id="sc-price"
+            label="Giá Vé Cơ Sở (VNĐ)"
             required
             inputMode="numeric"
             value={formData.price}
             onChange={(e) => setFormData({ ...formData, price: e.target.value.replace(/[^0-9]/g, '') })}
-            placeholder="VD: 320000"
+            placeholder="VD: 340000"
             className="font-mono font-bold"
-            leftIcon={<WalletCards size={15} />}
           />
-          <FormField id="seat-color" label="Màu Nhận Diện Sơ Đồ Ghế" optional>
+          <FormField id="sc-color" label="Màu Sắc Nhận Diện Trên Sơ Đồ" optional>
             <ColorPickerInput
               value={formData.color}
-              onChange={(color) => setFormData({ ...formData, color })}
+              onChange={(newColor) => setFormData({ ...formData, color: newColor })}
+              placeholder="VD: #3B82F6"
             />
           </FormField>
         </FormSectionBlock>
 
-        {/* SECTION 3: TRẠNG THÁI VẬN HÀNH */}
-        <FormSectionBlock title="III. Trạng thái vận hành">
+        <FormSectionBlock title="III. Trạng thái áp dụng" columns={1}>
           <FormSelectField
-            id="seat-status"
-            label="Trạng Thái Áp Dụng Mặc Định"
+            id="sc-status"
+            label="Trạng Thái Vận Hành & Đặt Vé"
             required
             value={formData.status}
             onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
             options={[
-              { value: 'active', label: 'Kích hoạt (Đang áp dụng)' },
-              { value: 'inactive', label: 'Tạm ngưng (Không áp dụng)' },
+              { value: 'active', label: 'Áp dụng mở bán vé' },
+              { value: 'inactive', label: 'Tạm dừng áp dụng' },
             ]}
           />
         </FormSectionBlock>
-
-        {/* Action Buttons */}
-        <AdminFormActionBar
-          mode="create"
-          isSubmitting={isSubmitting}
-          cancelTo="/seat-classes"
-          submitLabel="Lưu Hạng Ghế"
-          onClear={clearForm}
-        />
       </AdminFormCard>
+
+      <UnsavedChangesBar
+        isDirty={isDirty}
+        isSaving={isSubmitting}
+        onSave={() => handleSubmit()}
+        onReset={handleReset}
+        message="Thông tin hạng ghế chưa được tạo mới"
+      />
     </div>
   );
 }

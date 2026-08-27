@@ -1,3 +1,5 @@
+import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
+import { useFormDirty } from '@/components/common/FormUtilities';
 import React, { useState } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { Users, ArrowLeft, Save } from 'lucide-react';
@@ -12,6 +14,7 @@ function TravelerTypeEditPage() {
   const { typeId } = Route.useParams();
   const navigate = useNavigate();
 
+  const [initialData, setInitialData] = useState<any>(null);
   const [formData, setFormData] = useState({
     code: 'CHILD',
     name: 'Trẻ em',
@@ -21,6 +24,7 @@ function TravelerTypeEditPage() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { isDirty } = useFormDirty(initialData, formData);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +46,8 @@ function TravelerTypeEditPage() {
       setIsSubmitting(false);
     }
   };
+
+  
 
   return (
     <div className="space-y-6 max-w-3xl font-sans pb-12">
@@ -152,6 +158,8 @@ function TravelerTypeEditPage() {
           </button>
         </div>
       </form>
+
+      <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSubmit({ preventDefault: () => {} } as any)} onReset={() => { if (initialData) setFormData(initialData); }} />
     </div>
   );
 }

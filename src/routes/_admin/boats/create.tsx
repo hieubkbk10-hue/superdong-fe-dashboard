@@ -11,48 +11,69 @@ import {
   FormSectionBlock,
   FormInputField,
   FormSelectField,
-  AdminFormActionBar,
+  useFormDirty,
 } from '@/components/common/FormUtilities';
+import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
 
 export const Route = createFileRoute('/_admin/boats/create')({
   component: BoatCreatePage,
 });
 
-export function BoatCreatePage() {
+type BoatFormData = {
+  code: string;
+  name: string;
+  capacity: string;
+  speed: string;
+  is_express: boolean;
+  status: 'active' | 'maintenance' | 'inactive';
+};
+
+const emptyFormData: BoatFormData = {
+  code: '',
+  name: '',
+  capacity: '',
+  speed: '28 hải lý/giờ',
+  is_express: true,
+  status: 'active',
+};
+
+function BoatCreatePage() {
   const navigate = useNavigate();
   const draftKey = 'superdong_boat_draft_create';
 
-  const defaultFormData = {
-    code: '',
-    name: '',
-    capacity: '',
-    speed: '',
-    is_express: true,
-    status: 'active' as 'active' | 'maintenance' | 'inactive',
-  };
-
-  // F5 Form Draft Recovery (Rule 6 SKILL.md)
-  const [formData, setFormData] = useState(() => {
+  const [initialData] = useState<BoatFormData>(emptyFormData);
+  const [formData, setFormData] = useState<BoatFormData>(() => {
     try {
-      const saved = localStorage.getItem(draftKey);
-      if (saved) return { ...defaultFormData, ...JSON.parse(saved) };
+      const draft = localStorage.getItem(draftKey);
+      if (draft) return { ...emptyFormData, ...JSON.parse(draft) };
     } catch (_) {}
-    return defaultFormData;
+    return emptyFormData;
   });
-
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Auto Save F5 Draft on edit (Rule 6)
-  useEffect(() => {
-    try {
-      localStorage.setItem(draftKey, JSON.stringify(formData));
-    } catch (_) {}
-  }, [formData, draftKey]);
+  const { isDirty } = useFormDirty(initialData, formData);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name.trim() || !formData.code.trim()) {
-      toast.error('Vui lòng nhập đầy đủ Mã định danh và Tên tàu!');
+  useEffect(() => {
+    if (isDirty) {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(formData));
+      } catch (_) {}
+    }
+  }, [formData, isDirty]);
+
+  const handleReset = () => {
+    setFormData(emptyFormData);
+    try {
+      localStorage.removeItem(draftKey);
+    } catch (_) {}
+    toast.info('Đã làm sạch dữ liệu biểu mẫu');
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    if (!formData.code.trim() || !formData.name.trim()) {
+      toast.error('Vui lòng điền đầy đủ Mã tàu và Tên tàu!');
       return;
     }
 
@@ -66,59 +87,42 @@ export function BoatCreatePage() {
     setIsSubmitting(true);
 
     try {
-      const payload: Record<string, any> = {
+      await createBoat({
         code: formData.code.trim().toUpperCase(),
         name: formData.name.trim(),
         capacity: Number(cleanCapacity),
+        speed: formData.speed.trim(),
         is_express: formData.is_express,
         status: formData.status,
-      };
+      });
 
-      if (formData.speed.trim()) {
-        payload.speed = formData.speed.trim();
-      }
-
-      await createBoat(payload);
-
-      // Clear draft on successful create (Rule 6)
       try {
         localStorage.removeItem(draftKey);
       } catch (_) {}
 
-      toast.success(`Tạo thành công tàu mới: ${formData.name}`);
+      toast.success(`Tạo mới tàu ${formData.name} thành công!`);
       navigate({ to: '/boats' as any });
     } catch (err: any) {
       console.error('Create boat error:', err);
-      const serverMsg = err?.response?.data?.message || err?.message || '';
-      toast.error(serverMsg || 'Không thể tạo tàu mới trên Backend.');
+      const serverMsg = err?.response?.data?.message || 'Có lỗi xảy ra khi tạo tàu mới.';
+      toast.error(serverMsg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Rule 3.1: Clear Data Button for Create Page
-  const clearForm = () => {
-    setFormData(defaultFormData);
-    try {
-      localStorage.removeItem(draftKey);
-    } catch (_) {}
-    toast.success('Đã làm sạch dữ liệu nhập');
-  };
-
   return (
-    <div className="space-y-4 w-full font-sans pb-10 text-slate-800 dark:text-slate-200">
-      {/* Top Header Navigation Bar */}
+    <div className="space-y-4 w-full font-sans pb-20 text-slate-800 dark:text-slate-200">
       <AdminFormHeader
         icon={Ship}
-        title="Thêm Tàu Cao Tốc Mới"
-        subtitle="Khai báo thông số kỹ thuật và sức chứa ghế cho tàu mới trong đội tàu Superdong"
+        title="Thêm Mới Tàu Cao Tốc"
+        subtitle="Khai báo thông số kỹ thuật, sức chứa và đưa tàu vào danh mục vận hành"
         backTo="/boats"
-        onClear={clearForm}
+        onClear={handleReset}
+        clearLabel="Làm sạch"
       />
 
-      {/* Main Single Card Container matching SKILL.md */}
       <AdminFormCard onSubmit={handleSubmit}>
-        {/* SECTION 1: THÔNG TIN CƠ BẢN */}
         <FormSectionBlock title="I. Thông tin cơ bản">
           <FormInputField
             id="boat-code"
@@ -126,7 +130,7 @@ export function BoatCreatePage() {
             required
             value={formData.code}
             onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-            placeholder="VD: SD-09, SD-12"
+            placeholder="VD: SD-01, SD-09"
             className="font-mono font-bold uppercase"
           />
           <FormInputField
@@ -135,11 +139,10 @@ export function BoatCreatePage() {
             required
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="VD: Superdong IX"
+            placeholder="VD: Superdong I"
           />
         </FormSectionBlock>
 
-        {/* SECTION 2: THÔNG SỐ THIẾT KẾ & SỨC CHỨA */}
         <FormSectionBlock title="II. Thông số thiết kế & Sức chứa">
           <FormInputField
             id="boat-capacity"
@@ -153,19 +156,18 @@ export function BoatCreatePage() {
           />
           <FormInputField
             id="boat-speed"
-            label="Tốc Độ Vận Hành Dự Kiến"
+            label="Tốc Độ Vận Hành"
             optional
             value={formData.speed}
             onChange={(e) => setFormData({ ...formData, speed: e.target.value })}
-            placeholder="VD: 30 hải lý/giờ"
+            placeholder="VD: 28 hải lý/giờ"
           />
         </FormSectionBlock>
 
-        {/* SECTION 3: TRẠNG THÁI & VẬN HÀNH */}
         <FormSectionBlock title="III. Trạng thái & Vận hành">
           <FormSelectField
             id="boat-status"
-            label="Trạng Thái Vận Hành Mặc Định"
+            label="Trạng Thái Vận Hành Tàu"
             required
             value={formData.status}
             onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
@@ -176,7 +178,7 @@ export function BoatCreatePage() {
             ]}
           />
 
-          <div className="flex items-center gap-2 pt-6">
+          <div className="flex items-center gap-2 pt-5">
             <input
               id="boat-is-express"
               type="checkbox"
@@ -189,16 +191,15 @@ export function BoatCreatePage() {
             </Label>
           </div>
         </FormSectionBlock>
-
-        {/* Action Buttons */}
-        <AdminFormActionBar
-          mode="create"
-          isSubmitting={isSubmitting}
-          cancelTo="/boats"
-          submitLabel="Lưu Tàu Mới"
-          onClear={clearForm}
-        />
       </AdminFormCard>
+
+      <UnsavedChangesBar
+        isDirty={isDirty}
+        isSaving={isSubmitting}
+        onSave={() => handleSubmit()}
+        onReset={handleReset}
+        message="Thông tin tàu chưa được tạo mới"
+      />
     </div>
   );
 }

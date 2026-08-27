@@ -1,3 +1,5 @@
+import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
+import { useFormDirty } from '@/components/common/FormUtilities';
 import React, { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { UserCheck, ArrowLeft, Save, RefreshCw, RotateCcw } from 'lucide-react';
@@ -48,6 +50,8 @@ function UserCreatePage() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [initialData] = useState(formData);
+  const { isDirty } = useFormDirty(initialData, formData, ['notes']);
 
   // DYNAMIC API FETCH: Lấy danh sách Roles trực tiếp từ API `/v1/roles` của Backend & Deduplicate
   useEffect(() => {
@@ -82,7 +86,10 @@ function UserCreatePage() {
       }
     }
     fetchRolesFromApi();
-    return () => { isMounted = false; };
+    
+  
+
+  return () => { isMounted = false; };
   }, []);
 
   // Tự động sao lưu bản nháp đang nhập dở vào localStorage mỗi khi thay đổi bất kỳ ô input nào
@@ -234,7 +241,7 @@ function UserCreatePage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-5">
         
         {/* SECTION 1: THÔNG TIN CÁ NHÂN */}
         <div className="space-y-3">
@@ -411,6 +418,8 @@ function UserCreatePage() {
           </Button>
         </div>
       </form>
+
+      <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSubmit({ preventDefault: () => {} } as any)} onReset={() => setFormData(formData)} message="Tài khoản chưa được tạo mới" />
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
+import { useFormDirty } from '@/components/common/FormUtilities';
 import React, { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import {
@@ -86,10 +88,12 @@ function TripEditPage() {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [boats, setBoats] = useState<Boat[]>([]);
   const [routes, setRoutes] = useState<JourneyRoute[]>([]);
+  const [initialData, setInitialData] = useState<TripEditFormData | null>(null);
   const [formData, setFormData] = useState<TripEditFormData>(emptyForm);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { isDirty } = useFormDirty(initialData, formData);
 
   const hydrateTrip = async () => {
     setLoading(true);
@@ -253,6 +257,8 @@ function TripEditPage() {
   const statusInfo = STATUS_LABELS[currentStatus] || STATUS_LABELS.draft;
   const tripDisplayCode = `TRIP-${String(tripId).slice(0, 6).toUpperCase()}`;
 
+  
+
   return (
     <div className="space-y-6 w-full font-sans">
       {/* Header */}
@@ -299,12 +305,13 @@ function TripEditPage() {
           <span>Không tải được thông tin chuyến tàu. {apiError}</span>
         </div>
       ) : (
-        <form
-          onSubmit={handleSaveDisruption}
-          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden"
-        >
+        <>
+          <form
+            onSubmit={handleSaveDisruption}
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs overflow-hidden"
+          >
           {/* Section I */}
-          <div className="px-5 py-3 bg-[#EBF7FA] border-b border-cyan-100 text-sm font-bold text-slate-800 uppercase flex items-center justify-between">
+          <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-b border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide flex items-center justify-between">
             <span>I. Thông tin chuyến tàu & Phân công tàu</span>
             <span className="text-xs font-mono font-normal text-slate-500 lowercase">
               Mã: {tripDisplayCode}
@@ -346,7 +353,7 @@ function TripEditPage() {
           </div>
 
           {/* Section II */}
-          <div className="px-5 py-3 bg-[#EBF7FA] border-y border-cyan-100 text-sm font-bold text-slate-800 uppercase">
+          <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-y border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
             II. Lịch trình khởi hành & Cập bến
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -396,7 +403,7 @@ function TripEditPage() {
           </div>
 
           {/* Section III */}
-          <div className="px-5 py-3 bg-[#EBF7FA] border-y border-cyan-100 text-sm font-bold text-slate-800 uppercase">
+          <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-y border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
             III. Điều hành trạng thái vận hành
           </div>
           <div className="p-6">
@@ -487,7 +494,11 @@ function TripEditPage() {
             </button>
           </div>
         </form>
+
+        <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSaveDisruption({ preventDefault: () => {} } as any)} onReset={() => { if (initialData) setFormData(initialData); }} />
+      </>
       )}
     </div>
   );
 }
+

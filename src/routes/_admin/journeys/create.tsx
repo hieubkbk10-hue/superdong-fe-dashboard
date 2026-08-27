@@ -1,10 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { Route as RouteIcon, ArrowLeft, Save, RotateCcw, RefreshCw, AlertTriangle } from 'lucide-react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { Route as RouteIcon, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createJourney, getAdminLocations, getRoutes } from '@/apis/journeys';
 import { Location, Route as JourneyRoute } from '@/types';
 import { formatRouteOptionLabel, normalizeRouteStops, StopOption } from '@/helpers/journeyRoutes';
+import { Button } from '@/components/common/Button';
+import {
+  AdminFormHeader,
+  AdminFormCard,
+  FormSectionBlock,
+  FormSelectField,
+  useFormDirty,
+} from '@/components/common/FormUtilities';
+import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
 
 export const Route = createFileRoute('/_admin/journeys/create')({
   component: JourneyCreatePage,
@@ -53,6 +62,7 @@ const normalizeRoute = (route: JourneyRoute, locationsById: Map<string, Location
 
 function JourneyCreatePage() {
   const navigate = useNavigate();
+  const [initialData] = useState(emptyForm);
   const [formData, setFormData] = useState<JourneyFormData>(() => {
     try {
       return { ...emptyForm, ...JSON.parse(localStorage.getItem(draftKey) || '{}') };
@@ -96,9 +106,21 @@ function JourneyCreatePage() {
     fetchRoutes();
   }, []);
 
+  const { isDirty } = useFormDirty(initialData, formData);
+
   useEffect(() => {
-    localStorage.setItem(draftKey, JSON.stringify(formData));
-  }, [formData]);
+    if (isDirty) {
+      localStorage.setItem(draftKey, JSON.stringify(formData));
+    }
+  }, [formData, isDirty]);
+
+  const handleReset = () => {
+    setFormData(emptyForm);
+    try {
+      localStorage.removeItem(draftKey);
+    } catch {}
+    toast.info('Đã làm sạch dữ liệu nhập');
+  };
 
   const updateField = <K extends keyof JourneyFormData>(field: K, value: JourneyFormData[K]) => {
     setFormData((prev) => {
@@ -108,16 +130,16 @@ function JourneyCreatePage() {
         next.to_location_id = '';
       }
       if (field === 'from_location_id') {
-        next.to_location_id = '';
+        const currentRoute = routes.find((route) => route.id === next.route_id);
+        const stops = currentRoute?.stops || [];
+        const nextFrom = stops.find((stop) => stop.location_id === value);
+        const nextTo = stops.find((stop) => stop.location_id === next.to_location_id);
+        if (nextFrom && nextTo && nextTo.stop_order <= nextFrom.stop_order) {
+          next.to_location_id = '';
+        }
       }
       return next;
     });
-  };
-
-  const clearDraft = () => {
-    setFormData(emptyForm);
-    localStorage.removeItem(draftKey);
-    toast.success('Đã làm sạch dữ liệu nhập hành trình');
   };
 
   const validateForm = () => {
@@ -126,26 +148,22 @@ function JourneyCreatePage() {
       return false;
     }
     if (!formData.from_location_id) {
-      toast.error('Vui lòng chọn bến đi');
+      toast.error('Vui lòng chọn điểm khởi hành');
       return false;
     }
     if (!formData.to_location_id) {
-      toast.error('Vui lòng chọn bến đến');
+      toast.error('Vui lòng chọn điểm đến');
       return false;
     }
-    if (formData.from_location_id === formData.to_location_id) {
-      toast.error('Bến đi và bến đến không được trùng nhau');
-      return false;
-    }
-    if (fromStop && toStop && fromStop.stop_order >= toStop.stop_order) {
-      toast.error('Bến đi phải đứng trước bến đến trong thứ tự điểm dừng của luồng tuyến');
+    if (fromStop && toStop && toStop.stop_order <= fromStop.stop_order) {
+      toast.error('Điểm đến phải nằm sau điểm khởi hành theo thứ tự tuyến');
       return false;
     }
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (isSubmitting || !validateForm()) return;
 
     setIsSubmitting(true);
@@ -156,156 +174,114 @@ function JourneyCreatePage() {
         to_location_id: formData.to_location_id,
         status: formData.status,
       });
-      localStorage.removeItem(draftKey);
-      toast.success('Đã tạo hành trình mới');
+
+      try {
+        localStorage.removeItem(draftKey);
+      } catch {}
+
+      toast.success('Tạo hành trình mới thành công');
       navigate({ to: '/journeys' as any });
     } catch (err: any) {
-      const message = err?.response?.data?.message || err?.message || 'Không thể tạo hành trình';
-      toast.error(`Tạo hành trình thất bại. ${message}`);
+      toast.error(err?.response?.data?.message || err?.message || 'Không thể tạo hành trình');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <div className="space-y-6 w-full font-sans">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Link
-            to={'/journeys' as any}
-            onClick={() => localStorage.removeItem(draftKey)}
-            className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-            title="Quay lại danh sách hành trình"
-          >
-            <ArrowLeft size={18} />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <RouteIcon className="h-6 w-6 text-blue-600" />
-              Thêm hành trình
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">Chọn luồng tuyến và cặp bến hợp lệ theo thứ tự điểm dừng thật từ hệ thống.</p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={clearDraft}
-          className="h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
-        >
-          <RotateCcw size={14} /> Làm sạch dữ liệu
-        </button>
+  if (loadingRoutes) {
+    return (
+      <div className="h-96 w-full flex flex-col items-center justify-center gap-3 font-sans">
+        <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+        <span className="text-xs font-medium text-slate-500">Đang tải danh sách luồng tuyến...</span>
       </div>
+    );
+  }
 
-      {apiError && !loadingRoutes && (
-        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-700 dark:text-rose-300 font-medium flex items-start gap-2.5">
-          <AlertTriangle size={18} className="shrink-0 text-rose-500" />
-          <span>Không tải được dữ liệu luồng tuyến. {apiError}</span>
-        </div>
-      )}
+  return (
+    <div className="space-y-4 w-full font-sans pb-20 text-slate-800 dark:text-slate-200">
+      <AdminFormHeader
+        icon={RouteIcon}
+        title="Thêm Mới Hành Trình Bán Vé"
+        subtitle="Thiết lập chặng hành trình từ điểm đón đến điểm trả thuộc luồng tuyến"
+        backTo="/journeys"
+        onClear={handleReset}
+        clearLabel="Làm sạch"
+      />
 
-      <form onSubmit={handleSubmit} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
-        <div className="px-5 py-3 bg-[#EBF7FA] border-b border-cyan-100 text-sm font-bold text-slate-800 uppercase">
-          I. Chọn luồng tuyến
-        </div>
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="md:col-span-2">
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Luồng tuyến <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.route_id}
-              onChange={(e) => updateField('route_id', e.target.value)}
-              disabled={loadingRoutes}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none disabled:opacity-60"
-            >
-              <option value="">{loadingRoutes ? 'Đang tải luồng tuyến...' : 'Chọn luồng tuyến'}</option>
-              {routes.map((route) => (
-                <option key={route.id} value={route.id}>
-                  {route.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="px-5 py-3 bg-[#EBF7FA] border-y border-cyan-100 text-sm font-bold text-slate-800 uppercase">
-          II. Cặp bến khai thác
-        </div>
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Bến đi <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.from_location_id}
-              onChange={(e) => updateField('from_location_id', e.target.value)}
-              disabled={!selectedRoute || availableStops.length < 2}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none disabled:opacity-60"
-            >
-              <option value="">Chọn bến đi</option>
-              {availableStops.slice(0, -1).map((stop) => (
-                <option key={`${stop.location_id}-${stop.stop_order}`} value={stop.location_id}>
-                  {stop.stop_order}. {stop.name || 'Chưa cập nhật'} {stop.code ? `(${stop.code})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Bến đến <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.to_location_id}
-              onChange={(e) => updateField('to_location_id', e.target.value)}
-              disabled={!formData.from_location_id || destinationStops.length === 0}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none disabled:opacity-60"
-            >
-              <option value="">Chọn bến đến</option>
-              {destinationStops.map((stop) => (
-                <option key={`${stop.location_id}-${stop.stop_order}`} value={stop.location_id}>
-                  {stop.stop_order}. {stop.name || 'Chưa cập nhật'} {stop.code ? `(${stop.code})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="px-5 py-3 bg-[#EBF7FA] border-y border-cyan-100 text-sm font-bold text-slate-800 uppercase">
-          III. Trạng thái khai thác
-        </div>
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Trạng thái</label>
-            <select
-              value={formData.status}
-              onChange={(e) => updateField('status', e.target.value as JourneyFormData['status'])}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-            >
-              <option value="active">Đang khai thác</option>
-              <option value="inactive">Tạm ngưng</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
-          <Link
-            to={'/journeys' as any}
-            onClick={() => localStorage.removeItem(draftKey)}
-            className="px-5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+      <AdminFormCard onSubmit={handleSubmit}>
+        <FormSectionBlock title="I. Luồng tuyến liên kết" columns={1}>
+          <FormSelectField
+            id="journey-route"
+            label="Thuộc Luồng Tuyến"
+            required
+            value={formData.route_id}
+            onChange={(e) => updateField('route_id', e.target.value)}
           >
-            Hủy bỏ
-          </Link>
-          <button
-            type="submit"
-            disabled={isSubmitting || loadingRoutes}
-            className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60"
+            <option value="">-- Chọn luồng tuyến --</option>
+            {routes.map((route) => (
+              <option key={route.id} value={route.id}>
+                {route.label}
+              </option>
+            ))}
+          </FormSelectField>
+        </FormSectionBlock>
+
+        <FormSectionBlock title="II. Điểm đón và điểm trả khách">
+          <FormSelectField
+            id="journey-from"
+            label="Điểm Khởi Hành (Bến đón)"
+            required
+            value={formData.from_location_id}
+            onChange={(e) => updateField('from_location_id', e.target.value)}
+            disabled={!formData.route_id}
           >
-            <Save size={16} />
-            {isSubmitting ? 'Đang lưu...' : 'Lưu hành trình'}
-          </button>
-        </div>
-      </form>
+            <option value="">-- Chọn bến khởi hành --</option>
+            {availableStops.slice(0, Math.max(0, availableStops.length - 1)).map((stop) => (
+              <option key={stop.location_id} value={stop.location_id}>
+                #{stop.stop_order} - {stop.name}
+              </option>
+            ))}
+          </FormSelectField>
+
+          <FormSelectField
+            id="journey-to"
+            label="Điểm Đến (Bến trả)"
+            required
+            value={formData.to_location_id}
+            onChange={(e) => updateField('to_location_id', e.target.value)}
+            disabled={!formData.from_location_id}
+          >
+            <option value="">-- Chọn bến đến --</option>
+            {destinationStops.map((stop) => (
+              <option key={stop.location_id} value={stop.location_id}>
+                #{stop.stop_order} - {stop.name}
+              </option>
+            ))}
+          </FormSelectField>
+        </FormSectionBlock>
+
+        <FormSectionBlock title="III. Trạng thái áp dụng" columns={1}>
+          <FormSelectField
+            id="journey-status"
+            label="Trạng Thái Vận Hành & Mở Bán"
+            required
+            value={formData.status}
+            onChange={(e) => updateField('status', e.target.value as JourneyFormData['status'])}
+            options={[
+              { value: 'active', label: 'Đang mở bán vé' },
+              { value: 'inactive', label: 'Tạm ngưng bán' },
+            ]}
+          />
+        </FormSectionBlock>
+      </AdminFormCard>
+
+      <UnsavedChangesBar
+        isDirty={isDirty}
+        isSaving={isSubmitting}
+        onSave={() => handleSubmit()}
+        onReset={handleReset}
+        message="Thông tin hành trình chưa được tạo mới"
+      />
     </div>
   );
 }

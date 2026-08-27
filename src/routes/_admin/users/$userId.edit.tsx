@@ -1,3 +1,5 @@
+import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
+import { useFormDirty } from '@/components/common/FormUtilities';
 import React, { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { UserCheck, ArrowLeft, Save, RefreshCw, KeyRound, Lock, Shield, Loader2 } from 'lucide-react';
@@ -51,6 +53,7 @@ function UserEditPage() {
   const [loadingRoles, setLoadingRoles] = useState<boolean>(true);
 
   // NO FAKE FALLBACK DATA IN INITIAL STATE (Rule 10 SKILL.md)
+  const [initialData, setInitialData] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -63,6 +66,7 @@ function UserEditPage() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { isDirty } = useFormDirty(initialData, formData, ['notes', 'is_active']);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -93,7 +97,9 @@ function UserEditPage() {
       }
     }
     fetchRolesFromApi();
-    return () => { isMounted = false; };
+    
+
+  return () => { isMounted = false; };
   }, []);
 
   // HYDRATE REAL USER DETAILS + F5 DRAFT PERSISTENCE (Rule 6 & 10)
@@ -126,7 +132,8 @@ function UserEditPage() {
           }
         } catch (_) {}
 
-        setFormData(finalData);
+        setInitialData(serverData);
+          setFormData(finalData);
       } else {
         setFetchError('Không tìm thấy dữ liệu người dùng từ hệ thống.');
       }
@@ -271,7 +278,7 @@ function UserEditPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-5">
         
         {/* SECTION 1: THÔNG TIN CÁ NHÂN */}
         <div className="space-y-3">
@@ -443,6 +450,8 @@ function UserEditPage() {
           </Button>
         </div>
       </form>
+
+      <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSubmit({ preventDefault: () => {} } as any)} onReset={() => { if (initialData) setFormData(initialData); }} />
     </div>
   );
 }

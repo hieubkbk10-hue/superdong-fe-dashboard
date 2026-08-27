@@ -1,3 +1,5 @@
+import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
+import { useFormDirty } from '@/components/common/FormUtilities';
 import React, { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { Calendar, ArrowLeft, Save, RotateCcw, Clock, Ship } from 'lucide-react';
@@ -58,6 +60,8 @@ function ScheduleCreatePage() {
   const [boats, setBoats] = useState<Boat[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [initialData] = useState(emptyForm);
+  const { isDirty } = useFormDirty(initialData, formData);
 
   useEffect(() => {
     const fetchOptions = async () => {
@@ -148,6 +152,9 @@ function ScheduleCreatePage() {
     }
   };
 
+  
+  
+
   return (
     <div className="space-y-6 w-full font-sans">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -179,8 +186,8 @@ function ScheduleCreatePage() {
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
-        <div className="px-5 py-3 bg-[#EBF7FA] border-b border-cyan-100 text-sm font-bold text-slate-800 uppercase">
+      <form onSubmit={handleSubmit} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden">
+        <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-b border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
           I. Thông tin cấu hình lịch chạy
         </div>
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -271,7 +278,7 @@ function ScheduleCreatePage() {
           </div>
         </div>
 
-        <div className="px-5 py-3 bg-[#EBF7FA] border-y border-cyan-100 text-sm font-bold text-slate-800 uppercase">
+        <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-y border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
           II. Tần suất & Trạng thái
         </div>
         <div className="p-6 space-y-6">
@@ -333,6 +340,8 @@ function ScheduleCreatePage() {
           </button>
         </div>
       </form>
+
+      <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSubmit({ preventDefault: () => {} } as any)} onReset={() => setFormData(emptyForm)} message="Lịch chạy chưa được tạo mới" />
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
+import { useFormDirty } from '@/components/common/FormUtilities';
 import React, { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { Ship, ArrowLeft, Save, RotateCcw, Clock, Calendar, Phone, CheckCircle2, Layers } from 'lucide-react';
@@ -66,6 +68,8 @@ function TripCreatePage() {
   const [boats, setBoats] = useState<Boat[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [initialData] = useState(emptyForm);
+  const { isDirty } = useFormDirty(initialData, formData);
 
   // Dynamic API Fetching
   useEffect(() => {
@@ -202,6 +206,9 @@ function TripCreatePage() {
     }
   };
 
+  
+  
+
   return (
     <div className="space-y-6 w-full font-sans">
       {/* Header */}
@@ -237,9 +244,9 @@ function TripCreatePage() {
       </div>
 
       {/* Main Single Card Form */}
-      <form onSubmit={handleSubmit} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+      <form onSubmit={handleSubmit} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden">
         {/* Section I */}
-        <div className="px-5 py-3 bg-[#EBF7FA] border-b border-cyan-100 text-sm font-bold text-slate-800 uppercase">
+        <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-b border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
           I. Hình thức & Tuyến hải trình
         </div>
         <div className="p-6 space-y-5">
@@ -353,7 +360,7 @@ function TripCreatePage() {
         </div>
 
         {/* Section II */}
-        <div className="px-5 py-3 bg-[#EBF7FA] border-y border-cyan-100 text-sm font-bold text-slate-800 uppercase">
+        <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-y border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
           II. Lịch trình khởi hành & Cập bến
         </div>
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -403,7 +410,7 @@ function TripCreatePage() {
         </div>
 
         {/* Section III */}
-        <div className="px-5 py-3 bg-[#EBF7FA] border-y border-cyan-100 text-sm font-bold text-slate-800 uppercase">
+        <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-y border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
           III. Thiết lập vận hành & Liên hệ
         </div>
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -459,6 +466,8 @@ function TripCreatePage() {
           </button>
         </div>
       </form>
+
+      <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSubmit({ preventDefault: () => {} } as any)} onReset={() => setFormData(emptyForm)} message="Chuyến tàu chưa được tạo mới" />
     </div>
   );
 }

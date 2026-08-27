@@ -1,3 +1,5 @@
+import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
+import { useFormDirty } from '@/components/common/FormUtilities';
 import React, { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { ShoppingCart, ArrowLeft, Save, User, Ship, CreditCard, Tag } from 'lucide-react';
@@ -12,6 +14,7 @@ function BookingEditPage() {
   const { bookingId } = Route.useParams();
   const navigate = useNavigate();
 
+  const [initialData, setInitialData] = useState<any>(null);
   const [formData, setFormData] = useState({
     booking_code: 'BK-99201',
     booker_name: 'Nguyễn Văn Hùng',
@@ -29,6 +32,7 @@ function BookingEditPage() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { isDirty } = useFormDirty(initialData, formData);
 
   useEffect(() => {
     let isMounted = true;
@@ -37,6 +41,22 @@ function BookingEditPage() {
         const res = await findBooking(bookingId);
         if (isMounted && res && res.data) {
           const b = res.data;
+          const loadedData = {
+            booking_code: b.booking_code || 'BK-99201',
+            booker_name: b.booker?.name || '',
+            booker_phone: b.booker?.phone || '',
+            booker_email: b.booker?.email || '',
+            booker_id: b.booker?.id_card || '',
+            status: b.status || 'confirmed',
+            payment_status: b.payment_status || 'paid',
+            payment_method: 'vnpay',
+            coupon_code: b.coupon_code || '',
+            total_amount: b.total_amount || 0,
+            discount_amount: b.discount_amount || 0,
+            final_amount: b.final_amount || 0,
+            notes: 'Khách hàng đặt vé đi du lịch gia đình',
+          };
+          setInitialData(loadedData);
           setFormData({
             booking_code: b.booking_code || 'BK-99201',
             booker_name: b.booker?.name || '',
@@ -58,7 +78,9 @@ function BookingEditPage() {
       }
     }
     loadBooking();
-    return () => {
+    
+
+  return () => {
       isMounted = false;
     };
   }, [bookingId]);
@@ -249,7 +271,7 @@ function BookingEditPage() {
               />
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700 space-y-2">
               <div className="flex justify-between text-xs text-slate-500">
                 <span>Tổng tiền vé:</span>
                 <span>{formatCurrency(formData.total_amount)}</span>
@@ -286,6 +308,8 @@ function BookingEditPage() {
           </button>
         </div>
       </form>
+
+      <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSubmit({ preventDefault: () => {} } as any)} onReset={() => { if (initialData) setFormData(initialData); }} />
     </div>
   );
 }

@@ -10,15 +10,12 @@ import {
   Users,
   Settings,
   Layers,
-  FileCheck,
-  CreditCard,
   RefreshCw,
   History,
   Ship,
-  MapPin,
   Route as RouteIcon,
-  Calendar,
   X,
+  Anchor,
 } from 'lucide-react';
 import { useSidebarState } from '@/contexts/SidebarContext';
 
@@ -136,38 +133,49 @@ export const Sidebar: React.FC = () => {
       {/* Mobile Drawer Backdrop */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 bg-slate-950/60 z-40 lg:hidden backdrop-blur-xs transition-opacity"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 border-r border-slate-200/80 dark:border-slate-800 z-50 transition-all duration-300 ease-in-out flex flex-col shadow-xs lg:shadow-none ${
-          isSidebarCollapsed ? 'lg:w-[72px]' : 'lg:w-[255px]'
-        } ${mobileMenuOpen ? 'translate-x-0 w-[255px]' : '-translate-x-full lg:translate-x-0'}`}
+        className={`fixed lg:sticky top-0 left-0 h-screen bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-slate-800 dark:text-slate-100 border-r border-slate-200/80 dark:border-slate-800/80 z-50 transition-all duration-300 ease-in-out flex flex-col shadow-xs lg:shadow-none ${
+          isSidebarCollapsed ? 'lg:w-[76px]' : 'lg:w-[260px]'
+        } ${mobileMenuOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full lg:translate-x-0'}`}
       >
-        {/* Mobile Header Bar */}
-        <div className="lg:hidden flex items-center justify-between h-14 px-4 border-b border-slate-200/80 dark:border-slate-800 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-md bg-blue-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
-              SD
+        {/* Brand Header Bar (Mobile + Desktop) */}
+        <div className="flex items-center justify-between h-[58px] px-4 border-b border-slate-200/80 dark:border-slate-800/80 shrink-0">
+          <Link to={"/" as any} className="flex items-center gap-3 group outline-none">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-blue-500/25 shrink-0 group-hover:scale-105 transition-transform">
+              <Anchor className="w-4 h-4" />
             </div>
-            <span className="text-sm font-bold text-slate-900 dark:text-white">SUPERDONG</span>
-          </div>
+            <div
+              className={`flex flex-col transition-all duration-300 ${
+                isSidebarCollapsed ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100'
+              }`}
+            >
+              <span className="text-sm font-extrabold tracking-tight text-slate-900 dark:text-slate-50 leading-tight">
+                SUPERDONG
+              </span>
+              <span className="text-[10px] font-semibold text-blue-600 dark:text-cyan-400 tracking-wider">
+                MANAGEMENT HUB
+              </span>
+            </div>
+          </Link>
+
+          {/* Close button on mobile */}
           <button
             type="button"
             onClick={() => setMobileMenuOpen(false)}
-            className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800"
+            className="lg:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <X size={18} />
           </button>
         </div>
 
-
-
-        {/* Scrollable Navigation List (Clean without heavy section category headers) */}
-        <div className="flex-1 py-3 px-2.5 space-y-0.5 overflow-y-auto custom-scrollbar">
+        {/* Scrollable Navigation List */}
+        <div className="flex-1 py-3 px-2.5 space-y-1 overflow-y-auto custom-scrollbar">
           {SUPERDONG_NAV_ITEMS.map((item, iIdx) => {
             const Icon = item.icon;
             const hasSub = !!item.subItems && item.subItems.length > 0;
@@ -176,28 +184,28 @@ export const Sidebar: React.FC = () => {
 
             if (hasSub) {
               return (
-                <div key={iIdx} className="mb-1 group relative">
+                <div key={iIdx} className="mb-0.5 group relative">
                   <button
                     type="button"
                     onClick={() => handleMenuToggle(item.label)}
-                    className={`w-full flex items-center transition-all duration-200 rounded-md outline-none ${
-                      isSidebarCollapsed ? 'justify-center p-2' : 'justify-between px-3 py-2'
+                    className={`w-full flex items-center transition-all duration-200 rounded-xl outline-none cursor-pointer ${
+                      isSidebarCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2.5'
                     } ${
                       active
-                        ? 'bg-blue-50/90 text-blue-600 font-semibold border-l-4 border-blue-600 rounded-l-none dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-500'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100'
+                        ? 'bg-blue-50/90 text-blue-600 font-semibold dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/60'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100'
                     }`}
                     title={isSidebarCollapsed ? item.label : undefined}
                   >
-                    <div className={`flex items-center ${isSidebarCollapsed ? 'gap-0' : 'gap-2.5'}`}>
+                    <div className={`flex items-center ${isSidebarCollapsed ? 'gap-0' : 'gap-3'}`}>
                       <Icon
-                        size={isSidebarCollapsed ? 20 : 19}
+                        size={18}
                         className={`shrink-0 transition-transform duration-200 group-hover:scale-105 ${
                           active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400'
                         }`}
                       />
                       <span
-                        className={`text-sm font-medium whitespace-nowrap transition-all duration-300 ${
+                        className={`text-xs sm:text-sm tracking-tight whitespace-nowrap transition-all duration-300 ${
                           isSidebarCollapsed ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100'
                         }`}
                       >
@@ -206,8 +214,8 @@ export const Sidebar: React.FC = () => {
                     </div>
                     {!isSidebarCollapsed && (
                       <ChevronRight
-                        size={15}
-                        className={`transition-transform duration-200 opacity-80 ${
+                        size={14}
+                        className={`transition-transform duration-200 opacity-70 ${
                           active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'
                         } ${isExpanded ? 'rotate-90' : ''}`}
                       />
@@ -218,10 +226,10 @@ export const Sidebar: React.FC = () => {
                   {hasSub && (
                     <div
                       className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                        isExpanded && !isSidebarCollapsed ? 'max-h-[500px] opacity-100 mt-0.5' : 'max-h-0 opacity-0'
+                        isExpanded && !isSidebarCollapsed ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0'
                       }`}
                     >
-                      <div className="ml-3.5 border-l-2 border-slate-200 dark:border-slate-800 pl-2.5 space-y-0.5 my-1">
+                      <div className="ml-4 border-l border-slate-200/80 dark:border-slate-800 pl-2.5 space-y-1 my-1">
                         {item.subItems?.map((sub, sIdx) => {
                           const subActive = isUrlActive(sub.href);
                           return (
@@ -229,10 +237,10 @@ export const Sidebar: React.FC = () => {
                               key={sIdx}
                               to={sub.href as any}
                               onClick={() => setMobileMenuOpen(false)}
-                              className={`block px-2.5 py-1.5 rounded-md text-xs sm:text-sm transition-colors truncate font-medium ${
+                              className={`block px-3 py-1.5 rounded-lg text-xs transition-all truncate ${
                                 subActive
-                                  ? 'text-blue-600 bg-blue-50/90 font-semibold dark:text-blue-400 dark:bg-blue-950/30'
-                                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/60'
+                                  ? 'text-blue-600 bg-blue-50/90 font-bold dark:text-blue-400 dark:bg-blue-950/40 shadow-xs'
+                                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 font-medium'
                               }`}
                             >
                               {sub.label}
@@ -247,27 +255,27 @@ export const Sidebar: React.FC = () => {
             }
 
             return (
-              <div key={iIdx} className="mb-1 group relative">
+              <div key={iIdx} className="mb-0.5 group relative">
                 <Link
                   to={(item.href || '#') as any}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center transition-all duration-200 rounded-md outline-none ${
-                    isSidebarCollapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-2'
+                  className={`flex items-center transition-all duration-200 rounded-xl outline-none ${
+                    isSidebarCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'
                   } ${
                     active
-                      ? 'bg-blue-50/90 text-blue-600 font-semibold border-l-4 border-blue-600 rounded-l-none dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-500'
-                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100'
+                      ? 'bg-blue-600 text-white font-semibold shadow-xs shadow-blue-500/20'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100'
                   }`}
                   title={isSidebarCollapsed ? item.label : undefined}
                 >
                   <Icon
-                    size={isSidebarCollapsed ? 20 : 19}
+                    size={18}
                     className={`shrink-0 transition-transform duration-200 group-hover:scale-105 ${
-                      active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                      active ? 'text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400'
                     }`}
                   />
                   <span
-                    className={`text-sm font-medium whitespace-nowrap transition-all duration-300 ${
+                    className={`text-xs sm:text-sm tracking-tight whitespace-nowrap transition-all duration-300 ${
                       isSidebarCollapsed ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100'
                     }`}
                   >
@@ -280,14 +288,14 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {/* Bottom Toggle Collapse Bar */}
-        <div className="p-2.5 border-t border-slate-200/80 dark:border-slate-800 shrink-0">
+        <div className="p-2.5 border-t border-slate-200/80 dark:border-slate-800/80 shrink-0">
           <button
             type="button"
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="hidden lg:flex items-center justify-center w-full h-7 rounded-md bg-slate-200/60 dark:bg-slate-800/70 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="hidden lg:flex items-center justify-center w-full h-8 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-700 transition-colors cursor-pointer"
             title={isSidebarCollapsed ? 'Mở rộng Sidebar' : 'Thu gọn Sidebar'}
           >
-            {isSidebarCollapsed ? <ChevronsRight size={17} /> : <ChevronsLeft size={17} />}
+            {isSidebarCollapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
           </button>
         </div>
       </aside>

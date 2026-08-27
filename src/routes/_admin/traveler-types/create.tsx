@@ -1,3 +1,5 @@
+import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
+import { useFormDirty } from '@/components/common/FormUtilities';
 import React, { useState } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { Users, ArrowLeft, Save } from 'lucide-react';
@@ -19,6 +21,8 @@ function TravelerTypeCreatePage() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [initialData] = useState(formData);
+  const { isDirty } = useFormDirty(initialData, formData);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +52,9 @@ function TravelerTypeCreatePage() {
       setIsSubmitting(false);
     }
   };
+
+  
+  
 
   return (
     <div className="space-y-6 max-w-3xl font-sans pb-12">
@@ -160,6 +167,8 @@ function TravelerTypeCreatePage() {
           </button>
         </div>
       </form>
+
+      <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSubmit({ preventDefault: () => {} } as any)} onReset={() => setFormData(formData)} message="Đối tượng khách chưa được tạo mới" />
     </div>
   );
 }

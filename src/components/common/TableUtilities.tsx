@@ -46,7 +46,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className={cn(
-        'w-full pl-9 pr-8 h-9 text-xs sm:text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 outline-none transition-all',
+        'w-full pl-9 pr-8 h-9 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 outline-none transition-all',
         className
       )}
     />
@@ -447,8 +447,6 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   title,
   subtitle,
   icon: Icon,
-  statusBadge,
-  apiError,
   onRefresh,
   refreshing = false,
   createLink,
@@ -458,23 +456,16 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 }) => (
   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-1">
     <div>
-      <div className="flex items-center gap-3">
-        <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          {Icon && <Icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />}
-          {title}
-        </h1>
-        {statusBadge && !apiError && (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-            <CheckCircle2 size={13} /> {statusBadge.label}
-          </span>
-        )}
-      </div>
+      <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
+        {Icon && <Icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />}
+        {title}
+      </h1>
       {subtitle && (
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>
       )}
     </div>
 
-    {/* Top-Right Header Actions: Refresh & Create Buttons */}
+    {/* Top-Right Header Actions */}
     <div className="flex items-center gap-2 shrink-0">
       {actions}
 
@@ -485,7 +476,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           size="icon"
           onClick={onRefresh}
           disabled={refreshing}
-          className="h-9 w-9 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+          className="h-9 w-9 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
           title="Làm mới dữ liệu"
         >
           <RefreshCw size={15} className={cn('text-slate-500 dark:text-slate-400', refreshing && 'animate-spin')} />
@@ -496,10 +487,10 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         <Button
           size="sm"
           asChild
-          className="gap-1.5 h-9 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs"
+          className="gap-1.5 h-9 px-3.5 rounded-xl text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs"
         >
           <Link to={createLink as any}>
-            <Plus size={16} />
+            <Plus size={15} />
             <span>{createLabel}</span>
           </Link>
         </Button>
@@ -509,9 +500,9 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         <Button
           size="sm"
           onClick={onCreateClick}
-          className="gap-1.5 h-9 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs"
+          className="gap-1.5 h-9 px-3.5 rounded-xl text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs"
         >
-          <Plus size={16} />
+          <Plus size={15} />
           <span>{createLabel}</span>
         </Button>
       )}
@@ -550,7 +541,7 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({
   children,
 }) => {
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-3 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
+    <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 p-3 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
       {/* Left side: Search input */}
       <SearchInput
         value={searchValue}
@@ -772,10 +763,10 @@ export function AdminTablePage<T>({
       />
 
       {/* Data Table Container */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-2xs overflow-hidden">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50/80 dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 font-bold uppercase text-xs border-b border-slate-200 dark:border-slate-800">
+            <thead className="bg-slate-50/80 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-semibold uppercase text-xs border-b border-slate-200/80 dark:border-slate-800/80">
               <tr>
                 {visibleColumnDefs.map((col, idx) => {
                   const isFirst = idx === 0;

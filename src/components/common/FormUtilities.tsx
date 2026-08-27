@@ -42,7 +42,7 @@ export const AdminFormHeader: React.FC<AdminFormHeaderProps> = ({
   return (
     <div
       className={cn(
-        'flex items-center justify-between pb-3.5 border-b border-slate-200/80 dark:border-slate-800',
+        'flex items-center justify-between pb-3.5 border-b border-slate-200/80 dark:border-slate-800/80',
         className
       )}
     >
@@ -51,7 +51,7 @@ export const AdminFormHeader: React.FC<AdminFormHeaderProps> = ({
           <Button
             variant="light"
             size="icon"
-            className="h-8.5 w-8.5 shrink-0 rounded-lg border border-slate-200/60 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="h-9 w-9 shrink-0 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             asChild
           >
             <Link to={backTo as any} title={backLabel}>
@@ -62,7 +62,7 @@ export const AdminFormHeader: React.FC<AdminFormHeaderProps> = ({
           <Button
             variant="light"
             size="icon"
-            className="h-8.5 w-8.5 shrink-0 rounded-lg border border-slate-200/60 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="h-9 w-9 shrink-0 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             onClick={onBack}
             title={backLabel}
             type="button"
@@ -72,7 +72,7 @@ export const AdminFormHeader: React.FC<AdminFormHeaderProps> = ({
         ) : null}
 
         <div>
-          <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
             {Icon && <Icon className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0" />}
             <span>{title}</span>
           </h1>
@@ -89,7 +89,7 @@ export const AdminFormHeader: React.FC<AdminFormHeaderProps> = ({
             variant="outline"
             size="sm"
             onClick={onClear}
-            className="gap-1.5 text-xs text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 h-8.5 px-3 rounded-lg"
+            className="gap-1.5 text-xs text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 h-9 px-3 rounded-xl"
             title="Làm sạch toàn bộ ô nhập liệu về rỗng"
           >
             <RotateCcw size={13} className="text-slate-400" />
@@ -103,7 +103,7 @@ export const AdminFormHeader: React.FC<AdminFormHeaderProps> = ({
 };
 
 /* ==========================================================================
-   2. FormSection & FormSectionBlock - Banner nhóm số La Mã màu Cyan nhạt (#EBF7FA)
+   2. FormSection & FormSectionBlock - Banner nhóm thông tin hiện đại
    ========================================================================== */
 export interface FormSectionProps {
   title: string;
@@ -125,7 +125,7 @@ export const FormSection: React.FC<FormSectionProps> = ({
   return (
     <div
       className={cn(
-        'bg-[#EBF7FA] dark:bg-slate-900/90 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100/80 dark:border-slate-800 flex items-center justify-between select-none',
+        'bg-slate-100/70 dark:bg-slate-800/60 px-3.5 py-2 rounded-xl text-slate-800 dark:text-slate-200 font-bold text-xs uppercase tracking-wide border border-slate-200/60 dark:border-slate-800/80 flex items-center justify-between select-none',
         className
       )}
     >
@@ -139,7 +139,7 @@ export const FormSection: React.FC<FormSectionProps> = ({
             variant="primary"
             size="xs"
             onClick={onAdd}
-            className="font-bold gap-1 text-xs h-6 px-2.5 rounded-md"
+            className="font-semibold gap-1 text-xs h-6 px-2.5 rounded-lg"
           >
             + {addLabel}
           </Button>
@@ -188,7 +188,7 @@ export const FormSectionBlock: React.FC<FormSectionBlockProps> = ({
 };
 
 /* ==========================================================================
-   3. FormField & Input/Select Components chuẩn Vercel / Shadcn UI
+   3. FormField & Input/Select Components chuẩn Modern UI
    ========================================================================== */
 export interface FormFieldProps {
   id?: string;
@@ -267,16 +267,16 @@ export const FormInputField: React.FC<FormInputFieldProps> = ({
     >
       <div className="relative">
         {leftIcon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
             {leftIcon}
           </div>
         )}
         <input
           id={id}
           className={cn(
-            'w-full h-9 text-xs sm:text-sm px-3 rounded-lg border bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 border-slate-200 dark:border-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all disabled:opacity-50 disabled:bg-slate-50 dark:disabled:bg-slate-950',
+            'w-full h-9 text-xs px-3 rounded-xl border bg-slate-50/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 border-slate-200 dark:border-slate-700 focus:border-blue-600 outline-none transition-all disabled:opacity-50',
             leftIcon && 'pl-9',
-            error && 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20',
+            error && 'border-rose-400 focus:border-rose-500',
             className
           )}
           {...props}
@@ -322,8 +322,8 @@ export const FormSelectField: React.FC<FormSelectFieldProps> = ({
       <select
         id={id}
         className={cn(
-          'w-full h-9 text-xs sm:text-sm px-3 rounded-lg border bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all disabled:opacity-50',
-          error && 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20',
+          'w-full h-9 text-xs px-3 rounded-xl border bg-slate-50/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus:border-blue-600 outline-none transition-all disabled:opacity-50 cursor-pointer',
+          error && 'border-rose-400 focus:border-rose-500',
           className
         )}
         {...props}
@@ -341,7 +341,7 @@ export const FormSelectField: React.FC<FormSelectFieldProps> = ({
 };
 
 /* ==========================================================================
-   4. AdminFormCard - Khung Card duy nhất bọc form (Single Card w-full)
+   4. AdminFormCard - Khung Card duy nhất bọc form (Single Card rounded-2xl)
    ========================================================================== */
 export interface AdminFormCardProps extends React.FormHTMLAttributes<HTMLFormElement> {
   children: React.ReactNode;
@@ -356,7 +356,7 @@ export const AdminFormCard: React.FC<AdminFormCardProps> = ({
   return (
     <form
       className={cn(
-        'bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-6 font-sans',
+        'bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-6 font-sans',
         className
       )}
       {...props}
@@ -368,7 +368,6 @@ export const AdminFormCard: React.FC<AdminFormCardProps> = ({
 
 /* ==========================================================================
    5. AdminFormActionBar - Thanh nút bấm dưới cùng với Dirty State thông minh
-      (Nút 'Đã lưu' xám disabled KHÔNG ICON theo yêu cầu chuẩn)
    ========================================================================== */
 export interface AdminFormActionBarProps {
   mode?: 'create' | 'edit';
@@ -407,7 +406,7 @@ export const AdminFormActionBar: React.FC<AdminFormActionBarProps> = ({
   return (
     <div
       className={cn(
-        'pt-4 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3',
+        'pt-4 border-t border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-3',
         className
       )}
     >
@@ -416,7 +415,7 @@ export const AdminFormActionBar: React.FC<AdminFormActionBarProps> = ({
           type="button"
           variant="light"
           onClick={onClear}
-          className="text-slate-600 hover:text-rose-600 hover:border-rose-200 dark:hover:border-rose-900 gap-1.5 text-xs h-9 px-3 rounded-lg"
+          className="text-slate-600 hover:text-rose-600 hover:border-rose-200 dark:hover:border-rose-900 gap-1.5 text-xs h-9 px-3 rounded-xl"
         >
           <RotateCcw size={13} /> {clearLabel}
         </Button>
@@ -431,7 +430,7 @@ export const AdminFormActionBar: React.FC<AdminFormActionBarProps> = ({
           <Button
             type="button"
             variant="outline"
-            className="h-9 px-4 rounded-lg text-xs sm:text-sm border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
+            className="h-9 px-4 rounded-xl text-xs border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
             asChild
           >
             <Link to={cancelTo as any}>{cancelLabel}</Link>
@@ -441,7 +440,7 @@ export const AdminFormActionBar: React.FC<AdminFormActionBarProps> = ({
             type="button"
             variant="outline"
             onClick={onCancel}
-            className="h-9 px-4 rounded-lg text-xs sm:text-sm border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
+            className="h-9 px-4 rounded-xl text-xs border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
           >
             {cancelLabel}
           </Button>
@@ -451,7 +450,7 @@ export const AdminFormActionBar: React.FC<AdminFormActionBarProps> = ({
           <button
             type="button"
             disabled
-            className="h-9 px-4 rounded-lg bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 font-medium text-xs sm:text-sm border border-slate-200 dark:border-slate-800 cursor-not-allowed select-none transition-all shadow-none"
+            className="h-9 px-4 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 font-medium text-xs border border-slate-200 dark:border-slate-800 cursor-not-allowed select-none transition-all shadow-none"
             title="Form chưa có thay đổi nào để cập nhật"
           >
             {savedLabel}
@@ -460,16 +459,16 @@ export const AdminFormActionBar: React.FC<AdminFormActionBarProps> = ({
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="h-9 px-4 rounded-lg gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm shadow-xs transition-all"
+            className="h-9 px-4 rounded-xl gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition-all"
           >
             {isSubmitting ? (
               <>
-                <Loader2 size={15} className="animate-spin" />
+                <Loader2 size={14} className="animate-spin" />
                 Đang lưu...
               </>
             ) : (
               <>
-                <Save size={15} />
+                <Save size={14} />
                 {resolvedSubmitLabel}
               </>
             )}
@@ -489,7 +488,7 @@ export function useFormDirty<T extends Record<string, any>>(
   ignoredKeys: (keyof T | string)[] = ['reason', 'notes', 'expected_version']
 ) {
   const { isDirty, diffKeys } = useMemo(() => {
-    if (!initialData) return { isDirty: true, diffKeys: [] };
+    if (!initialData) return { isDirty: false, diffKeys: [] };
 
     const keys = Object.keys(currentData);
     const diffs: string[] = [];
@@ -499,6 +498,14 @@ export function useFormDirty<T extends Record<string, any>>(
 
       const initialVal = (initialData as any)[key];
       const currentVal = (currentData as any)[key];
+
+      // Handle arrays / objects
+      if (typeof initialVal === 'object' || typeof currentVal === 'object') {
+        if (JSON.stringify(initialVal) !== JSON.stringify(currentVal)) {
+          diffs.push(key);
+        }
+        continue;
+      }
 
       const normInit = initialVal === null || initialVal === undefined ? '' : String(initialVal).trim();
       const normCurr = currentVal === null || currentVal === undefined ? '' : String(currentVal).trim();

@@ -1,3 +1,5 @@
+import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
+import { useFormDirty } from '@/components/common/FormUtilities';
 import React, { useEffect, useMemo, useState } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowLeft, Lock, RefreshCw, Save, Shield } from 'lucide-react';
@@ -36,12 +38,14 @@ function normalizePermissionList(response: unknown): Permission[] {
 function RoleEditPage() {
   const { roleId } = Route.useParams();
   const draftKey = `superdong_role_draft_edit_${roleId}`;
+  const [initialData, setInitialData] = useState<RoleFormData | null>(null);
   const [formData, setFormData] = useState<RoleFormData>(DEFAULT_FORM);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<Array<string | number>>([]);
   const [loading, setLoading] = useState(true);
   const [loadingPermissions, setLoadingPermissions] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { isDirty } = useFormDirty(initialData, formData);
   const [isSystemRole, setIsSystemRole] = useState(false);
 
   const updateForm = (patch: Partial<RoleFormData>) => setFormData((prev) => ({ ...prev, ...patch }));
@@ -56,6 +60,8 @@ function RoleEditPage() {
         display_name: role.display_name,
         description: role.description,
       };
+
+      setInitialData(serverForm);
 
       let nextForm = serverForm;
       try {
@@ -90,7 +96,9 @@ function RoleEditPage() {
     }
     hydrateRole();
     fetchPermissions();
-    return () => { isMounted = false; };
+    
+
+  return () => { isMounted = false; };
   }, [roleId]);
 
   useEffect(() => {
@@ -180,7 +188,7 @@ function RoleEditPage() {
         {isSystemRole ? <Badge variant="blue" className="px-3 py-1 text-xs"><Lock size={12} /> Vai trò hệ thống</Badge> : <Badge variant="secondary" className="px-3 py-1 text-xs">Có thể chỉnh sửa</Badge>}
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-5">
         <div className="space-y-3">
           <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">I. Thông tin cơ bản</div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -224,7 +232,7 @@ function RoleEditPage() {
               {Object.entries(groupedPermissions).map(([group, items]) => {
                 const allSelected = items.every((item) => selectedPermissionIds.includes(item.id));
                 return (
-                  <div key={group} className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 space-y-3">
+                  <div key={group} className="rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3 space-y-3">
                     <div className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-900 px-3 py-2">
                       <div className="text-sm font-bold text-slate-900 dark:text-white">{group}</div>
                       <button type="button" disabled={isSystemRole} onClick={() => toggleGroup(items)} className="text-xs font-semibold text-blue-600 hover:underline disabled:text-slate-400 disabled:no-underline">{allSelected ? 'Bỏ chọn nhóm' : 'Chọn nhóm'}</button>
@@ -257,6 +265,8 @@ function RoleEditPage() {
           </Button>
         </div>
       </form>
+
+      <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSubmit({ preventDefault: () => {} } as any)} onReset={() => { if (initialData) setFormData(initialData); }} />
     </div>
   );
 }

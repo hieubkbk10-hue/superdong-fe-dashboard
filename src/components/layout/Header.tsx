@@ -92,12 +92,12 @@ export const Header: React.FC = () => {
   const breadcrumbItems = parseBreadcrumbs(pathname);
 
   return (
-    <header className="h-[54px] bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-30 flex items-center justify-between px-4 lg:px-8 transition-colors font-sans">
+    <header className="h-[58px] bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 sticky top-0 z-30 flex items-center justify-between px-4 lg:px-8 transition-colors font-sans">
       {/* Left: Mobile Menu Toggle & Breadcrumbs */}
       <div className="flex items-center gap-3 min-w-0">
         <button
           type="button"
-          className="lg:hidden p-1.5 -ml-1.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md cursor-pointer"
+          className="lg:hidden p-1.5 -ml-1.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer transition-colors"
           onClick={() => setMobileMenuOpen(true)}
           title="Mở Menu"
         >
@@ -105,12 +105,13 @@ export const Header: React.FC = () => {
         </button>
 
         <nav className="hidden sm:flex items-center text-xs sm:text-sm text-slate-500 dark:text-slate-400 truncate">
-          <Link to={"/" as any} className="hover:text-blue-600 transition-colors font-medium">
-            Trang chủ
+          <Link to={"/" as any} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium flex items-center gap-1.5">
+            <Home size={14} className="text-slate-400" />
+            <span>Trang chủ</span>
           </Link>
           {breadcrumbItems.map((item, index) => (
             <React.Fragment key={index}>
-              <ChevronRight size={14} className="mx-2 text-slate-300 dark:text-slate-600 shrink-0" />
+              <ChevronRight size={13} className="mx-2 text-slate-300 dark:text-slate-600 shrink-0" />
               {item.isLast || !item.url ? (
                 <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">
                   {item.label}
@@ -118,7 +119,7 @@ export const Header: React.FC = () => {
               ) : (
                 <Link
                   to={item.url as any}
-                  className="hover:text-blue-600 transition-colors truncate"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors truncate font-medium"
                 >
                   {item.label}
                 </Link>
@@ -129,24 +130,16 @@ export const Header: React.FC = () => {
       </div>
 
       {/* Right: Search Autocomplete & Action Controls */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2.5 shrink-0">
         <AdminHeaderSearchAutocomplete />
-
-        <Link
-          to={"/" as any}
-          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-full transition-colors hidden sm:flex"
-          title="Về Trang chủ"
-        >
-          <Home size={17} />
-        </Link>
 
         <button
           type="button"
-          className="relative p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-full transition-colors cursor-pointer hidden sm:flex"
+          className="relative p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer hidden sm:flex"
           title="Thông báo hệ thống"
         >
           <Bell size={17} />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-blue-600 rounded-full" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full ring-2 ring-white dark:ring-slate-900" />
         </button>
 
         <ThemeToggle />

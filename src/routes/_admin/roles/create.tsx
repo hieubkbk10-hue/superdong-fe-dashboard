@@ -1,3 +1,5 @@
+import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
+import { useFormDirty } from '@/components/common/FormUtilities';
 import React, { useEffect, useMemo, useState } from 'react';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, RefreshCw, RotateCcw, Save, Shield } from 'lucide-react';
@@ -49,6 +51,8 @@ function RoleCreatePage() {
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<Array<string | number>>([]);
   const [loadingPermissions, setLoadingPermissions] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [initialData] = useState(formData);
+  const { isDirty } = useFormDirty(initialData, formData);
 
   useEffect(() => {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(formData));
@@ -69,7 +73,10 @@ function RoleCreatePage() {
       }
     }
     fetchPermissions();
-    return () => { isMounted = false; };
+    
+  
+
+  return () => { isMounted = false; };
   }, []);
 
   const groupedPermissions = useMemo(() => {
@@ -172,7 +179,7 @@ function RoleCreatePage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-5">
         <div className="space-y-3">
           <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">I. Thông tin cơ bản</div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -216,7 +223,7 @@ function RoleCreatePage() {
               {Object.entries(groupedPermissions).map(([group, items]) => {
                 const allSelected = items.every((item) => selectedPermissionIds.includes(item.id));
                 return (
-                  <div key={group} className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 space-y-3">
+                  <div key={group} className="rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3 space-y-3">
                     <div className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-900 px-3 py-2">
                       <div className="text-sm font-bold text-slate-900 dark:text-white">{group}</div>
                       <button type="button" onClick={() => toggleGroup(items)} className="text-xs font-semibold text-blue-600 hover:underline">{allSelected ? 'Bỏ chọn nhóm' : 'Chọn nhóm'}</button>
@@ -249,6 +256,8 @@ function RoleCreatePage() {
           </Button>
         </div>
       </form>
+
+      <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSubmit({ preventDefault: () => {} } as any)} onReset={() => setFormData(formData)} message="Vai trò chưa được tạo mới" />
     </div>
   );
 }

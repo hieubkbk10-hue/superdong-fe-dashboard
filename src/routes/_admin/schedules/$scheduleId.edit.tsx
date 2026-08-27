@@ -1,3 +1,5 @@
+import { useFormDirty } from '@/components/common/FormUtilities';
+import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
 import React, { useState, useEffect, useMemo } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import {
@@ -144,11 +146,13 @@ function ScheduleEditPage() {
   const draftKey = `superdong_schedule_draft_edit_${scheduleId}`;
   const cacheKey = `superdong_schedule_cache_${scheduleId}`;
 
+  const [initialData, setInitialData] = useState<ScheduleFormData | null>(null);
   const [formData, setFormData] = useState<ScheduleFormData>(emptyForm);
   const [scheduleCode, setScheduleCode] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const { isDirty } = useFormDirty(initialData, formData, ['version']);
 
   // Metadata
   const [routes, setRoutes] = useState<JourneyRoute[]>([]);
@@ -217,6 +221,7 @@ function ScheduleEditPage() {
         if (draft) nextForm = { ...serverForm, ...draft };
       } catch {}
 
+      setInitialData(serverForm);
       setFormData(nextForm);
       localStorage.setItem(cacheKey, JSON.stringify({ id: String(scheduleId), ...serverForm }));
 
@@ -361,6 +366,8 @@ function ScheduleEditPage() {
   const boatsMap = useMemo(() => new Map(boats.map((b) => [String(b.id), b])), [boats]);
   const routesMap = useMemo(() => new Map(routes.map((r) => [String(r.id), r])), [routes]);
 
+  
+
   return (
     <div className="space-y-6 w-full font-sans">
       {/* Header */}
@@ -428,9 +435,9 @@ function ScheduleEditPage() {
       ) : (
         <>
           {/* Main Single Card Form */}
-          <form onSubmit={handleSubmit} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+          <form onSubmit={handleSubmit} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden">
             {/* Section I */}
-            <div className="px-5 py-3 bg-[#EBF7FA] border-b border-cyan-100 text-sm font-bold text-slate-800 uppercase flex items-center justify-between">
+            <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-b border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide flex items-center justify-between">
               <span>I. Thông tin lịch mẫu & Tuyến chạy</span>
               <span className="text-xs font-mono font-normal text-slate-500 lowercase">
                 Mã: {scheduleCode}
@@ -494,7 +501,7 @@ function ScheduleEditPage() {
             </div>
 
             {/* Section II */}
-            <div className="px-5 py-3 bg-[#EBF7FA] border-y border-cyan-100 text-sm font-bold text-slate-800 uppercase">
+            <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-y border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
               II. Khung giờ & Các ngày trong tuần
             </div>
             <div className="p-6 space-y-6">
@@ -559,7 +566,7 @@ function ScheduleEditPage() {
             </div>
 
             {/* Section III */}
-            <div className="px-5 py-3 bg-[#EBF7FA] border-y border-cyan-100 text-sm font-bold text-slate-800 uppercase">
+            <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-y border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
               III. Trạng thái khai thác
             </div>
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -596,9 +603,11 @@ function ScheduleEditPage() {
             </div>
           </form>
 
+      <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSubmit({ preventDefault: () => {} } as any)} onReset={() => { if (initialData) setFormData(initialData); }} />
+
           {/* Section IV: Linked Trips Table */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
-            <div className="px-5 py-3 bg-[#EBF7FA] border-b border-cyan-100 text-sm font-bold text-slate-800 uppercase flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden">
+            <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-b border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Ship size={16} className="text-blue-600" />
                 <span>IV. Danh Sách Chuyến Tàu Đã Sinh ({linkedTrips.length} chuyến)</span>
