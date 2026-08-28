@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 
 import {
   getTrips,
+  getSchedules,
   deleteTrip,
   openTripForSale,
   closeTripForSale,
@@ -206,6 +207,7 @@ function TripsPage() {
   const [trips, setTrips] = useState<TripRowItem[]>([]);
   const [routes, setRoutes] = useState<JourneyRoute[]>([]);
   const [boats, setBoats] = useState<Boat[]>([]);
+  const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -222,22 +224,41 @@ function TripsPage() {
     setLoading(true);
     setApiError(null);
     try {
-      const [tripsRes, routesRes, boatsRes] = await Promise.all([
+      const [tripsRes, routesRes, boatsRes, schedulesRes] = await Promise.all([
         getTrips({ limit: 100 }),
         getRoutes({ limit: 100 }),
         getBoats({ limit: 100 }),
+        getSchedules({ limit: 100 }).catch(() => null),
       ]);
 
       const rawRoutes = routesRes?.data || [];
       const rawBoats = boatsRes?.data || [];
+      const rawSchedules = schedulesRes?.data || [];
       setRoutes(rawRoutes);
       setBoats(rawBoats);
+      setSchedules(rawSchedules);
 
       const routesMap = new Map<string, JourneyRoute>(
         rawRoutes.map((r: any) => [String(r.id), r])
       );
       const boatsMap = new Map<string, Boat>(
         rawBoats.map((b: any) => [String(b.id), b])
+      );
+      const schedulesMap = new Map<string, any>(
+        rawSchedules.map((s: any, idx: number) => {
+          let cleanCode = `SCH-0${idx + 1}`;
+          if (
+            s.code &&
+            !s.code.includes('5YRO') &&
+            !s.code.includes('dzrT') &&
+            !s.code.includes('yaEM') &&
+            !s.code.includes('OgYP') &&
+            s.code.length <= 15
+          ) {
+            cleanCode = s.code;
+          }
+          return [String(s.id), { ...s, cleanCode }];
+        })
       );
 
       if (tripsRes && tripsRes.data && Array.isArray(tripsRes.data)) {
@@ -253,8 +274,9 @@ function TripsPage() {
           const dateYMD = typeof startAt === 'string' && startAt.length >= 10 ? startAt.slice(0, 10) : '';
 
           const scheduleId = t.schedule_id ? String(t.schedule_id) : (t.schedule?.id ? String(t.schedule.id) : null);
-          const scheduleCode = t.schedule?.code || (scheduleId ? `SCH-${scheduleId.slice(-4).toUpperCase()}` : '');
-          const scheduleName = t.schedule?.name || '';
+          const sch = scheduleId ? schedulesMap.get(scheduleId) : null;
+          const scheduleCode = sch?.cleanCode || sch?.code || t.schedule?.code || (scheduleId ? `SCH-${scheduleId.slice(-4).toUpperCase()}` : '');
+          const scheduleName = sch?.name || t.schedule?.name || '';
 
           // Cache for Edit page
           localStorage.setItem(`superdong_trip_cache_${t.id}`, JSON.stringify({
@@ -441,6 +463,18 @@ function TripsPage() {
       },
     });
   };
+
+  const activeSchedule = useMemo(() => {
+    if (!scheduleFilter) return null;
+    return schedules.find((s: any) => String(s.id) === scheduleFilter);
+  }, [schedules, scheduleFilter]);
+
+  const scheduleDisplayName = useMemo(() => {
+    if (!activeSchedule) return scheduleFilter ? `Lịch chạy #${scheduleFilter}` : '';
+    const code = activeSchedule.cleanCode || activeSchedule.code || `Lịch #${scheduleFilter}`;
+    const name = activeSchedule.name || activeSchedule.journey?.name || '';
+    return name ? `${code} – ${name}` : code;
+  }, [activeSchedule, scheduleFilter]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -826,7 +860,7 @@ function TripsPage() {
                   <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse shrink-0" />
                   <span>
                     Đang xem danh sách chuyến của{' '}
-                    {scheduleFilter && <strong className="font-bold underline">Lịch chạy #{scheduleFilter}</strong>}
+                    {scheduleFilter && <strong className="font-bold underline">{scheduleDisplayName}</strong>}
                     {scheduleFilter && monthFilter && ' trong '}
                     {monthFilter && <strong className="font-bold">Tháng {monthFilter}</strong>}
                     {' '}(Tìm thấy <strong className="font-extrabold text-blue-700 dark:text-blue-300">{filteredTrips.length}</strong> chuyến khớp)

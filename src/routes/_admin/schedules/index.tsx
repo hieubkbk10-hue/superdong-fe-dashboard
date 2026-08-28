@@ -480,7 +480,6 @@ function SchedulesPage() {
                 to: '/trips' as any,
                 search: {
                   schedule_id: String(targetSch.id),
-                  search: targetSch.code,
                 } as any,
               }),
           },

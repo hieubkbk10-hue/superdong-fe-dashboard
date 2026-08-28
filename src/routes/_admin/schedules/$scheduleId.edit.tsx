@@ -353,7 +353,6 @@ function ScheduleEditPage() {
                 to: '/trips' as any,
                 search: {
                   schedule_id: String(scheduleId),
-                  search: scheduleCode || formData.name,
                 } as any,
               }),
           },

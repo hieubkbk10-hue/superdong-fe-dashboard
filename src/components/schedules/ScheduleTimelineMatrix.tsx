@@ -915,7 +915,6 @@ export function ScheduleTimelineMatrix({
                       search: {
                         schedule_id: schId,
                         month: monthKey,
-                        search: inspectCell.schedule.code,
                       } as any,
                     });
                   }}
