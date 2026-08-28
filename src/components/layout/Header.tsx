@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
-import { Bell, ChevronRight, Home, Menu as MenuIcon } from 'lucide-react';
+import { ChevronRight, Home, Menu as MenuIcon } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { UserNav } from './UserNav';
 import { AdminHeaderSearchAutocomplete } from './AdminHeaderSearchAutocomplete';
@@ -132,15 +132,6 @@ export const Header: React.FC = () => {
       {/* Right: Search Autocomplete & Action Controls */}
       <div className="flex items-center gap-2.5 shrink-0">
         <AdminHeaderSearchAutocomplete />
-
-        <button
-          type="button"
-          className="relative p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer hidden sm:flex"
-          title="Thông báo hệ thống"
-        >
-          <Bell size={17} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full ring-2 ring-white dark:ring-slate-900" />
-        </button>
 
         <ThemeToggle />
 

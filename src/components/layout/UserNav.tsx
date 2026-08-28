@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate, Link } from '@tanstack/react-router';
-import { User, Settings, ShieldCheck, LogOut, ChevronDown } from 'lucide-react';
+import React from 'react';
+import { useNavigate } from '@tanstack/react-router';
+import { Settings, LogOut, ChevronDown } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -76,13 +76,6 @@ export const UserNav: React.FC = () => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuGroup className="py-1">
-          <DropdownMenuItem
-            onClick={() => navigate({ to: '/settings' as any })}
-            className="flex items-center gap-2.5 px-3 py-2 cursor-pointer text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md"
-          >
-            <User className="h-4 w-4 text-slate-400" />
-            <span>Hồ sơ cá nhân</span>
-          </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => navigate({ to: '/settings' as any })}
             className="flex items-center gap-2.5 px-3 py-2 cursor-pointer text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md"

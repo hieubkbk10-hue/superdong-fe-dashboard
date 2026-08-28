@@ -17,7 +17,6 @@ import {
   CreditCard,
   FileCheck,
   ChevronRight,
-  Command,
 } from 'lucide-react';
 
 interface SearchOption {
@@ -136,12 +135,8 @@ export const AdminHeaderSearchAutocomplete: React.FC = () => {
           }}
           onKeyDown={handleKeyDownInput}
           placeholder="Tìm nhanh menu, list..."
-          className="w-full h-8 pl-9 pr-8 text-xs bg-slate-100 dark:bg-slate-800/80 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 border border-transparent focus:border-blue-500 rounded-lg outline-none transition-all"
+          className="w-full h-8 pl-9 pr-3 text-xs bg-slate-100 dark:bg-slate-800/80 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 border border-transparent focus:border-blue-500 rounded-lg outline-none transition-all"
         />
-        <div className="absolute right-2 hidden sm:flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium text-slate-400 bg-slate-200/60 dark:bg-slate-700/60 rounded border border-slate-300/40 dark:border-slate-600/40 pointer-events-none">
-          <Command size={10} />
-          <span>K</span>
-        </div>
       </div>
 
       {isOpen && (
