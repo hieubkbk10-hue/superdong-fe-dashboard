@@ -470,8 +470,19 @@ function TripsPage() {
   }, [schedules, scheduleFilter]);
 
   const scheduleDisplayName = useMemo(() => {
-    if (!activeSchedule) return scheduleFilter ? `Lịch chạy #${scheduleFilter}` : '';
-    const code = activeSchedule.cleanCode || activeSchedule.code || `Lịch #${scheduleFilter}`;
+    if (!activeSchedule) {
+      const cached = localStorage.getItem(`superdong_schedule_cache_${scheduleFilter}`);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          const code = parsed.cleanCode || parsed.code || `Lịch #${scheduleFilter.slice(0, 6)}`;
+          const name = parsed.name || parsed.journeyName || '';
+          return name ? `${code} – ${name}` : code;
+        } catch {}
+      }
+      return scheduleFilter ? `Lịch #${scheduleFilter.slice(0, 6)}` : '';
+    }
+    const code = activeSchedule.cleanCode || activeSchedule.code || `Lịch #${scheduleFilter.slice(0, 6)}`;
     const name = activeSchedule.name || activeSchedule.journey?.name || '';
     return name ? `${code} – ${name}` : code;
   }, [activeSchedule, scheduleFilter]);
@@ -855,17 +866,27 @@ function TripsPage() {
         banner={
           <div className="space-y-2.5">
             {(scheduleFilter || monthFilter) && (
-              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 px-3.5 bg-blue-50/90 dark:bg-blue-950/50 rounded-xl border border-blue-200/80 dark:border-blue-800 text-xs text-blue-900 dark:text-blue-200 shadow-2xs">
-                <div className="flex items-center gap-2 font-medium">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 p-3 px-4 bg-blue-50/90 dark:bg-blue-950/50 rounded-xl border border-blue-200/80 dark:border-blue-800 text-xs text-blue-950 dark:text-blue-200 shadow-2xs">
+                <div className="flex items-center gap-2 font-medium flex-wrap">
                   <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse shrink-0" />
                   <span>
                     Đang xem danh sách chuyến của{' '}
-                    {scheduleFilter && <strong className="font-bold underline">{scheduleDisplayName}</strong>}
-                    {scheduleFilter && monthFilter && ' trong '}
-                    {monthFilter && <strong className="font-bold">Tháng {monthFilter}</strong>}
-                    {' '}(Tìm thấy <strong className="font-extrabold text-blue-700 dark:text-blue-300">{filteredTrips.length}</strong> chuyến khớp)
+                    {scheduleFilter && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700 whitespace-nowrap">
+                        {scheduleDisplayName}
+                      </span>
+                    )}
+                    {monthFilter && (
+                      <span className="inline-flex items-center ml-1 px-2 py-0.5 rounded-md font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 whitespace-nowrap">
+                        Tháng {monthFilter}
+                      </span>
+                    )}
+                    <span className="ml-1.5 text-slate-500 dark:text-slate-400 font-semibold">
+                      (Tìm thấy <strong className="font-extrabold text-blue-600 dark:text-blue-400">{filteredTrips.length}</strong> chuyến khớp)
+                    </span>
                   </span>
                 </div>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -878,7 +899,7 @@ function TripsPage() {
                       },
                     });
                   }}
-                  className="text-blue-700 hover:text-blue-900 dark:text-blue-300 font-bold hover:underline cursor-pointer flex items-center gap-1 text-[11px]"
+                  className="shrink-0 self-end sm:self-center px-2.5 py-1 rounded-lg text-blue-700 hover:text-blue-900 dark:text-blue-300 hover:bg-blue-100/70 dark:hover:bg-blue-900/40 font-bold cursor-pointer flex items-center gap-1 text-[11px] transition-colors border border-blue-200/60 dark:border-blue-800/60 whitespace-nowrap"
                 >
                   <X size={13} /> Xem tất cả chuyến tàu
                 </button>

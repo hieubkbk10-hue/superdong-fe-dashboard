@@ -585,6 +585,49 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({
   onColumnReset,
   children,
 }) => {
+  const hasExtraFilters = Boolean(children);
+
+  if (hasExtraFilters) {
+    return (
+      <div className="rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 p-3 shadow-xs space-y-2.5">
+        {/* Top Row: Search & Column Customizer */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          <SearchInput
+            value={searchValue}
+            onChange={onSearchChange}
+            placeholder={searchPlaceholder}
+            wrapperClassName="w-full sm:max-w-md flex-1"
+          />
+
+          {columns && visibleColumns && onColumnToggle && (
+            <div className="shrink-0 self-end sm:self-center">
+              <ColumnToggleDropdown
+                columns={columns}
+                visibleColumns={visibleColumns}
+                onChange={onColumnToggle}
+                onReset={onColumnReset}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Row: Unified Filter Row */}
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/60">
+          {children}
+
+          {filterOptions && onFilterChange && (
+            <FilterSelect
+              value={filterValue || 'all'}
+              onChange={onFilterChange}
+              options={filterOptions}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Single-line toolbar for simple tables (Users, Coupons, etc.)
   return (
     <div className="rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 p-3 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 sm:gap-3">
       {/* Left side: Search input */}
@@ -597,8 +640,6 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({
 
       {/* Right side: Filters & Column Toggle */}
       <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-start md:justify-end">
-        {children}
-
         {filterOptions && onFilterChange && (
           <FilterSelect
             value={filterValue || 'all'}
