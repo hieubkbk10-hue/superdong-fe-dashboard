@@ -130,19 +130,19 @@ export const Sidebar: React.FC = () => {
 
   return (
     <>
-      {/* Mobile Drawer Backdrop */}
+      {/* Mobile & Tablet Drawer Backdrop */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-slate-950/60 z-40 lg:hidden backdrop-blur-xs transition-opacity"
+          className="fixed inset-0 bg-slate-950/60 z-40 xl:hidden backdrop-blur-xs transition-opacity"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 h-screen bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-slate-800 dark:text-slate-100 border-r border-slate-200/80 dark:border-slate-800/80 z-50 transition-all duration-300 ease-in-out flex flex-col shadow-xs lg:shadow-none ${
-          isSidebarCollapsed ? 'lg:w-[76px]' : 'lg:w-[260px]'
-        } ${mobileMenuOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full lg:translate-x-0'}`}
+        className={`fixed xl:sticky top-0 left-0 h-screen bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-slate-800 dark:text-slate-100 border-r border-slate-200/80 dark:border-slate-800/80 z-50 transition-all duration-300 ease-in-out flex flex-col shadow-xs xl:shadow-none ${
+          isSidebarCollapsed ? 'xl:w-[76px]' : 'xl:w-[260px]'
+        } ${mobileMenuOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full xl:translate-x-0'}`}
       >
         {/* Brand Header Bar (Mobile + Desktop) */}
         <div className="flex items-center justify-between h-[58px] px-4 border-b border-slate-200/80 dark:border-slate-800/80 shrink-0">
@@ -166,11 +166,11 @@ export const Sidebar: React.FC = () => {
             </div>
           </Link>
 
-          {/* Close button on mobile */}
+          {/* Close button on mobile & tablet */}
           <button
             type="button"
             onClick={() => setMobileMenuOpen(false)}
-            className="lg:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="xl:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
           >
             <X size={18} />
           </button>

@@ -454,19 +454,19 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   onCreateClick,
   actions,
 }) => (
-  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-1">
-    <div>
-      <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
-        {Icon && <Icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />}
-        {title}
+  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 pb-1">
+    <div className="min-w-0 flex-1">
+      <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5 truncate">
+        {Icon && <Icon className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0" />}
+        <span className="truncate">{title}</span>
       </h1>
       {subtitle && (
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-normal leading-relaxed">{subtitle}</p>
       )}
     </div>
 
     {/* Top-Right Header Actions */}
-    <div className="flex items-center gap-2 shrink-0">
+    <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto justify-start sm:justify-end">
       {actions}
 
       {onRefresh && (
@@ -541,16 +541,17 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({
   children,
 }) => {
   return (
-    <div className="rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 p-3 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+    <div className="rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 p-3 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 sm:gap-3">
       {/* Left side: Search input */}
       <SearchInput
         value={searchValue}
         onChange={onSearchChange}
         placeholder={searchPlaceholder}
+        wrapperClassName="w-full md:w-72 lg:w-80 shrink-0"
       />
 
       {/* Right side: Filters & Column Toggle */}
-      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+      <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-start md:justify-end">
         {children}
 
         {filterOptions && onFilterChange && (

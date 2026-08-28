@@ -97,7 +97,7 @@ export const Header: React.FC = () => {
       <div className="flex items-center gap-3 min-w-0">
         <button
           type="button"
-          className="lg:hidden p-1.5 -ml-1.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer transition-colors"
+          className="xl:hidden p-1.5 -ml-1.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer transition-colors"
           onClick={() => setMobileMenuOpen(true)}
           title="Mở Menu"
         >

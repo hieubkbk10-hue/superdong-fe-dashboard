@@ -42,11 +42,11 @@ export const AdminFormHeader: React.FC<AdminFormHeaderProps> = ({
   return (
     <div
       className={cn(
-        'flex items-center justify-between pb-3.5 border-b border-slate-200/80 dark:border-slate-800/80',
+        'flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-200/80 dark:border-slate-800/80',
         className
       )}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
         {backTo ? (
           <Button
             variant="light"
@@ -71,18 +71,18 @@ export const AdminFormHeader: React.FC<AdminFormHeaderProps> = ({
           </Button>
         ) : null}
 
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5 truncate">
             {Icon && <Icon className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0" />}
-            <span>{title}</span>
+            <span className="truncate">{title}</span>
           </h1>
           {subtitle && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-normal">{subtitle}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-normal truncate">{subtitle}</p>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end shrink-0">
         {onClear && (
           <Button
             type="button"
@@ -406,7 +406,7 @@ export const AdminFormActionBar: React.FC<AdminFormActionBarProps> = ({
   return (
     <div
       className={cn(
-        'pt-4 border-t border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-3',
+        'pt-4 border-t border-slate-200/80 dark:border-slate-800/80 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3',
         className
       )}
     >
@@ -415,22 +415,22 @@ export const AdminFormActionBar: React.FC<AdminFormActionBarProps> = ({
           type="button"
           variant="light"
           onClick={onClear}
-          className="text-slate-600 hover:text-rose-600 hover:border-rose-200 dark:hover:border-rose-900 gap-1.5 text-xs h-9 px-3 rounded-lg"
+          className="w-full sm:w-auto text-slate-600 hover:text-rose-600 hover:border-rose-200 dark:hover:border-rose-900 gap-1.5 text-xs h-9 px-3 rounded-lg"
         >
           <RotateCcw size={13} /> {clearLabel}
         </Button>
       ) : (
-        <div />
+        <div className="hidden sm:block" />
       )}
 
-      <div className="ml-auto flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full sm:w-auto justify-end">
         {extraActions}
 
         {cancelTo ? (
           <Button
             type="button"
             variant="outline"
-            className="h-9 px-4 rounded-lg text-xs border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
+            className="flex-1 sm:flex-none h-9 px-4 rounded-lg text-xs border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
             asChild
           >
             <Link to={cancelTo as any}>{cancelLabel}</Link>
@@ -440,7 +440,7 @@ export const AdminFormActionBar: React.FC<AdminFormActionBarProps> = ({
             type="button"
             variant="outline"
             onClick={onCancel}
-            className="h-9 px-4 rounded-lg text-xs border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
+            className="flex-1 sm:flex-none h-9 px-4 rounded-lg text-xs border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
           >
             {cancelLabel}
           </Button>
@@ -450,7 +450,7 @@ export const AdminFormActionBar: React.FC<AdminFormActionBarProps> = ({
           <button
             type="button"
             disabled
-            className="h-9 px-4 rounded-lg bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 font-medium text-xs border border-slate-200 dark:border-slate-800 cursor-not-allowed select-none transition-all shadow-none"
+            className="flex-1 sm:flex-none h-9 px-4 rounded-lg bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 font-medium text-xs border border-slate-200 dark:border-slate-800 cursor-not-allowed select-none transition-all shadow-none text-center"
             title="Form chưa có thay đổi nào để cập nhật"
           >
             {savedLabel}
@@ -459,7 +459,7 @@ export const AdminFormActionBar: React.FC<AdminFormActionBarProps> = ({
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="h-9 px-4 rounded-lg gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition-all"
+            className="flex-1 sm:flex-none h-9 px-4 rounded-lg gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition-all"
           >
             {isSubmitting ? (
               <>

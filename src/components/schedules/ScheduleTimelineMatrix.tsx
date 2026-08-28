@@ -437,12 +437,12 @@ export function ScheduleTimelineMatrix({
       </div>
 
       {/* 3. QUICK HUB FILTERS */}
-      <div className="flex items-center justify-between gap-2 bg-white dark:bg-slate-900 px-3 py-2 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs text-xs">
-        <div className="flex items-center gap-1 overflow-x-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white dark:bg-slate-900 px-3 py-2 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs text-xs">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none w-full sm:w-auto">
           <button
             type="button"
             onClick={() => setSelectedHub('all')}
-            className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer shrink-0 ${
               selectedHub === 'all'
                 ? 'bg-blue-600 text-white shadow-xs'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
@@ -451,35 +451,38 @@ export function ScheduleTimelineMatrix({
             Tất cả ({schedules.length})
           </button>
 
-          {hubOptions.map(({ hub, count }) => (
-            <button
-              key={hub}
-              type="button"
-              onClick={() => setSelectedHub(hub)}
-              className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
-                selectedHub === hub
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-              }`}
-            >
-              {hub} ({count})
-            </button>
-          ))}
+          {hubOptions.map(({ hub, count }) => {
+            const isSelected = selectedHub === hub;
+            return (
+              <button
+                key={hub}
+                type="button"
+                onClick={() => setSelectedHub(hub)}
+                className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer shrink-0 ${
+                  isSelected
+                    ? 'bg-blue-600 text-white font-bold shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                }`}
+              >
+                {hub} ({count})
+              </button>
+            );
+          })}
         </div>
 
-        <span className="text-slate-400 text-[11px] shrink-0 font-medium">
-          {filteredSchedules.length} lịch
+        <span className="text-slate-400 text-[11px] shrink-0 font-medium text-right sm:text-left">
+          {filteredSchedules.length} lịch chạy
         </span>
       </div>
 
       {/* 4. MAIN MATRIX TABLE */}
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="w-full text-left border-collapse text-xs min-w-[700px]">
             <thead>
               <tr className="bg-slate-50/90 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
-                <th className="py-2.5 px-3 w-[260px]">Tuyến & Giờ chạy</th>
-                <th className="py-2.5 px-3 w-[150px]">Phân công tàu</th>
+                <th className="py-2.5 px-3 min-w-[220px] sticky left-0 bg-slate-50 dark:bg-slate-800 z-10 border-r border-slate-200/60 dark:border-slate-700/60">Tuyến & Giờ chạy</th>
+                <th className="py-2.5 px-3 min-w-[140px]">Phân công tàu</th>
                 {monthWindow.map((month) => (
                   <th
                     key={month.key}
@@ -498,7 +501,7 @@ export function ScheduleTimelineMatrix({
                 <React.Fragment key={journeyName}>
                   {/* Journey Group Header Row */}
                   <tr className="bg-slate-50/80 dark:bg-slate-800/40 font-bold text-slate-800 dark:text-slate-200 border-t border-b border-slate-200/50 dark:border-slate-700/50">
-                    <td colSpan={2 + monthWindow.length} className="py-1.5 px-3 text-xs">
+                    <td colSpan={2 + monthWindow.length} className="py-1.5 px-3 text-xs sticky left-0 z-10 bg-slate-50 dark:bg-slate-800">
                       {journeyName} <span className="text-slate-400 font-normal">({journeySchedules.length})</span>
                     </td>
                   </tr>
@@ -510,10 +513,10 @@ export function ScheduleTimelineMatrix({
                     return (
                       <tr
                         key={sch.id}
-                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
+                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group"
                       >
-                        {/* Schedule Info */}
-                        <td className="py-2.5 px-3">
+                        {/* Schedule Info (Sticky Left) */}
+                        <td className="py-2.5 px-3 sticky left-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 z-10 border-r border-slate-200/60 dark:border-slate-800/60 transition-colors">
                           <div className="flex items-center gap-2">
                             <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
                               {sch.code}
@@ -522,7 +525,7 @@ export function ScheduleTimelineMatrix({
                               <Clock size={11} className="text-slate-400" />
                               {sch.departureTime}
                             </span>
-                            <span className="text-slate-400 truncate text-[11px]">
+                            <span className="text-slate-400 truncate text-[11px] hidden sm:inline">
                               {sch.operatingDays}
                             </span>
                           </div>

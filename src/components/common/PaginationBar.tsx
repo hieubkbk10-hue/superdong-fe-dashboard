@@ -122,32 +122,40 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
           <ChevronLeft size={15} />
         </Button>
 
-        {paginationItems.map((item, idx) => {
-          if (typeof item === 'string') {
+        {/* Mobile Compact Page Indicator */}
+        <div className="sm:hidden px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 rounded-md">
+          {currentPage} / {totalPages}
+        </div>
+
+        {/* Desktop Page Numbers */}
+        <div className="hidden sm:flex items-center gap-1">
+          {paginationItems.map((item, idx) => {
+            if (typeof item === 'string') {
+              return (
+                <span key={`ellipsis-${idx}`} className="px-1.5 text-slate-400 select-none text-xs">
+                  ...
+                </span>
+              );
+            }
+            const isCurrent = item === currentPage;
             return (
-              <span key={`ellipsis-${idx}`} className="px-1.5 text-slate-400 select-none text-xs">
-                ...
-              </span>
+              <Button
+                key={item}
+                variant={isCurrent ? 'default' : 'outline'}
+                size="sm"
+                className={cn(
+                  'h-8 min-w-[32px] px-2 rounded-md text-xs font-semibold transition-all',
+                  isCurrent
+                    ? 'bg-blue-600 text-white dark:bg-blue-600 dark:text-white shadow-xs font-bold'
+                    : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                )}
+                onClick={() => onPageChange(item)}
+              >
+                {item}
+              </Button>
             );
-          }
-          const isCurrent = item === currentPage;
-          return (
-            <Button
-              key={item}
-              variant={isCurrent ? 'default' : 'outline'}
-              size="sm"
-              className={cn(
-                'h-8 min-w-[32px] px-2 rounded-md text-xs font-semibold transition-all',
-                isCurrent
-                  ? 'bg-blue-600 text-white dark:bg-blue-600 dark:text-white shadow-xs font-bold'
-                  : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-              )}
-              onClick={() => onPageChange(item)}
-            >
-              {item}
-            </Button>
-          );
-        })}
+          })}
+        </div>
 
         <Button
           variant="outline"
