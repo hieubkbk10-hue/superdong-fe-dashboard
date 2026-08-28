@@ -52,6 +52,14 @@ function formatYMD(date: Date): string {
 
 function formatTimeOnly(isoStr?: string): string {
   if (!isoStr) return '--:--';
+  if (typeof isoStr === 'string') {
+    const match = isoStr.match(/T(\d{2}:\d{2})/);
+    if (match) return match[1];
+    if (isoStr.includes(' ')) {
+      const parts = isoStr.split(' ');
+      if (parts[1]) return parts[1].slice(0, 5);
+    }
+  }
   try {
     const d = new Date(isoStr);
     if (!Number.isNaN(d.getTime())) {
@@ -65,6 +73,15 @@ function formatTimeOnly(isoStr?: string): string {
 
 function formatDateDisplay(dateStr: string): string {
   try {
+    if (typeof dateStr === 'string') {
+      const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) {
+        const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+        const days = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+        const dayName = days[d.getDay()];
+        return `${dayName}, ${m[3]}/${m[2]}/${m[1]}`;
+      }
+    }
     const d = new Date(dateStr);
     if (Number.isNaN(d.getTime())) return dateStr;
     const days = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
@@ -284,14 +301,19 @@ function DashboardOverview() {
       let tripTimestamp = 0;
 
       if (startStr) {
+        if (typeof startStr === 'string') {
+          const dateMatch = startStr.match(/^(\d{4}-\d{2}-\d{2})/);
+          if (dateMatch) {
+            datePart = dateMatch[1];
+          }
+          timePart = formatTimeOnly(startStr);
+        }
         const d = new Date(startStr);
         if (!Number.isNaN(d.getTime())) {
-          datePart = formatYMD(d);
-          timePart = formatTimeOnly(startStr);
+          if (!datePart) datePart = formatYMD(d);
           tripTimestamp = d.getTime();
-        } else {
-          datePart = startStr.slice(0, 10);
-          timePart = startStr.slice(11, 16) || '--:--';
+        } else if (datePart) {
+          tripTimestamp = new Date(`${datePart}T${timePart}:00`).getTime() || 0;
         }
       }
 

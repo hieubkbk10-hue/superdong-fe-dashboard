@@ -1,16 +1,9 @@
-import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
-import { useFormDirty } from '@/components/common/FormUtilities';
 import React, { useState, useEffect } from 'react';
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import {
   Ship,
-  ArrowLeft,
-  Save,
-  RefreshCw,
-  Clock,
-  Calendar,
+  Loader2,
   AlertTriangle,
-  CheckCircle2,
   Lock,
   Unlock,
   Play,
@@ -32,6 +25,16 @@ import { getBoats } from '@/apis/boats';
 import { getRoutes } from '@/apis/journeys';
 import { Boat, Route as JourneyRoute, Trip, TripStatus } from '@/types';
 import { Button } from '@/components/common/Button';
+import {
+  AdminFormHeader,
+  AdminFormCard,
+  FormSectionBlock,
+  FormField,
+  FormInputField,
+  FormSelectField,
+  UnsavedChangesBar,
+  useFormDirty,
+} from '@/components/common/FormUtilities';
 
 export const Route = createFileRoute('/_admin/trips/$tripId/edit')({
   component: TripEditPage,
@@ -82,7 +85,7 @@ const STATUS_LABELS: Record<string, { label: string; badgeClass: string }> = {
 
 function TripEditPage() {
   const { tripId } = Route.useParams();
-  const cacheKey = `superdong_trip_cache_${tripId}`;
+  const navigate = useNavigate();
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [boats, setBoats] = useState<Boat[]>([]);
@@ -129,7 +132,6 @@ function TripEditPage() {
 
       setInitialData(serverForm);
       setFormData(serverForm);
-      localStorage.setItem(cacheKey, JSON.stringify({ id: String(tripId), ...serverForm }));
     } catch (err: any) {
       console.error('Fetch trip error:', err);
       const msg = err?.response?.data?.message || err?.message || 'Không thể tải thông tin chuyến tàu';
@@ -148,8 +150,15 @@ function TripEditPage() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSaveDisruption = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleReset = () => {
+    if (initialData) {
+      setFormData(initialData);
+      toast.info('Đã khôi phục dữ liệu ban đầu');
+    }
+  };
+
+  const handleSaveDisruption = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!trip || isSubmitting) return;
 
     if (!formData.departureDate || !formData.departureTime || !formData.arrivalDate || !formData.arrivalTime) {
@@ -241,246 +250,198 @@ function TripEditPage() {
   const statusInfo = STATUS_LABELS[currentStatus] || STATUS_LABELS.draft;
   const tripDisplayCode = `TRIP-${String(tripId).slice(0, 6).toUpperCase()}`;
 
-  
+  if (loading) {
+    return (
+      <div className="h-96 w-full flex flex-col items-center justify-center gap-3">
+        <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+        <span className="text-xs font-medium text-slate-500">Đang tải thông tin chuyến tàu...</span>
+      </div>
+    );
+  }
+
+  if (apiError && !trip) {
+    return (
+      <div className="p-8 text-center space-y-4">
+        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400 rounded-2xl text-xs font-medium">
+          {apiError}
+        </div>
+        <Button variant="outline" onClick={() => navigate({ to: '/trips' as any })}>
+          Quay lại danh sách Chuyến tàu
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 w-full font-sans">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Link
-            to={'/trips' as any}
-            className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-            title="Quay lại danh sách chuyến"
-          >
-            <ArrowLeft size={18} />
-          </Link>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Ship className="h-6 w-6 text-blue-600" />
-                Chỉnh Sửa & Điều Hành Chuyến Tàu
-              </h1>
-              <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${statusInfo.badgeClass}`}>
-                {statusInfo.label}
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Cập nhật thông tin vận hành, điều động đổi tàu và điều chỉnh giờ khởi hành.
-            </p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={hydrateTrip}
-          disabled={loading}
-          className="h-9 w-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center cursor-pointer disabled:opacity-60"
-          title="Làm mới dữ liệu"
-        >
-          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-        </button>
-      </div>
-
-      {apiError && !loading ? (
-        <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-700 dark:text-rose-300 font-medium flex items-start gap-2.5">
-          <AlertTriangle size={18} className="shrink-0 text-rose-500" />
-          <span>Không tải được thông tin chuyến tàu. {apiError}</span>
-        </div>
-      ) : (
-        <>
-          <form
-            onSubmit={handleSaveDisruption}
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs overflow-hidden"
-          >
-          {/* Section I */}
-          <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-b border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide flex items-center justify-between">
-            <span>I. Thông tin chuyến tàu & Phân công tàu</span>
-            <span className="text-xs font-mono font-normal text-slate-500 lowercase">
-              Mã: {tripDisplayCode}
+    <div className="space-y-4 w-full font-sans pb-20 text-slate-800 dark:text-slate-200">
+      {/* Top Header Navigation Bar */}
+      <AdminFormHeader
+        icon={Ship}
+        title={
+          <>
+            Chỉnh Sửa Chuyến:{' '}
+            <span className="text-blue-600 dark:text-blue-400 font-bold">
+              {tripDisplayCode}
             </span>
-          </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Tuyến hải trình (Cố định)
-              </label>
+          </>
+        }
+        subtitle="Cập nhật thông tin vận hành, điều động đổi tàu và điều chỉnh giờ khởi hành"
+        backTo="/trips"
+        badge={
+          <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${statusInfo.badgeClass}`}>
+            {statusInfo.label}
+          </span>
+        }
+      />
+
+      {/* Main Single Card Form */}
+      <AdminFormCard onSubmit={handleSaveDisruption}>
+        {/* Section I: Tuyến & Phân công tàu */}
+        <FormSectionBlock title="I. Thông tin chuyến tàu & Phân công tàu">
+          <FormInputField
+            id="trip-route-name"
+            label="Tuyến Hải Trình (Cố định)"
+            value={routeName}
+            disabled
+            className="cursor-not-allowed font-semibold opacity-75"
+          />
+
+          <FormSelectField
+            id="trip-boat-select"
+            label="Tàu Đảm Nhận Phục Vụ (Điều động đổi tàu)"
+            required
+            value={formData.selectedBoatId}
+            onChange={(e) => updateField('selectedBoatId', e.target.value)}
+          >
+            {boats.map((b) => (
+              <option key={b.id} value={String(b.id)}>
+                {b.name} {b.code ? `(${b.code})` : ''} — {b.total_capacity || 300} chỗ
+              </option>
+            ))}
+          </FormSelectField>
+        </FormSectionBlock>
+
+        {/* Section II: Lịch trình khởi hành & Cập bến */}
+        <FormSectionBlock title="II. Lịch trình khởi hành & Cập bến" columns={2}>
+          <FormField id="departure-datetime" label="Ngày & Giờ khởi hành xuất bến" required>
+            <div className="grid grid-cols-2 gap-2">
               <input
-                type="text"
-                value={routeName}
-                disabled
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 text-sm font-semibold cursor-not-allowed"
+                type="date"
+                value={formData.departureDate}
+                onChange={(e) => updateField('departureDate', e.target.value)}
+                className="w-full h-9 text-xs px-3 rounded-lg border bg-slate-50/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus:border-blue-600 outline-none font-mono"
+                required
+              />
+              <input
+                type="time"
+                value={formData.departureTime}
+                onChange={(e) => updateField('departureTime', e.target.value)}
+                className="w-full h-9 text-xs px-3 rounded-lg border bg-slate-50/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus:border-blue-600 outline-none font-mono"
+                required
               />
             </div>
+          </FormField>
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Tàu đảm nhận phục vụ (Điều động đổi tàu) <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Ship size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <select
-                  value={formData.selectedBoatId}
-                  onChange={(e) => updateField('selectedBoatId', e.target.value)}
-                  disabled={loading}
-                  className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none disabled:opacity-60"
-                >
-                  {boats.map((b) => (
-                    <option key={b.id} value={String(b.id)}>
-                      {b.name} {b.code ? `(${b.code})` : ''} — {b.total_capacity || 300} chỗ
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <FormField id="arrival-datetime" label="Ngày & Giờ cập bến dự kiến" required>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="date"
+                value={formData.arrivalDate}
+                onChange={(e) => updateField('arrivalDate', e.target.value)}
+                className="w-full h-9 text-xs px-3 rounded-lg border bg-slate-50/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus:border-blue-600 outline-none font-mono"
+                required
+              />
+              <input
+                type="time"
+                value={formData.arrivalTime}
+                onChange={(e) => updateField('arrivalTime', e.target.value)}
+                className="w-full h-9 text-xs px-3 rounded-lg border bg-slate-50/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus:border-blue-600 outline-none font-mono"
+                required
+              />
             </div>
+          </FormField>
+        </FormSectionBlock>
+
+        {/* Section III: Thao tác trạng thái vận hành */}
+        <FormSectionBlock title="III. Điều hành trạng thái vận hành" columns={1}>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {currentStatus !== 'selling' && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleStatusChange('open')}
+                disabled={isSubmitting}
+                className="text-xs border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 gap-1.5"
+              >
+                <Unlock size={14} /> Mở bán vé
+              </Button>
+            )}
+
+            {currentStatus === 'selling' && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleStatusChange('close')}
+                disabled={isSubmitting}
+                className="text-xs border-amber-500/30 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 gap-1.5"
+              >
+                <Lock size={14} /> Khóa bán vé
+              </Button>
+            )}
+
+            {currentStatus !== 'started' && currentStatus !== 'completed' && currentStatus !== 'cancelled' && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleStatusChange('depart')}
+                disabled={isSubmitting}
+                className="text-xs border-blue-500/30 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 gap-1.5"
+              >
+                <Play size={14} /> Xuất bến
+              </Button>
+            )}
+
+            {currentStatus === 'started' && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleStatusChange('complete')}
+                disabled={isSubmitting}
+                className="text-xs border-purple-500/30 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/40 gap-1.5"
+              >
+                <CheckCheck size={14} /> Cập bến hoàn tất
+              </Button>
+            )}
+
+            {currentStatus !== 'completed' && currentStatus !== 'cancelled' && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleStatusChange('cancel')}
+                disabled={isSubmitting}
+                className="text-xs border-rose-500/30 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 gap-1.5"
+              >
+                <Ban size={14} /> Hủy chuyến
+              </Button>
+            )}
           </div>
+        </FormSectionBlock>
+      </AdminFormCard>
 
-          {/* Section II */}
-          <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-y border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
-            II. Lịch trình khởi hành & Cập bến
-          </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Ngày & Giờ khởi hành xuất bến <span className="text-red-500">*</span>
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="date"
-                  value={formData.departureDate}
-                  onChange={(e) => updateField('departureDate', e.target.value)}
-                  className="h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-mono focus:border-blue-500 outline-none"
-                  required
-                />
-                <input
-                  type="time"
-                  value={formData.departureTime}
-                  onChange={(e) => updateField('departureTime', e.target.value)}
-                  className="h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-mono focus:border-blue-500 outline-none"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Ngày & Giờ cập bến dự kiến <span className="text-red-500">*</span>
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="date"
-                  value={formData.arrivalDate}
-                  onChange={(e) => updateField('arrivalDate', e.target.value)}
-                  className="h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-mono focus:border-blue-500 outline-none"
-                  required
-                />
-                <input
-                  type="time"
-                  value={formData.arrivalTime}
-                  onChange={(e) => updateField('arrivalTime', e.target.value)}
-                  className="h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-mono focus:border-blue-500 outline-none"
-                  required
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Section III */}
-          <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-y border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
-            III. Điều hành trạng thái vận hành
-          </div>
-          <div className="p-6">
-            <div className="flex flex-wrap items-center gap-2.5">
-              {currentStatus !== 'selling' && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleStatusChange('open')}
-                  disabled={isSubmitting}
-                  className="text-xs border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 gap-1.5"
-                >
-                  <Unlock size={14} /> Mở bán vé
-                </Button>
-              )}
-
-              {currentStatus === 'selling' && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleStatusChange('close')}
-                  disabled={isSubmitting}
-                  className="text-xs border-amber-500/30 text-amber-600 hover:bg-amber-50 gap-1.5"
-                >
-                  <Lock size={14} /> Khóa bán vé
-                </Button>
-              )}
-
-              {currentStatus !== 'started' && currentStatus !== 'completed' && currentStatus !== 'cancelled' && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleStatusChange('depart')}
-                  disabled={isSubmitting}
-                  className="text-xs border-blue-500/30 text-blue-600 hover:bg-blue-50 gap-1.5"
-                >
-                  <Play size={14} /> Xuất bến
-                </Button>
-              )}
-
-              {currentStatus === 'started' && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleStatusChange('complete')}
-                  disabled={isSubmitting}
-                  className="text-xs border-purple-500/30 text-purple-600 hover:bg-purple-50 gap-1.5"
-                >
-                  <CheckCheck size={14} /> Cập bến hoàn tất
-                </Button>
-              )}
-
-              {currentStatus !== 'completed' && currentStatus !== 'cancelled' && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleStatusChange('cancel')}
-                  disabled={isSubmitting}
-                  className="text-xs border-rose-500/30 text-rose-600 hover:bg-rose-50 gap-1.5"
-                >
-                  <Ban size={14} /> Hủy chuyến
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Form Action Bar */}
-          <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
-            <Link
-              to={'/trips' as any}
-              className="px-5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-            >
-              Hủy bỏ
-            </Link>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60"
-            >
-              <Save size={16} />
-              {isSubmitting ? 'Đang lưu...' : 'Lưu thay đổi'}
-            </button>
-          </div>
-        </form>
-
-        <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSaveDisruption({ preventDefault: () => {} } as any)} onReset={() => { if (initialData) setFormData(initialData); }} />
-      </>
-      )}
+      {/* Floating Action Bar for Unsaved Changes */}
+      <UnsavedChangesBar
+        isDirty={isDirty}
+        isSaving={isSubmitting}
+        onSave={handleSaveDisruption}
+        onReset={handleReset}
+      />
     </div>
   );
 }
+
 

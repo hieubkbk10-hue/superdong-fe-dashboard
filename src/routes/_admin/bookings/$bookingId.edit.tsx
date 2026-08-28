@@ -1,10 +1,19 @@
-import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
-import { useFormDirty } from '@/components/common/FormUtilities';
 import React, { useState, useEffect } from 'react';
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { ShoppingCart, ArrowLeft, Save, User, Ship, CreditCard, Tag } from 'lucide-react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import { findBooking, updateBooking } from '@/apis/bookings';
+import { Badge } from '@/components/common/Badge';
+import {
+  AdminFormHeader,
+  AdminFormCard,
+  FormSectionBlock,
+  FormField,
+  FormInputField,
+  FormSelectField,
+  UnsavedChangesBar,
+  useFormDirty,
+} from '@/components/common/FormUtilities';
 
 export const Route = createFileRoute('/_admin/bookings/$bookingId/edit')({
   component: BookingEditPage,
@@ -34,59 +43,47 @@ function BookingEditPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { isDirty } = useFormDirty(initialData, formData);
 
-  useEffect(() => {
-    let isMounted = true;
-    async function loadBooking() {
-      try {
-        const res = await findBooking(bookingId);
-        if (isMounted && res && res.data) {
-          const b = res.data;
-          const loadedData = {
-            booking_code: b.booking_code || 'BK-99201',
-            booker_name: b.booker?.name || '',
-            booker_phone: b.booker?.phone || '',
-            booker_email: b.booker?.email || '',
-            booker_id: b.booker?.id_card || '',
-            status: b.status || 'confirmed',
-            payment_status: b.payment_status || 'paid',
-            payment_method: 'vnpay',
-            coupon_code: b.coupon_code || '',
-            total_amount: b.total_amount || 0,
-            discount_amount: b.discount_amount || 0,
-            final_amount: b.final_amount || 0,
-            notes: 'Khách hàng đặt vé đi du lịch gia đình',
-          };
-          setInitialData(loadedData);
-          setFormData({
-            booking_code: b.booking_code || 'BK-99201',
-            booker_name: b.booker?.name || '',
-            booker_phone: b.booker?.phone || '',
-            booker_email: b.booker?.email || '',
-            booker_id: b.booker?.id_card || '',
-            status: b.status || 'confirmed',
-            payment_status: b.payment_status || 'paid',
-            payment_method: 'vnpay',
-            coupon_code: b.coupon_code || '',
-            total_amount: b.total_amount || 0,
-            discount_amount: b.discount_amount || 0,
-            final_amount: b.final_amount || 0,
-            notes: 'Khách hàng đặt vé đi du lịch gia đình',
-          });
-        }
-      } catch (err) {
-        console.warn('Booking not found in backend API, using initial state:', err);
+  const hydrateBooking = async () => {
+    try {
+      const res = await findBooking(bookingId);
+      if (res && res.data) {
+        const b = res.data;
+        const loadedData = {
+          booking_code: b.booking_code || 'BK-99201',
+          booker_name: b.booker?.name || '',
+          booker_phone: b.booker?.phone || '',
+          booker_email: b.booker?.email || '',
+          booker_id: b.booker?.id_card || '',
+          status: b.status || 'confirmed',
+          payment_status: b.payment_status || 'paid',
+          payment_method: 'vnpay',
+          coupon_code: b.coupon_code || '',
+          total_amount: b.total_amount || 0,
+          discount_amount: b.discount_amount || 0,
+          final_amount: b.final_amount || 0,
+          notes: 'Khách hàng đặt vé đi du lịch gia đình',
+        };
+        setInitialData(loadedData);
+        setFormData(loadedData);
       }
+    } catch (err) {
+      console.warn('Booking not found in backend API, using initial state:', err);
     }
-    loadBooking();
-    
+  };
 
-  return () => {
-      isMounted = false;
-    };
+  useEffect(() => {
+    hydrateBooking();
   }, [bookingId]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleReset = () => {
+    if (initialData) {
+      setFormData(initialData);
+      toast.info('Đã khôi phục dữ liệu ban đầu');
+    }
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setIsSubmitting(true);
     try {
       await updateBooking(bookingId, {
@@ -114,202 +111,160 @@ function BookingEditPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl font-sans pb-12">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link
-            to={'/bookings' as any}
-            className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-            title="Quay lại danh sách"
+    <div className="space-y-4 w-full font-sans pb-20 text-slate-800 dark:text-slate-200">
+      {/* Top Header Navigation Bar */}
+      <AdminFormHeader
+        icon={ShoppingCart}
+        title={
+          <>
+            Chỉnh Sửa Đơn Đặt Vé:{' '}
+            <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
+              {formData.booking_code}
+            </span>
+          </>
+        }
+        subtitle={
+          <>
+            Mã định danh hệ thống: <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">#{bookingId}</span>
+          </>
+        }
+        backTo="/bookings"
+        badge={
+          <Badge
+            variant={formData.status === 'confirmed' ? 'success' : formData.status === 'pending' ? 'blue' : 'danger'}
+            className="px-3 py-1 text-xs uppercase font-bold"
           >
-            <ArrowLeft size={18} />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <ShoppingCart className="h-6 w-6 text-blue-600" />
-              Chỉnh Sửa Đơn Đặt Vé: {formData.booking_code}
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              ID trong hệ thống: <span className="font-mono">{bookingId}</span>
-            </p>
-          </div>
-        </div>
-      </div>
+            {formData.status}
+          </Badge>
+        }
+      />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Main Form Box */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-6">
-          <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <User size={18} className="text-blue-600" />
-              Thông Tin Người Đại Diện Đặt Vé
-            </h2>
-          </div>
+      {/* Main Single Card Form */}
+      <AdminFormCard onSubmit={handleSubmit}>
+        {/* SECTION 1: THÔNG TIN NGƯỜI ĐẠI DIỆN */}
+        <FormSectionBlock title="I. Thông tin người đại diện đặt vé" columns={2}>
+          <FormInputField
+            id="booking-code"
+            label="Mã Đơn Vé"
+            required
+            value={formData.booking_code}
+            onChange={(e) => setFormData({ ...formData, booking_code: e.target.value })}
+            className="font-mono font-bold text-blue-600 dark:text-blue-400"
+            disabled
+          />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Mã Đơn Vé <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.booking_code}
-                onChange={(e) => setFormData({ ...formData, booking_code: e.target.value })}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-100 dark:bg-slate-800 text-blue-600 font-mono font-bold text-sm outline-none"
-                readOnly
-              />
-            </div>
+          <FormInputField
+            id="booker-name"
+            label="Họ và Tên Người Đặt"
+            required
+            value={formData.booker_name}
+            onChange={(e) => setFormData({ ...formData, booker_name: e.target.value })}
+          />
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Họ và Tên Người Đặt <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.booker_name}
-                onChange={(e) => setFormData({ ...formData, booker_name: e.target.value })}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-blue-500"
-                required
-              />
-            </div>
+          <FormInputField
+            id="booker-phone"
+            label="Số Điện Thoại Liên Hệ"
+            required
+            type="tel"
+            value={formData.booker_phone}
+            onChange={(e) => setFormData({ ...formData, booker_phone: e.target.value })}
+          />
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Số Điện Thoại <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.booker_phone}
-                onChange={(e) => setFormData({ ...formData, booker_phone: e.target.value })}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-blue-500"
-                required
-              />
-            </div>
+          <FormInputField
+            id="booker-email"
+            label="Email Liên Hệ"
+            type="email"
+            value={formData.booker_email}
+            onChange={(e) => setFormData({ ...formData, booker_email: e.target.value })}
+          />
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Email Liên Hệ
-              </label>
-              <input
-                type="email"
-                value={formData.booker_email}
-                onChange={(e) => setFormData({ ...formData, booker_email: e.target.value })}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-blue-500"
-              />
-            </div>
+          <FormInputField
+            id="booker-id"
+            label="Số CMND / CCCD"
+            value={formData.booker_id}
+            onChange={(e) => setFormData({ ...formData, booker_id: e.target.value })}
+            className="font-mono"
+          />
+        </FormSectionBlock>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Số CMND / CCCD
-              </label>
-              <input
-                type="text"
-                value={formData.booker_id}
-                onChange={(e) => setFormData({ ...formData, booker_id: e.target.value })}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-sm outline-none"
-              />
-            </div>
+        {/* SECTION 2: TRẠNG THÁI & THANH TOÁN */}
+        <FormSectionBlock title="II. Trạng thái & Hình thức thanh toán" columns={3}>
+          <FormSelectField
+            id="booking-status"
+            label="Trạng Thái Đơn Vé"
+            value={formData.status}
+            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            options={[
+              { value: 'confirmed', label: 'Xác nhận (Confirmed)' },
+              { value: 'pending', label: 'Chờ xử lý (Pending)' },
+              { value: 'cancelled', label: 'Đã hủy (Cancelled)' },
+            ]}
+          />
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Trạng Thái Đơn Vé
-              </label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-semibold outline-none cursor-pointer"
-              >
-                <option value="confirmed">Xác nhận (Confirmed)</option>
-                <option value="pending">Chờ xử lý (Pending)</option>
-                <option value="cancelled">Đã hủy (Cancelled)</option>
-              </select>
-            </div>
+          <FormSelectField
+            id="booking-payment-status"
+            label="Trạng Thái Thanh Toán"
+            value={formData.payment_status}
+            onChange={(e) => setFormData({ ...formData, payment_status: e.target.value })}
+            options={[
+              { value: 'paid', label: 'Đã thanh toán (Paid)' },
+              { value: 'unpaid', label: 'Chưa thanh toán (Unpaid)' },
+              { value: 'refunded', label: 'Đã hoàn tiền (Refunded)' },
+            ]}
+          />
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Trạng Thái Thanh Toán
-              </label>
-              <select
-                value={formData.payment_status}
-                onChange={(e) => setFormData({ ...formData, payment_status: e.target.value })}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm font-bold outline-none cursor-pointer"
-              >
-                <option value="paid">Đã thanh toán (Paid)</option>
-                <option value="unpaid">Chưa thanh toán (Unpaid)</option>
-                <option value="refunded">Đã hoàn tiền (Refunded)</option>
-              </select>
-            </div>
+          <FormSelectField
+            id="booking-payment-method"
+            label="Phương Thức Thanh Toán"
+            value={formData.payment_method}
+            onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
+            options={[
+              { value: 'vnpay', label: 'VNPAY Online' },
+              { value: 'cash', label: 'Tiền mặt tại quầy' },
+              { value: 'office_bank_transfer', label: 'Chuyển khoản Ngân hàng' },
+              { value: 'momo', label: 'Ví MoMo' },
+            ]}
+          />
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Phương Thức Thanh Toán
-              </label>
-              <select
-                value={formData.payment_method}
-                onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none cursor-pointer"
-              >
-                <option value="vnpay">VNPAY Online</option>
-                <option value="cash">Tiền mặt tại quầy</option>
-                <option value="office_bank_transfer">Chuyển khoản Ngân hàng</option>
-                <option value="momo">Ví MoMo</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Ghi Chú Đơn Hàng
-              </label>
+          <div className="md:col-span-2">
+            <FormField id="booking-notes" label="Ghi Chú Đơn Hàng">
               <textarea
+                id="booking-notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3}
-                className="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm outline-none focus:border-blue-500"
+                className="w-full p-3 text-xs border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 outline-none focus:border-blue-500"
               />
-            </div>
+            </FormField>
+          </div>
 
-            <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700 space-y-2">
-              <div className="flex justify-between text-xs text-slate-500">
-                <span>Tổng tiền vé:</span>
-                <span>{formatCurrency(formData.total_amount)}</span>
-              </div>
-              <div className="flex justify-between text-xs text-emerald-600">
-                <span>Giảm giá (Voucher):</span>
-                <span>-{formatCurrency(formData.discount_amount)}</span>
-              </div>
-              <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                <span className="font-bold text-slate-900 dark:text-white text-sm">Tổng thanh toán:</span>
-                <span className="text-xl font-extrabold text-blue-600 dark:text-blue-400">
-                  {formatCurrency(formData.final_amount)}
-                </span>
-              </div>
+          <div className="bg-slate-50 dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+            <div className="flex justify-between text-xs text-slate-500">
+              <span>Tổng tiền vé:</span>
+              <span className="font-semibold">{formatCurrency(formData.total_amount)}</span>
+            </div>
+            <div className="flex justify-between text-xs text-emerald-600">
+              <span>Giảm giá (Voucher):</span>
+              <span>-{formatCurrency(formData.discount_amount)}</span>
+            </div>
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center">
+              <span className="font-bold text-slate-900 dark:text-white text-sm">Tổng thanh toán:</span>
+              <span className="text-xl font-extrabold text-blue-600 dark:text-blue-400">
+                {formatCurrency(formData.final_amount)}
+              </span>
             </div>
           </div>
-        </div>
+        </FormSectionBlock>
+      </AdminFormCard>
 
-        {/* Action buttons */}
-        <div className="flex items-center justify-end gap-3">
-          <Link
-            to={'/bookings' as any}
-            className="px-5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-          >
-            Hủy Bỏ
-          </Link>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <Save size={16} />
-            {isSubmitting ? 'Đang lưu...' : 'Lưu Thay Đổi Đơn Vé'}
-          </button>
-        </div>
-      </form>
-
-      <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSubmit({ preventDefault: () => {} } as any)} onReset={() => { if (initialData) setFormData(initialData); }} />
+      {/* Floating Action Bar for Unsaved Changes */}
+      <UnsavedChangesBar
+        isDirty={isDirty}
+        isSaving={isSubmitting}
+        onSave={() => handleSubmit()}
+        onReset={handleReset}
+      />
     </div>
   );
 }
+

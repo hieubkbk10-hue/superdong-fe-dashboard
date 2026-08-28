@@ -11,10 +11,10 @@ import {
   FormField,
   FormInputField,
   FormSelectField,
+  AdminFormActionBar,
   useFormDirty,
   generateDynamicAuditReason,
 } from '@/components/common/FormUtilities';
-import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
 
 export const Route = createFileRoute('/_admin/seat-classes/create')({
   component: SeatClassCreatePage,
@@ -151,15 +151,16 @@ function SeatClassCreatePage() {
             ]}
           />
         </FormSectionBlock>
-      </AdminFormCard>
 
-      <UnsavedChangesBar
-        isDirty={isDirty}
-        isSaving={isSubmitting}
-        onSave={() => handleSubmit()}
-        onReset={handleReset}
-        message="Thông tin hạng ghế chưa được tạo mới"
-      />
+        <AdminFormActionBar
+          mode="create"
+          isSubmitting={isSubmitting}
+          cancelTo="/seat-classes"
+          submitLabel="Tạo mới hạng ghế"
+          onClear={handleReset}
+          clearLabel="Làm sạch"
+        />
+      </AdminFormCard>
     </div>
   );
 }

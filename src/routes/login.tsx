@@ -101,9 +101,11 @@ function LoginComponent() {
         <div className="hidden w-full max-w-md flex-col justify-between bg-slate-950 p-10 text-white md:flex">
           <div>
             <div className="flex items-center gap-3 mb-8">
-              <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                <Ship className="h-6 w-6 text-white" />
-              </div>
+              <img
+                src="/logo-1.svg"
+                alt="Superdong Logo"
+                className="h-10 w-auto object-contain"
+              />
               <span className="text-xl font-bold tracking-tight text-white">SUPERDONG</span>
             </div>
 
@@ -135,10 +137,12 @@ function LoginComponent() {
         {/* Right Side: Login Form (Newmoon-Admin Style) */}
         <div className="flex w-full flex-col justify-center p-6 md:p-12">
           {/* Mobile Logo */}
-          <div className="flex items-center gap-2 mb-6 md:hidden">
-            <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
-              <Ship className="h-5 w-5" />
-            </div>
+          <div className="flex items-center gap-2.5 mb-6 md:hidden">
+            <img
+              src="/logo-1.svg"
+              alt="Superdong Logo"
+              className="h-8 w-auto object-contain"
+            />
             <span className="text-lg font-bold text-slate-900 dark:text-white">SUPERDONG</span>
           </div>
 

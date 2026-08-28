@@ -11,9 +11,9 @@ import {
   AdminFormCard,
   FormSectionBlock,
   FormSelectField,
+  AdminFormActionBar,
   useFormDirty,
 } from '@/components/common/FormUtilities';
-import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
 
 export const Route = createFileRoute('/_admin/journeys/create')({
   component: JourneyCreatePage,
@@ -252,15 +252,16 @@ function JourneyCreatePage() {
             ]}
           />
         </FormSectionBlock>
-      </AdminFormCard>
 
-      <UnsavedChangesBar
-        isDirty={isDirty}
-        isSaving={isSubmitting}
-        onSave={() => handleSubmit()}
-        onReset={handleReset}
-        message="Thông tin hành trình chưa được tạo mới"
-      />
+        <AdminFormActionBar
+          mode="create"
+          isSubmitting={isSubmitting}
+          cancelTo="/journeys"
+          submitLabel="Tạo mới hành trình"
+          onClear={handleReset}
+          clearLabel="Làm sạch"
+        />
+      </AdminFormCard>
     </div>
   );
 }

@@ -10,7 +10,7 @@ function RootComponent() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <Outlet />
-      <Toaster position="top-right" richColors closeButton />
+      <Toaster position="top-right" richColors closeButton duration={3000} />
     </ThemeProvider>
   );
 }

@@ -9,9 +9,9 @@ import {
   FormSectionBlock,
   FormInputField,
   FormSelectField,
+  AdminFormActionBar,
   useFormDirty,
 } from '@/components/common/FormUtilities';
-import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
 
 export const Route = createFileRoute('/_admin/locations/create')({
   component: LocationCreatePage,
@@ -118,15 +118,16 @@ function LocationCreatePage() {
             ]}
           />
         </FormSectionBlock>
-      </AdminFormCard>
 
-      <UnsavedChangesBar
-        isDirty={isDirty}
-        isSaving={isSubmitting}
-        onSave={() => handleSubmit()}
-        onReset={handleReset}
-        message="Thông tin bến tàu chưa được tạo mới"
-      />
+        <AdminFormActionBar
+          mode="create"
+          isSubmitting={isSubmitting}
+          cancelTo="/locations"
+          submitLabel="Tạo mới bến tàu"
+          onClear={handleReset}
+          clearLabel="Làm sạch"
+        />
+      </AdminFormCard>
     </div>
   );
 }

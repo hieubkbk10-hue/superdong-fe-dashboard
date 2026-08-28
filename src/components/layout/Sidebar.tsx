@@ -146,10 +146,12 @@ export const Sidebar: React.FC = () => {
       >
         {/* Brand Header Bar (Mobile + Desktop) */}
         <div className="flex items-center justify-between h-[58px] px-4 border-b border-slate-200/80 dark:border-slate-800/80 shrink-0">
-          <Link to={"/" as any} className="flex items-center gap-3 group outline-none">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-blue-500/25 shrink-0 group-hover:scale-105 transition-transform">
-              <Anchor className="w-4 h-4" />
-            </div>
+          <Link to={"/" as any} className="flex items-center gap-2.5 group outline-none">
+            <img
+              src="/logo-1.svg"
+              alt="Superdong Logo"
+              className="h-8 w-auto object-contain shrink-0 group-hover:scale-105 transition-transform"
+            />
             <div
               className={`flex flex-col transition-all duration-300 ${
                 isSidebarCollapsed ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100'

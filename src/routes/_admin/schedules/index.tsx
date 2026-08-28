@@ -19,10 +19,11 @@ import { toast } from 'sonner';
 
 import { getSchedules, deleteSchedule, generateTripsFromSchedule, getTrips, getAllTrips } from '@/apis/trips';
 import { getBoats } from '@/apis/boats';
-import { Boat, Schedule } from '@/types';
+import { Boat, Schedule, Trip } from '@/types';
 import { Button } from '@/components/common/Button';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { AdminTablePage, ColumnDef } from '@/components/common/TableUtilities';
+import { AdminTablePage, ColumnDef, PageHeader } from '@/components/common/TableUtilities';
+import { ScheduleTimelineMatrix } from '@/components/schedules/ScheduleTimelineMatrix';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,7 @@ export interface SchedulesSearch {
   page?: number;
   search?: string;
   status?: string;
+  view?: 'matrix' | 'table';
 }
 
 export const Route = createFileRoute('/_admin/schedules/')({
@@ -46,6 +48,7 @@ export const Route = createFileRoute('/_admin/schedules/')({
     if (Number(search?.page) > 1) result.page = Number(search.page);
     if (typeof search?.search === 'string' && search.search.trim()) result.search = search.search.trim();
     if (typeof search?.status === 'string' && search.status !== 'all') result.status = search.status;
+    if (search?.view === 'table' || search?.view === 'matrix') result.view = search.view;
     return result;
   },
   component: SchedulesPage,
@@ -107,8 +110,11 @@ function SchedulesPage() {
   const currentPage = searchParams.page || 1;
   const searchTerm = searchParams.search || '';
   const statusFilter = searchParams.status || 'all';
+  const viewMode = searchParams.view || 'matrix';
 
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
+  const [rawSchedules, setRawSchedules] = useState<any[]>([]);
+  const [allTrips, setAllTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -127,11 +133,15 @@ function SchedulesPage() {
     setLoading(true);
     setApiError(null);
     try {
-      const [schedulesRes, boatsRes, allTrips] = await Promise.all([
+      const [schedulesRes, boatsRes, tripsList] = await Promise.all([
         getSchedules({ limit: 100 }),
         getBoats({ limit: 100 }),
         getAllTrips(),
       ]);
+
+      const raw = Array.isArray(schedulesRes?.data) ? schedulesRes.data : [];
+      setRawSchedules(raw);
+      setAllTrips(tripsList || []);
 
       const boatsMap = new Map<string, Boat>((boatsRes?.data || []).map((b: any) => [String(b.id), b]));
 
@@ -140,7 +150,7 @@ function SchedulesPage() {
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
       const activeTripsMap = new Map<string, number>();
 
-      allTrips.forEach((t: any) => {
+      (tripsList || []).forEach((t: any) => {
         if (!t.schedule_id) return;
         const schId = String(t.schedule_id);
         const startStr = t.start_at || t.departure_time;
@@ -160,8 +170,8 @@ function SchedulesPage() {
         }
       });
 
-      if (schedulesRes && schedulesRes.data && Array.isArray(schedulesRes.data)) {
-        const mapped: ScheduleItem[] = schedulesRes.data.map((s: any, idx: number) => {
+      if (raw.length > 0) {
+        const mapped: ScheduleItem[] = raw.map((s: any, idx: number) => {
           const daysArr = Array.isArray(s.days_of_week) ? s.days_of_week : [];
           const daysText = formatDaysOfWeek(daysArr);
           const journeyName = s.name || s.journey?.name || (s.route?.name ? s.route.name : 'Tuyến hải trình Superdong');
@@ -219,6 +229,20 @@ function SchedulesPage() {
   useEffect(() => {
     fetchSchedules();
   }, []);
+
+  const handleViewModeChange = (mode: 'matrix' | 'table') => {
+    navigate({
+      search: (prev: any) => {
+        const next = { ...prev };
+        if (mode === 'matrix') {
+          delete next.view;
+        } else {
+          next.view = mode;
+        }
+        return next;
+      },
+    });
+  };
 
   const handleSearchChange = (value: string) => {
     navigate({
@@ -305,6 +329,14 @@ function SchedulesPage() {
     setToDate(getFutureDateString(30));
     setPublishImmediate(true);
     setGenerateReason(`Khởi tạo chuyến tự động từ lịch ${sch.code}`);
+  };
+
+  const handleOpenGenerateForMonth = (sch: ScheduleItem, fromDateStr: string, toDateStr: string) => {
+    setGenerateTarget(sch);
+    setFromDate(fromDateStr);
+    setToDate(toDateStr);
+    setPublishImmediate(true);
+    setGenerateReason(`Khởi tạo chuyến định kỳ tháng từ ${fromDateStr} đến ${toDateStr} cho lịch ${sch.code}`);
   };
 
   const handleExecuteGenerateTrips = async () => {
@@ -477,33 +509,94 @@ function SchedulesPage() {
     },
   ];
 
+  const viewModeSwitcher = (
+    <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+      <div className="inline-flex rounded-lg bg-slate-100 dark:bg-slate-800 p-1 text-xs font-bold">
+        <button
+          type="button"
+          onClick={() => handleViewModeChange('matrix')}
+          className={`px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
+            viewMode === 'matrix'
+              ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+          }`}
+        >
+          <CalendarDays size={14} />
+          <span>Tiến độ tạo lịch theo tháng</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => handleViewModeChange('table')}
+          className={`px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
+            viewMode === 'table'
+              ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+          }`}
+        >
+          <Layers size={14} />
+          <span>Danh sách mẫu lịch</span>
+        </button>
+      </div>
+
+      <div className="text-xs text-slate-500 font-medium">
+        Tổng số: <strong className="text-slate-800 dark:text-slate-200">{schedules.length} lịch chạy</strong>
+      </div>
+    </div>
+  );
+
   return (
     <>
-      <AdminTablePage
-        title="Quản Lý Lịch Chạy Tàu"
-        subtitle="Thiết lập khung giờ xuất bến định kỳ, tần suất khai thác, sinh chuyến thực tế tự động và khởi tạo kho ghế"
-        icon={Calendar}
-        apiError={apiError}
-        searchValue={searchTerm}
-        onSearchChange={handleSearchChange}
-        searchPlaceholder="Tìm theo tuyến, mã lịch, tên tàu..."
-        filterValue={statusFilter}
-        onFilterChange={handleStatusFilterChange}
-        filterOptions={statusOptions}
-        columns={columns}
-        columnStorageKey="superdong_schedules_columns"
-        onRefresh={fetchSchedules}
-        refreshing={loading}
-        createLink="/schedules/create"
-        createLabel="Thêm Lịch Mới"
-        data={filteredSchedules}
-        loading={loading}
-        emptyText="Chưa có lịch chạy định kỳ nào phù hợp với bộ lọc."
-        keyExtractor={(sch) => String(sch.id)}
-        entityLabel="lịch chạy"
-        currentPage={currentPage}
-        onPageChange={handlePageChange}
-      />
+      {viewMode === 'matrix' ? (
+        <div className="space-y-4 font-sans">
+          <PageHeader
+            title="Quản Lý Lịch Chạy Tàu"
+            subtitle="Theo dõi tiến độ phủ lịch theo tháng và sinh chuyến tự động cho các tuyến tàu Superdong"
+            icon={Calendar}
+            apiError={apiError}
+            onRefresh={fetchSchedules}
+            refreshing={loading}
+            createLink="/schedules/create"
+            createLabel="Thêm Lịch Mới"
+          />
+
+          {viewModeSwitcher}
+
+          <ScheduleTimelineMatrix
+            schedules={schedules}
+            rawSchedules={rawSchedules}
+            allTrips={allTrips}
+            onGenerateForMonth={handleOpenGenerateForMonth}
+            onRefresh={fetchSchedules}
+          />
+        </div>
+      ) : (
+        <AdminTablePage
+          title="Quản Lý Lịch Chạy Tàu"
+          subtitle="Thiết lập khung giờ xuất bến định kỳ, tần suất khai thác, sinh chuyến thực tế tự động và khởi tạo kho ghế"
+          icon={Calendar}
+          apiError={apiError}
+          banner={viewModeSwitcher}
+          searchValue={searchTerm}
+          onSearchChange={handleSearchChange}
+          searchPlaceholder="Tìm theo tuyến, mã lịch, tên tàu..."
+          filterValue={statusFilter}
+          onFilterChange={handleStatusFilterChange}
+          filterOptions={statusOptions}
+          columns={columns}
+          columnStorageKey="superdong_schedules_columns"
+          onRefresh={fetchSchedules}
+          refreshing={loading}
+          createLink="/schedules/create"
+          createLabel="Thêm Lịch Mới"
+          data={filteredSchedules}
+          loading={loading}
+          emptyText="Chưa có lịch chạy định kỳ nào phù hợp với bộ lọc."
+          keyExtractor={(sch) => String(sch.id)}
+          entityLabel="lịch chạy"
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+        />
+      )}
 
       {/* Modal: Sinh chuyến hàng loạt từ Schedule (To, thoáng, tối giản, chuyên nghiệp) */}
       <Dialog open={!!generateTarget} onOpenChange={(open) => !open && setGenerateTarget(null)}>

@@ -13,6 +13,7 @@ import {
   FormSectionBlock,
   FormInputField,
   FormSelectField,
+  AdminFormActionBar,
   useFormDirty,
 } from '@/components/common/FormUtilities';
 import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
@@ -284,7 +285,7 @@ export function RouteForm({
         </FormSectionBlock>
 
         <div className="space-y-3.5">
-          <div className="bg-slate-100/70 dark:bg-slate-800/60 px-3.5 py-2 rounded-xl text-slate-800 dark:text-slate-200 font-bold text-xs uppercase tracking-wide border border-slate-200/60 dark:border-slate-800/80 flex items-center justify-between">
+          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800 flex items-center justify-between">
             <span>II. Thứ tự điểm dừng bến tàu ({formData.stops.length} điểm)</span>
           </div>
 
@@ -378,15 +379,27 @@ export function RouteForm({
             ]}
           />
         </FormSectionBlock>
+
+        {mode === 'create' && (
+          <AdminFormActionBar
+            mode="create"
+            isSubmitting={isSubmitting}
+            cancelTo="/routes"
+            submitLabel="Tạo mới luồng tuyến"
+            onClear={handleReset}
+            clearLabel="Làm sạch"
+          />
+        )}
       </AdminFormCard>
 
-      <UnsavedChangesBar
-        isDirty={isDirty}
-        isSaving={isSubmitting}
-        onSave={() => handleSubmit()}
-        onReset={handleReset}
-        message={mode === 'create' ? 'Luồng tuyến chưa được tạo mới' : 'Thay đổi chưa được lưu'}
-      />
+      {mode === 'edit' && (
+        <UnsavedChangesBar
+          isDirty={isDirty}
+          isSaving={isSubmitting}
+          onSave={() => handleSubmit()}
+          onReset={handleReset}
+        />
+      )}
     </div>
   );
 }

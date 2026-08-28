@@ -585,3 +585,6 @@ export function generateDynamicAuditReason<T extends Record<string, any>>(option
 
   return `Cập nhật ${entityName}: Thay đổi ${changedLabels.slice(0, 3).join(', ')} và ${changedLabels.length - 3} thông tin khác`;
 }
+
+export { UnsavedChangesBar } from './UnsavedChangesBar';
+

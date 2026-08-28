@@ -1,14 +1,22 @@
-import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
-import { useFormDirty } from '@/components/common/FormUtilities';
 import React, { useState, useEffect } from 'react';
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { Calendar, ArrowLeft, Save, RotateCcw, Clock, Ship } from 'lucide-react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { Calendar, Clock, Ship } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { createSchedule } from '@/apis/trips';
 import { getRoutes } from '@/apis/journeys';
 import { getBoats } from '@/apis/boats';
 import { Boat, Route as JourneyRoute } from '@/types';
+import {
+  AdminFormHeader,
+  AdminFormCard,
+  FormSectionBlock,
+  FormField,
+  FormInputField,
+  FormSelectField,
+  AdminFormActionBar,
+  useFormDirty,
+} from '@/components/common/FormUtilities';
 
 export const Route = createFileRoute('/_admin/schedules/create')({
   component: ScheduleCreatePage,
@@ -96,8 +104,8 @@ function ScheduleCreatePage() {
     toast.success('Đã làm sạch dữ liệu lịch chạy tàu');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (isSubmitting) return;
 
     if (!formData.name.trim()) {
@@ -139,133 +147,94 @@ function ScheduleCreatePage() {
   };
 
   return (
-    <div className="space-y-6 w-full font-sans">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Link
-            to="/schedules"
-            className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-            title="Quay lại danh sách lịch"
-          >
-            <ArrowLeft size={18} />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Calendar className="h-6 w-6 text-blue-600" />
-              Tạo Lịch Chạy Định Kỳ Mới
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Cấu hình khung giờ chạy cố định (start_time, end_time) và tần suất các ngày trong tuần
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={clearDraft}
-          className="h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 cursor-pointer"
-        >
-          <RotateCcw size={14} /> Làm sạch dữ liệu
-        </button>
-      </div>
+    <div className="space-y-4 w-full font-sans pb-20 text-slate-800 dark:text-slate-200">
+      {/* Top Header Navigation Bar */}
+      <AdminFormHeader
+        icon={Calendar}
+        title="Tạo Lịch Chạy Định Kỳ Mới"
+        subtitle="Cấu hình khung giờ chạy cố định (start_time, end_time) và tần suất các ngày trong tuần"
+        backTo="/schedules"
+        onClear={clearDraft}
+        clearLabel="Làm sạch"
+      />
 
-      <form onSubmit={handleSubmit} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden">
-        <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-b border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
-          I. Thông tin cấu hình lịch chạy
-        </div>
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Main Single Card Form */}
+      <AdminFormCard onSubmit={handleSubmit}>
+        {/* Section I: Thông tin cấu hình lịch chạy */}
+        <FormSectionBlock title="I. Thông tin cấu hình lịch chạy" columns={2}>
           <div className="md:col-span-2">
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Tên lịch chạy định kỳ <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
+            <FormInputField
+              id="schedule-name"
+              label="Tên Lịch Chạy Định Kỳ"
+              required
               value={formData.name}
               onChange={(e) => updateField('name', e.target.value)}
               placeholder="VD: Hà Tiên - Phú Quốc (Superdong I) T2-T4-T6"
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-              required
+              helperText="Tên định danh mẫu lịch chạy hiển thị trên hệ thống"
             />
-            <p className="mt-1 text-[11px] text-slate-500">Tên định danh mẫu lịch chạy hiển thị trên hệ thống (ví dụ: Hà Tiên - Phú Quốc (Superdong I) T2-T4-T6)</p>
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Tuyến hải trình áp dụng
-            </label>
-            <select
-              value={formData.route_id}
-              onChange={(e) => updateField('route_id', e.target.value)}
-              className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-            >
-              <option value="">-- Chọn tuyến hải trình --</option>
-              {routes.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name || r.code} ({r.code})
-                </option>
-              ))}
-            </select>
-          </div>
+          <FormSelectField
+            id="schedule-route"
+            label="Tuyến Hải Trình Áp Dụng"
+            value={formData.route_id}
+            onChange={(e) => updateField('route_id', e.target.value)}
+            disabled={loadingOptions}
+          >
+            <option value="">-- Chọn tuyến hải trình --</option>
+            {routes.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name || r.code} ({r.code})
+              </option>
+            ))}
+          </FormSelectField>
 
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Tàu phân công mặc định
-            </label>
+          <FormSelectField
+            id="schedule-boat"
+            label="Tàu Phân Công Mặc Định"
+            value={formData.boat_id}
+            onChange={(e) => updateField('boat_id', e.target.value)}
+            disabled={loadingOptions}
+          >
+            <option value="">-- Chọn tàu mặc định --</option>
+            {boats.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name} ({b.code}) - {b.capacity} ghế
+              </option>
+            ))}
+          </FormSelectField>
+
+          <FormField id="schedule-start-time" label="Giờ khởi hành (start_time)" required>
             <div className="relative">
-              <Ship size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <select
-                value={formData.boat_id}
-                onChange={(e) => updateField('boat_id', e.target.value)}
-                className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-              >
-                <option value="">-- Chọn tàu mặc định --</option>
-                {boats.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name} ({b.code}) - {b.capacity} ghế
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Giờ khởi hành (start_time) <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Clock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input
                 type="time"
                 value={formData.start_time}
                 onChange={(e) => updateField('start_time', e.target.value)}
-                className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-sm focus:border-blue-500 outline-none"
+                className="w-full h-9 pl-9 pr-3 text-xs rounded-lg border bg-slate-50/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus:border-blue-600 outline-none font-mono"
                 required
               />
             </div>
-          </div>
+          </FormField>
 
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Giờ cập bến dự kiến (end_time) <span className="text-red-500">*</span>
-            </label>
+          <FormField id="schedule-end-time" label="Giờ cập bến dự kiến (end_time)" required>
             <div className="relative">
-              <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Clock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input
                 type="time"
                 value={formData.end_time}
                 onChange={(e) => updateField('end_time', e.target.value)}
-                className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-sm focus:border-blue-500 outline-none"
+                className="w-full h-9 pl-9 pr-3 text-xs rounded-lg border bg-slate-50/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus:border-blue-600 outline-none font-mono"
                 required
               />
             </div>
-          </div>
-        </div>
+          </FormField>
+        </FormSectionBlock>
 
-        <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-y border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
-          II. Tần suất & Trạng thái
-        </div>
-        <div className="p-6 space-y-6">
+        {/* Section II: Tần suất & Trạng thái */}
+        <FormSectionBlock title="II. Tần suất & Trạng thái" columns={1}>
           <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
               Các ngày chạy trong tuần (days_of_week)
             </label>
             <div className="flex flex-wrap gap-2">
@@ -276,7 +245,7 @@ function ScheduleCreatePage() {
                     key={day.code}
                     type="button"
                     onClick={() => toggleDay(day.code)}
-                    className={`h-9 px-3.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                    className={`h-8 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
                       isSelected
                         ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -289,40 +258,32 @@ function ScheduleCreatePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Trạng thái áp dụng</label>
-              <select
-                value={formData.status}
-                onChange={(e) => updateField('status', e.target.value as 'active' | 'inactive')}
-                className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-              >
-                <option value="active">Đang áp dụng</option>
-                <option value="inactive">Tạm ngưng</option>
-              </select>
-            </div>
+          <div className="max-w-md pt-2">
+            <FormSelectField
+              id="schedule-status"
+              label="Trạng Thái Áp Dụng"
+              required
+              value={formData.status}
+              onChange={(e) => updateField('status', e.target.value as 'active' | 'inactive')}
+              options={[
+                { value: 'active', label: 'Đang áp dụng' },
+                { value: 'inactive', label: 'Tạm ngưng' },
+              ]}
+            />
           </div>
-        </div>
+        </FormSectionBlock>
 
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
-          <Link
-            to="/schedules"
-            className="px-5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-          >
-            Hủy bỏ
-          </Link>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60"
-          >
-            <Save size={16} />
-            {isSubmitting ? 'Đang lưu...' : 'Lưu lịch chạy tàu'}
-          </button>
-        </div>
-      </form>
-
-      <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSubmit({ preventDefault: () => {} } as any)} onReset={() => setFormData(emptyForm)} message="Lịch chạy chưa được tạo mới" />
+        {/* Master Action Bar */}
+        <AdminFormActionBar
+          mode="create"
+          isSubmitting={isSubmitting}
+          cancelTo="/schedules"
+          submitLabel="Lưu lịch chạy tàu"
+          onClear={clearDraft}
+          clearLabel="Làm sạch"
+        />
+      </AdminFormCard>
     </div>
   );
 }
+

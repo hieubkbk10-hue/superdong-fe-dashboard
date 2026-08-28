@@ -27,6 +27,10 @@ export function formatVND(amount: number): string {
  */
 export function formatDate(dateString?: string | Date): string {
   if (!dateString) return '-';
+  if (typeof dateString === 'string') {
+    const m = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+  }
   const d = new Date(dateString);
   if (isNaN(d.getTime())) return '-';
   return new Intl.DateTimeFormat('vi-VN', {
@@ -41,6 +45,10 @@ export function formatDate(dateString?: string | Date): string {
  */
 export function formatDateTime(dateString?: string | Date): string {
   if (!dateString) return '-';
+  if (typeof dateString === 'string') {
+    const m = dateString.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}:\d{2})/);
+    if (m) return `${m[3]}/${m[2]}/${m[1]} ${m[4]}`;
+  }
   const d = new Date(dateString);
   if (isNaN(d.getTime())) return '-';
   return new Intl.DateTimeFormat('vi-VN', {
@@ -58,8 +66,16 @@ export function formatDateTime(dateString?: string | Date): string {
  */
 export function formatTime(timeString?: string | Date): string {
   if (!timeString) return '-';
-  if (typeof timeString === 'string' && timeString.length === 5 && timeString.includes(':')) {
-    return timeString; // "08:00"
+  if (typeof timeString === 'string') {
+    const m = timeString.match(/T(\d{2}:\d{2})/);
+    if (m) return m[1];
+    if (timeString.includes(' ')) {
+      const parts = timeString.split(' ');
+      if (parts[1]) return parts[1].slice(0, 5);
+    }
+    if (timeString.length === 5 && timeString.includes(':')) {
+      return timeString; // "08:00"
+    }
   }
   const d = new Date(timeString);
   if (isNaN(d.getTime())) return typeof timeString === 'string' ? timeString : '-';

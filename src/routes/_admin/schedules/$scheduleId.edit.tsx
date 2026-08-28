@@ -1,13 +1,9 @@
-import { useFormDirty } from '@/components/common/FormUtilities';
-import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
 import React, { useState, useEffect, useMemo } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import {
   Calendar,
   CalendarPlus,
   ArrowLeft,
-  Save,
-  RefreshCw,
   Clock,
   Ship,
   AlertTriangle,
@@ -37,6 +33,16 @@ import { getRoutes } from '@/apis/journeys';
 import { getBoats } from '@/apis/boats';
 import { Boat, Route as JourneyRoute, Schedule, Trip, TripStatus } from '@/types';
 import { Button } from '@/components/common/Button';
+import {
+  AdminFormHeader,
+  AdminFormCard,
+  FormSectionBlock,
+  FormField,
+  FormInputField,
+  FormSelectField,
+  UnsavedChangesBar,
+  useFormDirty,
+} from '@/components/common/FormUtilities';
 import {
   Dialog,
   DialogContent,
@@ -250,8 +256,8 @@ function ScheduleEditPage() {
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
     if (!formData.name.trim()) {
       toast.error('Vui lòng nhập Tên lịch chạy');
@@ -351,63 +357,58 @@ function ScheduleEditPage() {
 
   
 
+  const handleReset = () => {
+    if (initialData) {
+      setFormData(initialData);
+      toast.info('Đã khôi phục dữ liệu ban đầu');
+    }
+  };
+
   return (
-    <div className="space-y-6 w-full font-sans">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Link
-            to="/schedules"
-            className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-            title="Quay lại danh sách lịch"
-          >
-            <ArrowLeft size={18} />
-          </Link>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Calendar className="h-6 w-6 text-blue-600" />
-                Chỉnh Sửa Lịch Chạy Định Kỳ
-              </h1>
-              <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${formData.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
-                {formData.status === 'active' ? 'Đang áp dụng' : 'Tạm ngưng'}
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Quản lý khung giờ xuất bến, ngày áp dụng trong tuần và phân công đội tàu.
-            </p>
+    <div className="space-y-4 w-full font-sans pb-20 text-slate-800 dark:text-slate-200">
+      {/* Top Header Navigation Bar */}
+      <AdminFormHeader
+        icon={Calendar}
+        title={
+          <>
+            Chỉnh Sửa Lịch Chạy:{' '}
+            <span className="text-blue-600 dark:text-blue-400 font-bold">
+              {formData.name || scheduleCode}
+            </span>
+          </>
+        }
+        subtitle="Quản lý khung giờ xuất bến, ngày áp dụng trong tuần và phân công đội tàu"
+        backTo="/schedules"
+        badge={
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
+                formData.status === 'active'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800'
+                  : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800'
+              }`}
+            >
+              {formData.status === 'active' ? 'Đang áp dụng' : 'Tạm ngưng'}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setFromDate(getTodayString());
+                setToDate(getFutureDateString(30));
+                setPublishImmediate(true);
+                setGenerateReason(`Khởi tạo chuyến từ lịch ${formData.name || scheduleCode}`);
+                setOpenGenerateModal(true);
+              }}
+              className="h-9 px-3 text-xs font-semibold border-blue-200 bg-blue-50/50 hover:bg-blue-100 text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300 gap-1.5"
+            >
+              <CalendarPlus size={14} className="text-blue-600 dark:text-blue-400" />
+              <span>Sinh Chuyến Theo Lịch</span>
+            </Button>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setFromDate(getTodayString());
-              setToDate(getFutureDateString(30));
-              setPublishImmediate(true);
-              setGenerateReason(`Khởi tạo chuyến từ lịch ${formData.name || scheduleCode}`);
-              setOpenGenerateModal(true);
-            }}
-            className="h-9 px-3 text-xs font-semibold border-blue-200 bg-blue-50/50 hover:bg-blue-100 text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300 gap-1.5"
-          >
-            <CalendarPlus size={14} className="text-blue-600 dark:text-blue-400" />
-            <span>Sinh Chuyến Theo Lịch</span>
-          </Button>
-
-          <button
-            type="button"
-            onClick={hydrateSchedule}
-            disabled={loading}
-            className="h-9 w-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center cursor-pointer disabled:opacity-60"
-            title="Làm mới dữ liệu"
-          >
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {apiError && !loading ? (
         <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-700 dark:text-rose-300 font-medium flex items-start gap-2.5">
@@ -417,113 +418,82 @@ function ScheduleEditPage() {
       ) : (
         <>
           {/* Main Single Card Form */}
-          <form onSubmit={handleSubmit} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden">
-            {/* Section I */}
-            <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-b border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide flex items-center justify-between">
-              <span>I. Thông tin lịch mẫu & Tuyến chạy</span>
-              <span className="text-xs font-mono font-normal text-slate-500 lowercase">
-                Mã: {scheduleCode}
-              </span>
-            </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <AdminFormCard onSubmit={handleSubmit}>
+            {/* Section I: Thông tin lịch mẫu & Tuyến chạy */}
+            <FormSectionBlock title="I. Thông tin lịch mẫu & Tuyến chạy" columns={2}>
               <div className="md:col-span-2">
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Tên lịch chạy định kỳ <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
+                <FormInputField
+                  id="schedule-name"
+                  label="Tên Lịch Chạy Định Kỳ"
+                  required
                   value={formData.name}
                   onChange={(e) => updateField('name', e.target.value)}
                   placeholder="VD: Rạch Giá - Phú Quốc (Sáng T2-T6)"
-                  className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-                  required
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Tuyến hải trình áp dụng
-                </label>
-                <select
-                  value={formData.route_id}
-                  onChange={(e) => updateField('route_id', e.target.value)}
-                  disabled={loading}
-                  className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none disabled:opacity-60"
-                >
-                  <option value="">-- Chọn tuyến hải trình --</option>
-                  {routes.map((r) => (
-                    <option key={r.id} value={String(r.id)}>
-                      {r.name || r.code} {r.code ? `(${r.code})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <FormSelectField
+                id="schedule-route"
+                label="Tuyến Hải Trình Áp Dụng"
+                value={formData.route_id}
+                onChange={(e) => updateField('route_id', e.target.value)}
+                disabled={loading}
+              >
+                <option value="">-- Chọn tuyến hải trình --</option>
+                {routes.map((r) => (
+                  <option key={r.id} value={String(r.id)}>
+                    {r.name || r.code} {r.code ? `(${r.code})` : ''}
+                  </option>
+                ))}
+              </FormSelectField>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Tàu phân công mặc định
-                </label>
+              <FormSelectField
+                id="schedule-boat"
+                label="Tàu Phân Công Mặc Định"
+                value={formData.boat_id}
+                onChange={(e) => updateField('boat_id', e.target.value)}
+                disabled={loading}
+              >
+                <option value="">-- Chọn tàu mặc định --</option>
+                {boats.map((b) => (
+                  <option key={b.id} value={String(b.id)}>
+                    {b.name} {b.code ? `(${b.code})` : ''} — {b.total_capacity || 300} chỗ
+                  </option>
+                ))}
+              </FormSelectField>
+            </FormSectionBlock>
+
+            {/* Section II: Khung giờ & Các ngày trong tuần */}
+            <FormSectionBlock title="II. Khung giờ & Các ngày trong tuần" columns={2}>
+              <FormField id="schedule-start-time" label="Giờ khởi hành xuất bến" required>
                 <div className="relative">
-                  <Ship size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <select
-                    value={formData.boat_id}
-                    onChange={(e) => updateField('boat_id', e.target.value)}
-                    disabled={loading}
-                    className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none disabled:opacity-60"
-                  >
-                    <option value="">-- Chọn tàu mặc định --</option>
-                    {boats.map((b) => (
-                      <option key={b.id} value={String(b.id)}>
-                        {b.name} {b.code ? `(${b.code})` : ''} — {b.total_capacity || 300} chỗ
-                      </option>
-                    ))}
-                  </select>
+                  <Clock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <input
+                    type="time"
+                    value={formData.start_time}
+                    onChange={(e) => updateField('start_time', e.target.value)}
+                    className="w-full h-9 pl-9 pr-3 text-xs rounded-lg border bg-slate-50/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus:border-blue-600 outline-none font-mono"
+                    required
+                  />
                 </div>
-              </div>
-            </div>
+              </FormField>
 
-            {/* Section II */}
-            <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-y border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
-              II. Khung giờ & Các ngày trong tuần
-            </div>
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Giờ khởi hành xuất bến <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="time"
-                      value={formData.start_time}
-                      onChange={(e) => updateField('start_time', e.target.value)}
-                      className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-sm focus:border-blue-500 outline-none"
-                      required
-                    />
-                  </div>
+              <FormField id="schedule-end-time" label="Giờ cập bến dự kiến" required>
+                <div className="relative">
+                  <Clock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <input
+                    type="time"
+                    value={formData.end_time}
+                    onChange={(e) => updateField('end_time', e.target.value)}
+                    className="w-full h-9 pl-9 pr-3 text-xs rounded-lg border bg-slate-50/50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700 focus:border-blue-600 outline-none font-mono"
+                    required
+                  />
                 </div>
+              </FormField>
 
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Giờ cập bến dự kiến <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="time"
-                      value={formData.end_time}
-                      onChange={(e) => updateField('end_time', e.target.value)}
-                      className="w-full h-10 pl-9 pr-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-sm focus:border-blue-500 outline-none"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  Các ngày chạy trong tuần <span className="text-red-500">*</span>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  Các ngày chạy trong tuần <span className="text-rose-500 font-bold">*</span>
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {WEEKDAYS.map((day) => {
@@ -533,7 +503,7 @@ function ScheduleEditPage() {
                         key={day.code}
                         type="button"
                         onClick={() => toggleDay(day.code)}
-                        className={`h-9 px-3.5 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                        className={`h-8 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
                           isSelected
                             ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -545,46 +515,33 @@ function ScheduleEditPage() {
                   })}
                 </div>
               </div>
-            </div>
+            </FormSectionBlock>
 
-            {/* Section III */}
-            <div className="px-5 py-3 bg-slate-100/70 dark:bg-slate-800/60 border-y border-slate-200/60 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
-              III. Trạng thái khai thác
-            </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Trạng thái áp dụng</label>
-                <select
+            {/* Section III: Trạng thái khai thác */}
+            <FormSectionBlock title="III. Trạng thái khai thác" columns={1}>
+              <div className="max-w-md">
+                <FormSelectField
+                  id="schedule-status"
+                  label="Trạng Thái Áp Dụng"
+                  required
                   value={formData.status}
                   onChange={(e) => updateField('status', e.target.value as 'active' | 'inactive')}
-                  className="w-full h-10 px-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:border-blue-500 outline-none"
-                >
-                  <option value="active">Đang áp dụng</option>
-                  <option value="inactive">Tạm ngưng</option>
-                </select>
+                  options={[
+                    { value: 'active', label: 'Đang áp dụng' },
+                    { value: 'inactive', label: 'Tạm ngưng' },
+                  ]}
+                />
               </div>
-            </div>
+            </FormSectionBlock>
+          </AdminFormCard>
 
-            {/* Form Action Bar */}
-            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
-              <Link
-                to="/schedules"
-                className="px-5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-              >
-                Hủy bỏ
-              </Link>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60"
-              >
-                <Save size={16} />
-                {isSubmitting ? 'Đang lưu...' : 'Lưu thay đổi'}
-              </button>
-            </div>
-          </form>
-
-      <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSubmit({ preventDefault: () => {} } as any)} onReset={() => { if (initialData) setFormData(initialData); }} />
+          {/* Floating Action Bar for Unsaved Changes */}
+          <UnsavedChangesBar
+            isDirty={isDirty}
+            isSaving={isSubmitting}
+            onSave={() => handleSubmit()}
+            onReset={handleReset}
+          />
 
           {/* Section IV: Linked Trips Table */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden">

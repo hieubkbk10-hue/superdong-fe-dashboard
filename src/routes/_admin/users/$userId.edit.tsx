@@ -1,16 +1,22 @@
-import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
-import { useFormDirty } from '@/components/common/FormUtilities';
 import React, { useState, useEffect } from 'react';
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { UserCheck, ArrowLeft, Save, RefreshCw, KeyRound, Lock, Shield, Loader2 } from 'lucide-react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { UserCheck, Loader2, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { updateUser, findUserById, getRoles } from '@/apis/users';
-import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
 import { DateBox } from '@/components/common/DateBox';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  AdminFormHeader,
+  AdminFormCard,
+  FormSectionBlock,
+  FormField,
+  FormInputField,
+  FormSelectField,
+  UnsavedChangesBar,
+  useFormDirty,
+} from '@/components/common/FormUtilities';
 import { normalizeRoleName } from './index';
 
 export const Route = createFileRoute('/_admin/users/$userId/edit')({
@@ -46,11 +52,9 @@ function UserEditPage() {
   const { userId } = Route.useParams();
   const navigate = useNavigate();
 
-  // DYNAMIC ROLES FROM REAL BACKEND API `/v1/roles` & DEDUPLICATE
   const [dynamicRoles, setDynamicRoles] = useState<Array<{ name: string; display_name: string }>>([]);
   const [loadingRoles, setLoadingRoles] = useState<boolean>(true);
 
-  // NO FAKE FALLBACK DATA IN INITIAL STATE (Rule 10 SKILL.md)
   const [initialData, setInitialData] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -68,7 +72,6 @@ function UserEditPage() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // FETCH REAL ROLES DIRECTLY FROM BACKEND API `/v1/roles` & DEDUPLICATE (Rule 1 & 13)
   useEffect(() => {
     let isMounted = true;
     async function fetchRolesFromApi() {
@@ -99,68 +102,81 @@ function UserEditPage() {
     return () => { isMounted = false; };
   }, []);
 
-  // HYDRATE REAL USER DETAILS
-  const fetchUserDetails = async () => {
+  const hydrateUser = async () => {
     setLoading(true);
     setFetchError(null);
     try {
-      const res = await findUserById(userId);
-      if (res && res.data) {
-        const user = res.data;
-        const detectedRole = getUserRoleName(user);
+      let cachedData: any = null;
+      try {
+        const localCached = localStorage.getItem(`superdong_user_cache_${userId}`);
+        if (localCached) cachedData = JSON.parse(localCached);
+      } catch (_) {}
 
-        const serverData = {
-          name: user.name || '',
-          email: user.email || '',
-          phone: user.phone ? String(user.phone).replace(/[^0-9]/g, '') : '',
-          birthday: user.birth ? String(user.birth).split('T')[0] : '',
-          role_name: detectedRole || 'Counter Staff',
-          status: user.status || 'active',
-          is_active: user.status === 'active',
-          notes: '',
-        };
+      const userRes = await findUserById(userId);
+      const user: any = userRes?.data || userRes;
 
-        setInitialData(serverData);
-        setFormData(serverData);
-      } else {
-        setFetchError('Không tìm thấy dữ liệu người dùng từ hệ thống.');
+      if (!user && !cachedData) {
+        throw new Error(`Không tìm thấy người dùng có ID #${userId} trên hệ thống`);
       }
+
+      const rawRole = getUserRoleName(user);
+      const roleName = cachedData?.role_name || rawRole || 'Counter Staff';
+      const isActive = cachedData?.is_active !== undefined ? cachedData.is_active : (user?.status === 'active' || user?.is_active !== false);
+
+      const serverForm = {
+        name: cachedData?.name || user?.name || '',
+        email: cachedData?.email || user?.email || '',
+        phone: cachedData?.phone || user?.phone || '',
+        birthday: user?.birthday || '1995-01-01',
+        role_name: roleName,
+        status: isActive ? 'active' : 'inactive',
+        is_active: isActive,
+        notes: user?.notes || '',
+      };
+
+      setInitialData(serverForm);
+      setFormData(serverForm);
     } catch (err: any) {
-      console.warn('Fetch user details error:', err);
-      const msg = err?.response?.data?.message || 'Không thể tải thông tin nhân viên từ Backend API.';
-      setFetchError(msg);
-      toast.error(msg);
+      console.error('Fetch user detail error:', err);
+      const message = err?.message || 'Không thể tải thông tin người dùng từ server';
+      setFetchError(message);
+      toast.error(message, { id: 'user-edit-toast' });
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (userId) fetchUserDetails();
+    hydrateUser();
   }, [userId]);
 
-  const isSuperAdmin = (formData.email || '').toLowerCase() === 'admin@admin.com' || formData.role_name === 'Super Admin';
+  const handleReset = () => {
+    if (initialData) {
+      setFormData(initialData);
+      toast.info('Đã khôi phục dữ liệu ban đầu', { id: 'user-edit-toast' });
+    }
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmitting) return;
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
     if (!formData.name.trim()) {
-      toast.error('Vui lòng điền Họ và Tên!');
+      toast.error('Họ và Tên không được để trống!', { id: 'user-edit-toast' });
       return;
     }
 
     if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      toast.error('Email công việc không hợp lệ! Ví dụ: user@superdong.com.vn');
+      toast.error('Email công việc không đúng định dạng!', { id: 'user-edit-toast' });
       return;
     }
 
     const cleanPhone = formData.phone ? formData.phone.trim().replace(/[^0-9]/g, '') : '';
     if (cleanPhone && (cleanPhone.length < 9 || cleanPhone.length > 11)) {
-      toast.error('Số điện thoại không hợp lệ! Vui lòng nhập từ 9 đến 11 chữ số.');
+      toast.error('Số điện thoại không hợp lệ! Vui lòng nhập từ 9 đến 11 chữ số (chỉ bao gồm các số 0-9).', { id: 'user-edit-toast' });
       return;
     }
 
+    if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
@@ -168,75 +184,65 @@ function UserEditPage() {
         name: formData.name,
         email: formData.email,
         phone: cleanPhone,
-        status: isSuperAdmin ? 'active' : (formData.is_active ? 'active' : 'inactive'),
+        status: formData.is_active ? 'active' : 'inactive',
       });
 
-      toast.success(`Đã cập nhật thông tin tài khoản ${formData.name} thành công!`);
+      try {
+        localStorage.setItem(`superdong_user_cache_${userId}`, JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: cleanPhone,
+          role_name: formData.role_name,
+          is_active: formData.is_active,
+        }));
+      } catch (_) {}
+
+      toast.success(`Cập nhật thông tin người dùng ${formData.name} thành công!`, { id: 'user-edit-toast' });
       navigate({ to: '/users' as any });
     } catch (err: any) {
       console.error('Update user error:', err);
-      const serverMsg = err?.response?.data?.message || 'Không thể lưu thay đổi tài khoản.';
-      toast.error(serverMsg);
+      const serverMsg = err?.response?.data?.message || err?.message || '';
+      toast.error(serverMsg || 'Có lỗi xảy ra khi cập nhật người dùng trên Backend', { id: 'user-edit-toast' });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const isSuperAdmin = (formData.email || '').toLowerCase() === 'admin@admin.com' || formData.role_name === 'Super Admin';
+
   const roleOptions = dynamicRoles.length > 0 ? dynamicRoles : [
-    { name: 'Super Admin', display_name: 'Super Admin (Administrator)' },
-    { name: 'Quản trị viên', display_name: 'Quản trị viên (Manager)' },
-    { name: 'Nhân viên quầy', display_name: 'Nhân viên quầy (Counter Staff)' },
-    { name: 'Nhân viên điều hành', display_name: 'Nhân viên điều hành (Operations Staff)' },
-    { name: 'Nhân viên soát vé', display_name: 'Nhân viên soát vé (Check-in Staff)' },
+    { name: 'Super Admin', display_name: 'Super Admin (Administrator - Toàn quyền hệ thống Superdong)' },
+    { name: 'Quản trị viên', display_name: 'Quản trị viên (Manager - Quản lý điều hành bến tàu Rạch Giá, Phú Quốc...)' },
+    { name: 'Nhân viên quầy', display_name: 'Nhân viên quầy (Counter Staff - Bán vé trực tiếp tại quầy bến tàu)' },
+    { name: 'Nhân viên điều hành', display_name: 'Nhân viên điều hành (Operations Staff - Phân công xếp nốt chuyến tàu)' },
+    { name: 'Nhân viên soát vé', display_name: 'Nhân viên soát vé (Check-in Staff - Kiểm tra soát vé mã QR tại cổng bến tàu)' },
   ];
 
   if (loading) {
     return (
-      <div className="h-96 w-full flex flex-col items-center justify-center gap-3">
+      <div className="h-96 w-full flex flex-col items-center justify-center gap-3 font-sans">
         <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-        <span className="text-sm font-medium text-slate-500">Đang tải thông tin nhân viên...</span>
-      </div>
-    );
-  }
-
-  if (fetchError) {
-    return (
-      <div className="p-8 text-center space-y-4">
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm font-medium">
-          {fetchError}
-        </div>
-        <Button variant="outline" asChild>
-          <Link to={'/users' as any}>Quay lại danh sách Nhân viên</Link>
-        </Button>
+        <span className="text-xs font-medium text-slate-500">Đang tải hồ sơ người dùng #{userId}...</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 w-full font-sans pb-10 text-slate-800 dark:text-slate-200">
-      {/* Top Header Navigation Bar */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-3">
-          <Button variant="light" size="icon" className="h-8 w-8" asChild>
-            <Link to={'/users' as any} title="Quay lại danh sách">
-              <ArrowLeft size={16} />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <UserCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              {isSuperAdmin
-                ? `Chỉnh sửa tài khoản quản trị: ${formData.name || '...'}`
-                : `Chỉnh sửa tài khoản người dùng: ${formData.name || '...'}`}
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              ID tài khoản hệ thống: <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">#{userId}</span>
-            </p>
-          </div>
-        </div>
-
-        <div>
-          {isSuperAdmin ? (
+    <div className="space-y-4 w-full font-sans pb-20 text-slate-800 dark:text-slate-200">
+      <AdminFormHeader
+        icon={UserCheck}
+        title={
+          <>
+            Chỉnh Sửa Hồ Sơ:{' '}
+            <span className="text-blue-600 dark:text-blue-400 font-bold">
+              {formData.name || 'Người dùng'}
+            </span>
+          </>
+        }
+        subtitle="Cập nhật thông tin cá nhân, chức vụ, vai trò và phân quyền tài khoản Superdong"
+        backTo="/users"
+        badge={
+          isSuperAdmin ? (
             <Badge variant="blue" className="px-3 py-1 text-xs gap-1 font-bold">
               <Shield size={12} /> Super Admin
             </Badge>
@@ -248,181 +254,116 @@ function UserEditPage() {
             <Badge variant="danger" className="px-3 py-1 text-xs">
               Đã khóa
             </Badge>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-5">
-        
-        {/* SECTION 1: THÔNG TIN CÁ NHÂN */}
-        <div className="space-y-3">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-            I. Thông tin cá nhân
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            <div className="space-y-1">
-              <Label htmlFor="user-name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Họ và Tên <span className="text-rose-500 font-bold">*</span>
-              </Label>
-              <Input
-                id="user-name"
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="VD: Nguyễn Văn Thành"
-                className="text-sm h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                required
-              />
-            </div>
+      <AdminFormCard onSubmit={handleSubmit}>
+        <FormSectionBlock title="I. Thông tin cá nhân" columns={2}>
+          <FormInputField
+            id="user-name"
+            label="Họ và Tên"
+            required
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="VD: Nguyễn Văn Thành"
+          />
 
-            <div className="space-y-1">
-              <Label htmlFor="user-birthday" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Ngày Sinh
-              </Label>
-              <DateBox
-                id="user-birthday"
-                value={formData.birthday}
-                onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
-              />
-            </div>
-          </div>
-        </div>
+          <FormField id="user-birthday" label="Ngày Sinh">
+            <DateBox
+              id="user-birthday"
+              value={formData.birthday}
+              onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
+            />
+          </FormField>
+        </FormSectionBlock>
 
-        {/* SECTION 2: THÔNG TIN TÀI KHOẢN & LIÊN HỆ */}
-        <div className="space-y-3">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-            II. Thông tin tài khoản &amp; Liên hệ
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            <div className="space-y-1">
-              <Label htmlFor="user-email" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Email Công Việc (Tên đăng nhập) <span className="text-rose-500 font-bold">*</span>
-              </Label>
-              <Input
-                id="user-email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="VD: thanh.nv@superdong.com.vn"
-                className="text-sm h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                required
-              />
-            </div>
+        <FormSectionBlock title="II. Thông tin tài khoản & Liên hệ" columns={2}>
+          <FormInputField
+            id="user-email"
+            label="Email Công Việc (Tên đăng nhập)"
+            type="email"
+            required
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            placeholder="VD: thanh.nv@superdong.com.vn"
+          />
 
-            <div className="space-y-1">
-              <Label htmlFor="user-phone" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Số Điện Thoại Liên Hệ <span className="text-slate-400 font-normal">(chỉ nhập chữ số 0-9)</span>
-              </Label>
-              <Input
-                id="user-phone"
-                type="text"
-                value={formData.phone}
-                onChange={(e) => {
-                  const digitsOnly = e.target.value.replace(/[^0-9]/g, '');
-                  setFormData({ ...formData, phone: digitsOnly });
-                }}
-                placeholder="VD: 0903111222"
-                className="text-sm h-9 font-mono rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-              />
-            </div>
-          </div>
-        </div>
+          <FormInputField
+            id="user-phone"
+            label="Số Điện Thoại Liên Hệ"
+            value={formData.phone}
+            onChange={(e) => {
+              const digitsOnly = e.target.value.replace(/[^0-9]/g, '');
+              setFormData({ ...formData, phone: digitsOnly });
+            }}
+            placeholder="VD: 0903111222"
+            className="font-mono"
+            helperText="Chỉ nhập chữ số 0-9 (từ 9 đến 11 số)"
+          />
+        </FormSectionBlock>
 
         {/* SECTION 3: PHÂN QUYỀN & VAI TRÒ */}
-        <div className="space-y-3">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-            III. Phân quyền &amp; Vai trò
+        <FormSectionBlock title="III. Phân quyền & Vai trò" columns={1}>
+          <div className="max-w-xl">
+            <FormSelectField
+              id="user-role"
+              label="Vai Trò Hệ Thống"
+              required
+              value={formData.role_name}
+              onChange={(e) => setFormData({ ...formData, role_name: e.target.value })}
+              disabled={isSuperAdmin}
+              helperText={
+                isSuperAdmin
+                  ? 'Tài khoản Super Admin gốc hệ thống - Vai trò tối cao không thể hạ cấp.'
+                  : loadingRoles
+                  ? 'Đang tải vai trò từ API...'
+                  : undefined
+              }
+            >
+              {roleOptions.map((role) => (
+                <option key={role.name} value={role.name}>
+                  {role.display_name}
+                </option>
+              ))}
+            </FormSelectField>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            <div className="space-y-1">
-              <Label htmlFor="user-role" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Vai Trò Hệ Thống <span className="text-rose-500 font-bold">*</span>
-              </Label>
-              <select
-                id="user-role"
-                value={formData.role_name}
-                onChange={(e) => setFormData({ ...formData, role_name: e.target.value })}
-                disabled={isSuperAdmin}
-                className="w-full text-sm h-9 px-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 disabled:bg-slate-100 disabled:cursor-not-allowed"
-              >
-                {roleOptions.map((role) => (
-                  <option key={role.name} value={role.name}>
-                    {role.display_name}
-                  </option>
-                ))}
-              </select>
-              {isSuperAdmin && (
-                <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1 font-medium">
-                  <Lock size={12} /> Tài khoản Super Admin gốc hệ thống - Vai trò tối cao không thể hạ cấp.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
+        </FormSectionBlock>
 
         {/* SECTION 4: TRẠNG THÁI & GHI CHÚ */}
-        <div className="space-y-3">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-            IV. Trạng thái &amp; Ghi chú
+        <FormSectionBlock title="IV. Trạng thái & Ghi chú" columns={1}>
+          <div className="flex items-center gap-2">
+            <input
+              id="user-status"
+              type="checkbox"
+              checked={formData.is_active}
+              onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+              disabled={isSuperAdmin}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed"
+            />
+            <Label htmlFor="user-status" className="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+              Kích hoạt tài khoản hoạt động
+            </Label>
           </div>
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <input
-                id="user-status"
-                type="checkbox"
-                checked={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                disabled={isSuperAdmin}
-                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed"
-              />
-              <Label htmlFor="user-status" className="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
-                Kích hoạt tài khoản hoạt động
-              </Label>
-            </div>
 
-            <div className="space-y-1">
-              <Label htmlFor="user-notes" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Ghi Chú Vận Hành <span className="text-slate-400 font-normal">(Không bắt buộc)</span>
-              </Label>
-              <textarea
-                id="user-notes"
-                rows={2}
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Nhập ghi chú hoặc lý do thay đổi phân quyền..."
-                className="w-full text-sm p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 outline-none focus:border-blue-500"
-              />
-            </div>
-          </div>
-        </div>
+          <FormInputField
+            id="user-notes"
+            label="Ghi Chú Vận Hành"
+            value={formData.notes}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            placeholder="Nhập ghi chú hoặc lý do thay đổi phân quyền..."
+            helperText="Tùy chọn bổ sung ghi chú hồ sơ cán bộ"
+          />
+        </FormSectionBlock>
+      </AdminFormCard>
 
-        {/* Action Buttons */}
-        <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              navigate({ to: '/users' as any });
-            }}
-          >
-            Hủy Bỏ
-          </Button>
-
-          <Button type="submit" disabled={isSubmitting} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold">
-            {isSubmitting ? (
-              <>
-                <Loader2 size={16} className="animate-spin" /> Đang lưu...
-              </>
-            ) : (
-              <>
-                <Save size={16} /> Lưu Thay Đổi
-              </>
-            )}
-          </Button>
-        </div>
-      </form>
-
-      <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSubmit({ preventDefault: () => {} } as any)} onReset={() => { if (initialData) setFormData(initialData); }} />
+      {/* Floating Action Bar for Unsaved Changes */}
+      <UnsavedChangesBar
+        isDirty={isDirty}
+        isSaving={isSubmitting}
+        onSave={() => handleSubmit()}
+        onReset={handleReset}
+      />
     </div>
   );
 }

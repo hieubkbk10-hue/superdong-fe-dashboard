@@ -1,17 +1,21 @@
-import { UnsavedChangesBar } from '@/components/common/UnsavedChangesBar';
-import { useFormDirty } from '@/components/common/FormUtilities';
 import React, { useState, useEffect } from 'react';
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
-import { UserCheck, ArrowLeft, Save, RefreshCw, RotateCcw } from 'lucide-react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { createUser, getRoles } from '@/apis/users';
-import { Button } from '@/components/common/Button';
-import { Badge } from '@/components/common/Badge';
 import { DateBox } from '@/components/common/DateBox';
 import { PasswordInput } from '@/components/common/PasswordInput';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  AdminFormHeader,
+  AdminFormCard,
+  FormSectionBlock,
+  FormField,
+  FormInputField,
+  FormSelectField,
+  AdminFormActionBar,
+} from '@/components/common/FormUtilities';
 
 export const Route = createFileRoute('/_admin/users/create')({
   component: UserCreatePage,
@@ -36,10 +40,7 @@ function UserCreatePage() {
   const [loadingRoles, setLoadingRoles] = useState<boolean>(true);
 
   const [formData, setFormData] = useState(DEFAULT_FORM_DATA);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [initialData] = useState(formData);
-  const { isDirty } = useFormDirty(initialData, formData, ['notes']);
 
   // DYNAMIC API FETCH: Lấy danh sách Roles trực tiếp từ API `/v1/roles` của Backend & Deduplicate
   useEffect(() => {
@@ -92,8 +93,8 @@ function UserCreatePage() {
     toast.success('Đã làm sạch toàn bộ dữ liệu trên form!', { id: 'user-create-toast' });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
     if (!formData.name.trim()) {
       toast.error('Vui lòng điền Họ và Tên!', { id: 'user-create-toast' });
@@ -172,224 +173,132 @@ function UserCreatePage() {
   ];
 
   return (
-    <div className="space-y-4 w-full font-sans pb-10 text-slate-800 dark:text-slate-200">
+    <div className="space-y-4 w-full font-sans pb-20 text-slate-800 dark:text-slate-200">
       {/* Top Header Navigation Bar */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-3">
-          <Button variant="light" size="icon" className="h-8 w-8" asChild>
-            <Link to={'/users' as any} title="Quay lại danh sách">
-              <ArrowLeft size={16} />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <UserCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              Tạo tài khoản người dùng mới
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Khởi tạo tài khoản và cấp quyền truy cập hệ thống Superdong (Form tự động lưu nháp chống mất khi F5)
-            </p>
-          </div>
-        </div>
+      <AdminFormHeader
+        icon={UserCheck}
+        title="Tạo Tài Khoản Người Dùng Mới"
+        subtitle="Khởi tạo tài khoản và cấp quyền truy cập hệ thống quản trị Superdong"
+        backTo="/users"
+        onClear={handleResetForm}
+        clearLabel="Làm sạch dữ liệu"
+      />
 
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="light"
-            size="sm"
-            onClick={handleResetForm}
-            className="h-8 text-xs gap-1 text-slate-600 dark:text-slate-400 hover:text-rose-600 border border-slate-200 dark:border-slate-800"
-            title="Làm sạch toàn bộ ô nhập liệu và xóa bản nháp"
-          >
-            <RotateCcw size={13} />
-            Làm sạch dữ liệu
-          </Button>
-
-          <Badge variant="blue" className="px-3 py-1 text-xs font-bold">
-            Tài khoản mới
-          </Badge>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-950 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-5">
-        
+      {/* Main Single Card Form */}
+      <AdminFormCard onSubmit={handleSubmit}>
         {/* SECTION 1: THÔNG TIN CÁ NHÂN */}
-        <div className="space-y-3">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-            I. Thông tin cá nhân
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            <div className="space-y-1">
-              <Label htmlFor="user-name" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Họ và Tên <span className="text-rose-500 font-bold">*</span>
-              </Label>
-              <Input
-                id="user-name"
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="VD: Nguyễn Văn Thành"
-                className="text-sm h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                required
-              />
-            </div>
+        <FormSectionBlock title="I. Thông tin cá nhân" columns={2}>
+          <FormInputField
+            id="user-name"
+            label="Họ và Tên"
+            required
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="VD: Nguyễn Văn Thành"
+          />
 
-            <div className="space-y-1">
-              <Label htmlFor="user-birthday" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Ngày Sinh
-              </Label>
-              <DateBox
-                id="user-birthday"
-                value={formData.birthday}
-                onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
-              />
-            </div>
-          </div>
-        </div>
+          <FormField id="user-birthday" label="Ngày Sinh">
+            <DateBox
+              id="user-birthday"
+              value={formData.birthday}
+              onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
+            />
+          </FormField>
+        </FormSectionBlock>
 
         {/* SECTION 2: THÔNG TIN TÀI KHOẢN & LIÊN HỆ */}
-        <div className="space-y-3">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-            II. Thông tin tài khoản &amp; Liên hệ
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            <div className="space-y-1">
-              <Label htmlFor="user-email" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Email Công Việc (Tên đăng nhập) <span className="text-rose-500 font-bold">*</span>
-              </Label>
-              <Input
-                id="user-email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="VD: tranmanhhieu10@gmail.com"
-                className="text-sm h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-                required
-              />
-            </div>
+        <FormSectionBlock title="II. Thông tin tài khoản & Liên hệ" columns={2}>
+          <FormInputField
+            id="user-email"
+            label="Email Công Việc (Tên đăng nhập)"
+            type="email"
+            required
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            placeholder="VD: tranmanhhieu10@gmail.com"
+          />
 
-            <div className="space-y-1">
-              <Label htmlFor="user-phone" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Số Điện Thoại Liên Hệ <span className="text-slate-400 font-normal">(chỉ nhập chữ số 0-9)</span>
-              </Label>
-              <Input
-                id="user-phone"
-                type="text"
-                value={formData.phone}
-                onChange={(e) => {
-                  const digitsOnly = e.target.value.replace(/[^0-9]/g, '');
-                  setFormData({ ...formData, phone: digitsOnly });
-                }}
-                placeholder="VD: 0948066514"
-                className="text-sm h-9 font-mono rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-              />
-            </div>
-          </div>
-        </div>
+          <FormInputField
+            id="user-phone"
+            label="Số Điện Thoại Liên Hệ"
+            value={formData.phone}
+            onChange={(e) => {
+              const digitsOnly = e.target.value.replace(/[^0-9]/g, '');
+              setFormData({ ...formData, phone: digitsOnly });
+            }}
+            placeholder="VD: 0948066514"
+            className="font-mono"
+            helperText="Chỉ nhập chữ số 0-9 (từ 9 đến 11 số)"
+          />
+        </FormSectionBlock>
 
         {/* SECTION 3: PHÂN QUYỀN & MẬT KHẨU */}
-        <div className="space-y-3">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-            III. Phân quyền &amp; Mật khẩu khởi tạo
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            <div className="space-y-1">
-              <Label htmlFor="user-role" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                <span>Vai Trò Hệ Thống <span className="text-rose-500 font-bold">*</span></span>
-                {loadingRoles && <span className="text-[11px] font-normal text-slate-400 animate-pulse">Đang tải vai trò từ API...</span>}
-              </Label>
-              <select
-                id="user-role"
-                value={formData.role_name}
-                onChange={(e) => setFormData({ ...formData, role_name: e.target.value })}
-                className="w-full h-9 px-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm outline-none cursor-pointer focus:border-blue-500 font-medium"
-              >
-                {roleOptions.map((r, i) => (
-                  <option key={i} value={r.name}>
-                    {r.display_name}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <FormSectionBlock title="III. Phân quyền & Mật khẩu khởi tạo" columns={2}>
+          <FormSelectField
+            id="user-role"
+            label="Vai Trò Hệ Thống"
+            required
+            value={formData.role_name}
+            onChange={(e) => setFormData({ ...formData, role_name: e.target.value })}
+            helperText={loadingRoles ? 'Đang tải vai trò từ API...' : undefined}
+          >
+            {roleOptions.map((r, i) => (
+              <option key={i} value={r.name}>
+                {r.display_name}
+              </option>
+            ))}
+          </FormSelectField>
 
-            <div className="space-y-1">
-              <Label htmlFor="user-password" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Mật Khẩu Ban Đầu <span className="text-slate-400 font-normal">(để trống sẽ dùng mặc định: Superdong@2026)</span>
-              </Label>
-              <PasswordInput
-                id="user-password"
-                value={formData.password}
-                onChange={(val) => setFormData({ ...formData, password: val })}
-                placeholder="Nhập mật khẩu (VD: Superdong@2026)"
-                showRequirements={true}
-              />
-            </div>
-          </div>
-        </div>
+          <FormField
+            id="user-password"
+            label="Mật Khẩu Ban Đầu"
+            helperText="Để trống sẽ dùng mặc định: Superdong@2026"
+          >
+            <PasswordInput
+              id="user-password"
+              value={formData.password}
+              onChange={(val) => setFormData({ ...formData, password: val })}
+              placeholder="Nhập mật khẩu (VD: Superdong@2026)"
+              showRequirements={true}
+            />
+          </FormField>
+        </FormSectionBlock>
 
         {/* SECTION 4: TRẠNG THÁI & GHI CHÚ */}
-        <div className="space-y-3">
-          <div className="bg-[#EBF7FA] dark:bg-slate-900/80 px-3.5 py-2 rounded-lg text-blue-700 dark:text-blue-400 font-bold text-xs uppercase tracking-wide border border-blue-100 dark:border-slate-800">
-            IV. Trạng thái &amp; Ghi chú
+        <FormSectionBlock title="IV. Trạng thái & Ghi chú" columns={1}>
+          <FormInputField
+            id="user-notes"
+            label="Ghi Chú Bổ Sung"
+            value={formData.notes}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            placeholder="VD: Cán bộ phòng vé Rạch Giá..."
+          />
+
+          <div className="flex items-center gap-2.5 pt-1">
+            <input
+              id="is-active-toggle"
+              type="checkbox"
+              checked={formData.is_active}
+              onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+            <Label htmlFor="is-active-toggle" className="text-xs font-semibold cursor-pointer text-slate-800 dark:text-slate-200">
+              Kích hoạt sử dụng tài khoản ngay lập tức
+            </Label>
           </div>
-          
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Label htmlFor="user-notes" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Ghi chú bổ sung <span className="text-slate-400 font-normal">(tùy chọn)</span>
-              </Label>
-              <Input
-                id="user-notes"
-                type="text"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="VD: Cán bộ phòng vé Rạch Giá..."
-                className="text-sm h-9 rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-              />
-            </div>
+        </FormSectionBlock>
 
-            <div className="flex items-center gap-2.5 pt-1">
-              <input
-                id="is-active-toggle"
-                type="checkbox"
-                checked={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-              />
-              <Label htmlFor="is-active-toggle" className="text-xs font-semibold cursor-pointer text-slate-800 dark:text-slate-200">
-                Kích hoạt sử dụng tài khoản ngay lập tức
-              </Label>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Right Floating Action Bar */}
-        <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-200 dark:border-slate-800">
-          <Button variant="outline" type="button" asChild className="px-5 h-9 text-xs">
-            <Link to={'/users' as any}>Hủy Bỏ</Link>
-          </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={isSubmitting}
-            className="px-6 h-9 text-xs gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg"
-          >
-            {isSubmitting ? (
-              <>
-                <RefreshCw size={14} className="animate-spin" />
-                Đang Tạo...
-              </>
-            ) : (
-              <>
-                <Save size={14} />
-                Tạo tài khoản mới
-              </>
-            )}
-          </Button>
-        </div>
-      </form>
-
-      <UnsavedChangesBar isDirty={isDirty} isSaving={isSubmitting} onSave={() => handleSubmit({ preventDefault: () => {} } as any)} onReset={() => setFormData(formData)} message="Tài khoản chưa được tạo mới" />
+        {/* Master Action Bar */}
+        <AdminFormActionBar
+          mode="create"
+          isSubmitting={isSubmitting}
+          cancelTo="/users"
+          submitLabel="Tạo tài khoản mới"
+          onClear={handleResetForm}
+          clearLabel="Làm sạch dữ liệu"
+        />
+      </AdminFormCard>
     </div>
   );
 }
+

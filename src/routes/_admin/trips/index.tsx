@@ -113,6 +113,14 @@ const statusOptions: FilterOption[] = [
 
 function formatTime(isoStr?: string) {
   if (!isoStr) return '--:--';
+  if (typeof isoStr === 'string') {
+    const match = isoStr.match(/T(\d{2}:\d{2})/);
+    if (match) return match[1];
+    if (isoStr.includes(' ')) {
+      const parts = isoStr.split(' ');
+      if (parts[1]) return parts[1].slice(0, 5);
+    }
+  }
   try {
     const d = new Date(isoStr);
     if (Number.isNaN(d.getTime())) return isoStr.slice(11, 16) || '--:--';
@@ -124,6 +132,12 @@ function formatTime(isoStr?: string) {
 
 function formatDate(isoStr?: string) {
   if (!isoStr) return '';
+  if (typeof isoStr === 'string') {
+    const dateMatch = isoStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (dateMatch) {
+      return `${dateMatch[3]}/${dateMatch[2]}/${dateMatch[1]}`;
+    }
+  }
   try {
     const d = new Date(isoStr);
     if (Number.isNaN(d.getTime())) return isoStr.slice(0, 10);

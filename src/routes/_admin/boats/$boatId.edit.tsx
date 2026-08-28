@@ -13,7 +13,7 @@ import {
   FormSectionBlock,
   FormInputField,
   FormSelectField,
-  AdminFormActionBar,
+  UnsavedChangesBar,
   useFormDirty,
 } from '@/components/common/FormUtilities';
 
@@ -261,16 +261,15 @@ function BoatEditPage() {
           </div>
         </FormSectionBlock>
 
-        {/* Master Form Action Bar with Dirty State */}
-        <AdminFormActionBar
-          mode="edit"
-          isDirty={isDirty}
-          isSubmitting={isSubmitting}
-          cancelTo="/boats"
-          submitLabel="Lưu Thay Đổi"
-          savedLabel="Đã lưu"
-        />
       </AdminFormCard>
+
+      {/* Floating Action Bar for Unsaved Changes */}
+      <UnsavedChangesBar
+        isDirty={isDirty}
+        isSaving={isSubmitting}
+        onSave={handleSubmit}
+        onReset={handleReset}
+      />
     </div>
   );
 }

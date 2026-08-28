@@ -33,7 +33,7 @@ if (!rootElement.innerHTML) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <RouterProvider router={router} />
-        <Toaster richColors position="top-right" closeButton />
+        <Toaster richColors position="top-right" closeButton duration={3000} />
       </ThemeProvider>
     </QueryClientProvider>
   );
