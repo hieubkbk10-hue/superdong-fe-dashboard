@@ -300,8 +300,8 @@ function UsersPage() {
       label: 'VAI TRÒ VẬN HÀNH',
       sortable: true,
       render: (u) => (
-        <span className="inline-flex items-center gap-1 text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
-          <Shield size={12} /> {u.roleName}
+        <span className="inline-flex items-center gap-1 text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-800 whitespace-nowrap shrink-0">
+          <Shield size={12} className="shrink-0" /> {u.roleName}
         </span>
       ),
     },
@@ -311,12 +311,12 @@ function UsersPage() {
       sortable: true,
       render: (u) =>
         u.status === 'active' ? (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-            <CheckCircle2 size={12} /> Hoạt động
+          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 whitespace-nowrap shrink-0">
+            <CheckCircle2 size={12} className="shrink-0" /> Hoạt động
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-800">
-            <XCircle size={12} /> Vô hiệu hóa
+          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-800 whitespace-nowrap shrink-0">
+            <XCircle size={12} className="shrink-0" /> Vô hiệu hóa
           </span>
         ),
     },

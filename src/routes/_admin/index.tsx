@@ -866,10 +866,10 @@ function DashboardOverview() {
                               {t.displayCode}
                             </span>
                             <span
-                              className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${statusInfo.badgeClass}`}
+                              className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${statusInfo.badgeClass}`}
                             >
-                              <StatusIcon size={11} />
-                              {statusInfo.label}
+                              <StatusIcon size={11} className="shrink-0" />
+                              <span className="whitespace-nowrap">{statusInfo.label}</span>
                             </span>
                           </div>
 
@@ -933,16 +933,16 @@ function DashboardOverview() {
         {viewMode === 'table' && (
           <div className="space-y-4">
             <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-              <table className="w-full text-left text-xs">
+              <table className="w-full text-left text-xs min-w-[750px]">
                 <thead className="bg-slate-50 dark:bg-slate-800/70 text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-800">
                   <tr>
-                    <th className="p-3.5">MÃ CHUYẾN</th>
-                    <th className="p-3.5">NGÀY & GIỜ CHẠY</th>
-                    <th className="p-3.5">TUYẾN HẢI TRÌNH</th>
-                    <th className="p-3.5">TÀU PHỤ TRÁCH</th>
-                    <th className="p-3.5">LỊCH MẪU</th>
-                    <th className="p-3.5">TRẠNG THÁI</th>
-                    <th className="p-3.5 text-right">THAO TÁC</th>
+                    <th className="p-3.5 whitespace-nowrap">MÃ CHUYẾN</th>
+                    <th className="p-3.5 whitespace-nowrap">NGÀY & GIỜ CHẠY</th>
+                    <th className="p-3.5 whitespace-nowrap">TUYẾN HẢI TRÌNH</th>
+                    <th className="p-3.5 whitespace-nowrap">TÀU PHỤ TRÁCH</th>
+                    <th className="p-3.5 whitespace-nowrap">LỊCH MẪU</th>
+                    <th className="p-3.5 whitespace-nowrap">TRẠNG THÁI</th>
+                    <th className="p-3.5 text-right whitespace-nowrap">THAO TÁC</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -966,10 +966,10 @@ function DashboardOverview() {
 
                       return (
                         <tr key={t.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                          <td className="p-3.5 font-mono font-bold text-blue-600 dark:text-blue-400">
+                          <td className="p-3.5 font-mono font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
                             {t.displayCode}
                           </td>
-                          <td className="p-3.5">
+                          <td className="p-3.5 whitespace-nowrap">
                             <div className="font-semibold text-slate-900 dark:text-slate-100">
                               {t.datePart ? formatDateDisplay(t.datePart) : 'Chưa có ngày'}
                             </div>
@@ -984,21 +984,21 @@ function DashboardOverview() {
                               )}
                             </div>
                           </td>
-                          <td className="p-3.5 font-medium text-slate-800 dark:text-slate-200">
+                          <td className="p-3.5 font-medium text-slate-800 dark:text-slate-200 whitespace-nowrap">
                             {t.routeName}
                           </td>
-                          <td className="p-3.5 text-slate-700 dark:text-slate-300">
+                          <td className="p-3.5 text-slate-700 dark:text-slate-300 whitespace-nowrap">
                             {t.boatName}
                           </td>
-                          <td className="p-3.5 font-mono text-slate-500 text-[11px]">
+                          <td className="p-3.5 font-mono text-slate-500 text-[11px] whitespace-nowrap">
                             {t.scheduleName || '—'}
                           </td>
-                          <td className="p-3.5">
+                          <td className="p-3.5 whitespace-nowrap">
                             <span
-                              className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${statusInfo.badgeClass}`}
+                              className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${statusInfo.badgeClass}`}
                             >
-                              <StatusIcon size={11} />
-                              {statusInfo.label}
+                              <StatusIcon size={11} className="shrink-0" />
+                              <span className="whitespace-nowrap">{statusInfo.label}</span>
                             </span>
                           </td>
                           <td className="p-3.5 text-right">

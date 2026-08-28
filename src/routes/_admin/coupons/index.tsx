@@ -239,12 +239,12 @@ function CouponsPage() {
       sortable: true,
       render: (c) =>
         c.status === 'active' ? (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-            <CheckCircle2 size={12} /> Đang áp dụng
+          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 whitespace-nowrap shrink-0">
+            <CheckCircle2 size={12} className="shrink-0" /> Đang áp dụng
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-800">
-            <XCircle size={12} /> Tạm ngưng
+          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-800 whitespace-nowrap shrink-0">
+            <XCircle size={12} className="shrink-0" /> Tạm ngưng
           </span>
         ),
     },

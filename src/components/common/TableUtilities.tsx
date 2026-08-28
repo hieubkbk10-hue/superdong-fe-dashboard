@@ -424,6 +424,51 @@ export function useSortableData<T>(items: T[], config: SortConfig) {
 }
 
 /* ==========================================================================
+   5.1 TableStatusBadge - Badge trạng thái chuẩn, chống rớt dòng 100%
+   ========================================================================== */
+export interface TableStatusBadgeProps {
+  label: string;
+  variant?: 'success' | 'danger' | 'warning' | 'info' | 'secondary' | 'neutral' | 'purple';
+  icon?: React.ElementType;
+  className?: string;
+  dotOnly?: boolean;
+}
+
+export const TableStatusBadge: React.FC<TableStatusBadgeProps> = ({
+  label,
+  variant = 'neutral',
+  icon: Icon,
+  className,
+  dotOnly = false,
+}) => {
+  const variantStyles: Record<string, string> = {
+    success: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
+    danger: 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200 dark:border-rose-800',
+    warning: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+    info: 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border-blue-200 dark:border-blue-800',
+    purple: 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200 dark:border-purple-800',
+    secondary: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700',
+    neutral: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700',
+  };
+
+  const currentStyle = variantStyles[variant] || variantStyles.neutral;
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap shrink-0 select-none transition-colors',
+        currentStyle,
+        className
+      )}
+    >
+      {Icon && <Icon size={12} className="shrink-0" />}
+      {!Icon && dotOnly && <span className="h-1.5 w-1.5 rounded-full bg-current shrink-0" />}
+      <span className="whitespace-nowrap">{label}</span>
+    </span>
+  );
+};
+
+/* ==========================================================================
    6. PageHeader - Component Tiêu đề trang, Subtitle & Nút thao tác góc phải
    ========================================================================== */
 export interface PageHeaderProps {
@@ -860,7 +905,7 @@ export function AdminTablePage<T>({
                     <th
                       key={col.key}
                       className={cn(
-                        'p-4 font-semibold text-xs tracking-wider',
+                        'p-4 font-semibold text-xs tracking-wider whitespace-nowrap',
                         isFirst && 'pl-6 pr-4',
                         col.align === 'right' && 'text-right',
                         col.align === 'center' && 'text-center',
@@ -923,7 +968,7 @@ export function AdminTablePage<T>({
                           <td
                             key={`${keyExtractor(item, rowIdx)}-${col.key}`}
                             className={cn(
-                              'p-4 text-xs font-medium',
+                              'p-4 text-xs font-medium whitespace-nowrap',
                               isFirst && 'pl-6 pr-4',
                               col.align === 'right' && 'text-right',
                               col.align === 'center' && 'text-center',
