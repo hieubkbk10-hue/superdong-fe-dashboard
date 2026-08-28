@@ -19,6 +19,7 @@ import {
   MapPin,
   RotateCcw,
   SlidersHorizontal,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -46,6 +47,8 @@ export interface TripsSearch {
   boat_id?: string;
   time?: string;
   hub?: string;
+  schedule_id?: string;
+  month?: string;
 }
 
 export const Route = createFileRoute('/_admin/trips/')({
@@ -59,6 +62,8 @@ export const Route = createFileRoute('/_admin/trips/')({
     if (typeof search?.boat_id === 'string' && search.boat_id !== 'all') result.boat_id = search.boat_id;
     if (typeof search?.time === 'string' && search.time !== 'all') result.time = search.time;
     if (typeof search?.hub === 'string' && search.hub !== 'all') result.hub = search.hub;
+    if (typeof search?.schedule_id === 'string' && search.schedule_id !== 'all') result.schedule_id = search.schedule_id;
+    if (typeof search?.month === 'string' && search.month !== 'all') result.month = search.month;
     return result;
   },
   component: TripsPage,
@@ -67,6 +72,9 @@ export const Route = createFileRoute('/_admin/trips/')({
 export interface TripRowItem {
   id: string;
   code: string;
+  schedule_id?: string | null;
+  schedule_code?: string;
+  schedule_name?: string;
   route_id: string;
   routeName: string;
   boat_id: string;
@@ -192,6 +200,8 @@ function TripsPage() {
   const boatFilter = searchParams.boat_id || 'all';
   const timeFilter = searchParams.time || 'all';
   const hubFilter = searchParams.hub || 'all';
+  const scheduleFilter = searchParams.schedule_id || '';
+  const monthFilter = searchParams.month || '';
 
   const [trips, setTrips] = useState<TripRowItem[]>([]);
   const [routes, setRoutes] = useState<JourneyRoute[]>([]);
@@ -242,6 +252,10 @@ function TripsPage() {
           const endAt = t.end_at || t.arrival_time || '';
           const dateYMD = typeof startAt === 'string' && startAt.length >= 10 ? startAt.slice(0, 10) : '';
 
+          const scheduleId = t.schedule_id ? String(t.schedule_id) : (t.schedule?.id ? String(t.schedule.id) : null);
+          const scheduleCode = t.schedule?.code || (scheduleId ? `SCH-${scheduleId.slice(-4).toUpperCase()}` : '');
+          const scheduleName = t.schedule?.name || '';
+
           // Cache for Edit page
           localStorage.setItem(`superdong_trip_cache_${t.id}`, JSON.stringify({
             ...t,
@@ -252,6 +266,9 @@ function TripsPage() {
           return {
             id: String(t.id),
             code: `TRIP-${String(t.id).slice(0, 6).toUpperCase()}`,
+            schedule_id: scheduleId,
+            schedule_code: scheduleCode,
+            schedule_name: scheduleName,
             route_id: String(t.route_id || route?.id || ''),
             routeName,
             boat_id: String(t.boat_id || boat?.id || ''),
@@ -403,6 +420,8 @@ function TripsPage() {
         delete next.boat_id;
         delete next.time;
         delete next.hub;
+        delete next.schedule_id;
+        delete next.month;
         delete next.page;
         return next;
       },
@@ -431,21 +450,25 @@ function TripsPage() {
     if (boatFilter !== 'all') count += 1;
     if (timeFilter !== 'all') count += 1;
     if (hubFilter !== 'all') count += 1;
+    if (scheduleFilter) count += 1;
+    if (monthFilter) count += 1;
     return count;
-  }, [searchTerm, statusFilter, routeFilter, boatFilter, timeFilter, hubFilter]);
+  }, [searchTerm, statusFilter, routeFilter, boatFilter, timeFilter, hubFilter, scheduleFilter, monthFilter]);
 
   const todayYMD = useMemo(() => getTodayYMD(), []);
 
   const filteredTrips = useMemo(() => {
     return trips.filter((t) => {
-      // 1. Keyword search (matches code, route, boat, departure date text)
+      // 1. Keyword search (matches code, route, boat, departure date text, schedule code/name)
       const keyword = searchTerm.trim().toLowerCase();
       const matchesSearch =
         !keyword ||
         t.code.toLowerCase().includes(keyword) ||
         t.routeName.toLowerCase().includes(keyword) ||
         t.boatName.toLowerCase().includes(keyword) ||
-        t.departureDateText.toLowerCase().includes(keyword);
+        t.departureDateText.toLowerCase().includes(keyword) ||
+        (t.schedule_code && t.schedule_code.toLowerCase().includes(keyword)) ||
+        (t.schedule_name && t.schedule_name.toLowerCase().includes(keyword));
 
       // 2. Status filter
       const matchesStatus = statusFilter === 'all' || t.status === statusFilter;
@@ -476,9 +499,15 @@ function TripsPage() {
         }
       }
 
-      return matchesSearch && matchesStatus && matchesRoute && matchesBoat && matchesTime && matchesHub;
+      // 7. Schedule ID filter (Từ Timeline Matrix hoặc Notification)
+      const matchesSchedule = !scheduleFilter || t.schedule_id === scheduleFilter || t.raw?.schedule_id?.toString() === scheduleFilter;
+
+      // 8. Month filter (Từ Timeline Matrix "2026-08")
+      const matchesMonth = !monthFilter || t.dateYMD.startsWith(monthFilter);
+
+      return matchesSearch && matchesStatus && matchesRoute && matchesBoat && matchesTime && matchesHub && matchesSchedule && matchesMonth;
     });
-  }, [trips, searchTerm, statusFilter, routeFilter, boatFilter, timeFilter, hubFilter, todayYMD]);
+  }, [trips, searchTerm, statusFilter, routeFilter, boatFilter, timeFilter, hubFilter, scheduleFilter, monthFilter, todayYMD]);
 
   const handleExecuteStatusAction = async () => {
     if (!actionTarget) return;
@@ -790,9 +819,41 @@ function TripsPage() {
           </div>
         }
         banner={
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-slate-800/80 text-xs">
-            {/* Hub Quick Pills */}
-            <div className="flex flex-wrap items-center gap-1.5">
+          <div className="space-y-2.5">
+            {(scheduleFilter || monthFilter) && (
+              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 px-3.5 bg-blue-50/90 dark:bg-blue-950/50 rounded-xl border border-blue-200/80 dark:border-blue-800 text-xs text-blue-900 dark:text-blue-200 shadow-2xs">
+                <div className="flex items-center gap-2 font-medium">
+                  <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse shrink-0" />
+                  <span>
+                    Đang xem danh sách chuyến của{' '}
+                    {scheduleFilter && <strong className="font-bold underline">Lịch chạy #{scheduleFilter}</strong>}
+                    {scheduleFilter && monthFilter && ' trong '}
+                    {monthFilter && <strong className="font-bold">Tháng {monthFilter}</strong>}
+                    {' '}(Tìm thấy <strong className="font-extrabold text-blue-700 dark:text-blue-300">{filteredTrips.length}</strong> chuyến khớp)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate({
+                      search: (prev: any) => {
+                        const next = { ...prev };
+                        delete next.schedule_id;
+                        delete next.month;
+                        return next;
+                      },
+                    });
+                  }}
+                  className="text-blue-700 hover:text-blue-900 dark:text-blue-300 font-bold hover:underline cursor-pointer flex items-center gap-1 text-[11px]"
+                >
+                  <X size={13} /> Xem tất cả chuyến tàu
+                </button>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-slate-800/80 text-xs">
+              {/* Hub Quick Pills */}
+              <div className="flex flex-wrap items-center gap-1.5">
               <span className="font-semibold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
                 <MapPin size={13} className="text-blue-500" />
                 Vùng cảng:
@@ -816,16 +877,17 @@ function TripsPage() {
               })}
             </div>
 
-            {/* Quick Stats Summary */}
-            <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
-              <span>
-                Hiển thị: <strong className="text-slate-900 dark:text-slate-100">{filteredTrips.length}</strong> / {trips.length} chuyến
-              </span>
-              <span className="text-slate-300 dark:text-slate-700">|</span>
-              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
-                <CheckCircle2 size={13} />
-                {filteredTrips.filter((t) => t.status === 'selling').length} Đang mở bán
-              </span>
+              {/* Quick Stats Summary */}
+              <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+                <span>
+                  Hiển thị: <strong className="text-slate-900 dark:text-slate-100">{filteredTrips.length}</strong> / {trips.length} chuyến
+                </span>
+                <span className="text-slate-300 dark:text-slate-700">|</span>
+                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                  <CheckCircle2 size={13} />
+                  {filteredTrips.filter((t) => t.status === 'selling').length} Đang mở bán
+                </span>
+              </div>
             </div>
           </div>
         }

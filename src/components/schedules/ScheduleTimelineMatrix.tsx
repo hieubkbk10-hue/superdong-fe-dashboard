@@ -25,6 +25,41 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+
+function formatCellDate(dateStr?: string) {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return dateStr.slice(0, 10);
+    return d.toLocaleDateString('vi-VN', {
+      weekday: 'short',
+      day: '2-digit',
+      month: '2-digit',
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
+function formatCellTime(dateStr?: string) {
+  if (!dateStr) return '--:--';
+  if (dateStr.includes('T')) {
+    const match = dateStr.match(/T(\d{2}:\d{2})/);
+    if (match) return match[1];
+  }
+  if (dateStr.includes(' ')) {
+    const parts = dateStr.split(' ');
+    if (parts[1]) return parts[1].slice(0, 5);
+  }
+  try {
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return dateStr.slice(11, 16) || '--:--';
+    return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '--:--';
+  }
+}
 
 export type MonthInfo = {
   year: number;
@@ -266,6 +301,25 @@ export function ScheduleTimelineMatrix({
     return monthlyStats.find((m) => !m.isPast && m.totalActual === 0);
   }, [monthlyStats]);
 
+  // Trips belonging to the cell currently inspected
+  const inspectingTrips = useMemo(() => {
+    if (!inspectCell) return [];
+    const schId = String(inspectCell.schedule.id);
+    const monthKey = inspectCell.month.key; // e.g. "2026-08"
+
+    return allTrips
+      .filter((t: any) => {
+        const tSchId = t.schedule_id ? String(t.schedule_id) : (t.schedule?.id ? String(t.schedule.id) : '');
+        const timeStr = t.start_at || t.departure_time || '';
+        return tSchId === schId && timeStr.startsWith(monthKey);
+      })
+      .sort((a: any, b: any) => {
+        const timeA = a.start_at || a.departure_time || '';
+        const timeB = b.start_at || b.departure_time || '';
+        return timeA.localeCompare(timeB);
+      });
+  }, [inspectCell, allTrips]);
+
   // Bulk Generator Handler
   const handleOpenBulkGenerate = (month: MonthInfo) => {
     setBulkMonthTarget(month);
@@ -313,7 +367,20 @@ export function ScheduleTimelineMatrix({
     setBulkMonthTarget(null);
 
     toast.success(
-      `Đã tạo thành công ${totalTripsCreated} chuyến mới cho ${bulkMonthTarget.label}`
+      `Đã tạo thành công ${totalTripsCreated} chuyến mới cho ${bulkMonthTarget.label}`,
+      {
+        duration: 6000,
+        action: {
+          label: 'Xem các chuyến này',
+          onClick: () =>
+            navigate({
+              to: '/trips' as any,
+              search: {
+                month: bulkMonthTarget.key,
+              } as any,
+            }),
+        },
+      }
     );
 
     await onRefresh();
@@ -732,35 +799,92 @@ export function ScheduleTimelineMatrix({
       {/* 6. MODAL: CELL INSPECTOR */}
       {inspectCell && (
         <Dialog open onOpenChange={(open) => !open && setInspectCell(null)}>
-          <DialogContent className="sm:max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xl font-sans">
+          <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xl font-sans">
             <DialogHeader className="space-y-1 pb-1">
-              <DialogTitle className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                <Check size={15} className="text-emerald-600" />
-                <span>{inspectCell.schedule.code} — {inspectCell.month.label}</span>
+              <DialogTitle className="text-sm font-bold text-slate-900 dark:text-white flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Check size={16} className="text-emerald-600 shrink-0" />
+                  <span>{inspectCell.schedule.code} — {inspectCell.month.label}</span>
+                </span>
+                <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shrink-0">
+                  {inspectCell.actualDays} chuyến
+                </span>
               </DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-2.5 py-1 text-xs">
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700 space-y-1">
+            <div className="space-y-3 py-1 text-xs">
+              {/* Summary Box */}
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500">Tuyến & Giờ:</span>
-                  <span className="font-bold text-slate-900">
+                  <span className="font-bold text-slate-900 dark:text-white">
                     {inspectCell.schedule.journey} ({inspectCell.schedule.departureTime})
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Tàu:</span>
-                  <span className="font-semibold text-slate-800">{inspectCell.schedule.boatName}</span>
+                  <span className="text-slate-500">Tàu phân công:</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                    <Ship size={12} className="text-blue-600" />
+                    {inspectCell.schedule.boatName}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Số chuyến:</span>
-                  <span className="font-bold text-emerald-600 font-mono">
-                    {inspectCell.actualDays} chuyến
+                  <span className="text-slate-500">Tần suất lịch:</span>
+                  <span className="text-slate-700 dark:text-slate-300 font-medium">
+                    {inspectCell.schedule.operatingDays}
                   </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-0.5">
+              {/* Trips List Preview inside Cell */}
+              {inspectingTrips.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                    <span>Danh sách chuyến thực tế ({inspectingTrips.length} chuyến):</span>
+                  </div>
+                  <div className="max-h-44 overflow-y-auto space-y-1 pr-1">
+                    {inspectingTrips.map((t: any, idx: number) => {
+                      const timeStr = t.start_at || t.departure_time || '';
+                      const dateDisplay = formatCellDate(timeStr);
+                      const timeDisplay = formatCellTime(timeStr);
+                      const tripCode = `TRIP-${String(t.id).slice(0, 6).toUpperCase()}`;
+                      const isSelling = t.status === 'selling' || t.status === 'open';
+
+                      return (
+                        <div
+                          key={t.id || idx}
+                          className="flex items-center justify-between p-2 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/70 text-xs"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-blue-600 dark:text-blue-400 text-[11px]">
+                              {tripCode}
+                            </span>
+                            <span className="text-slate-800 dark:text-slate-200 font-semibold">
+                              {dateDisplay}
+                            </span>
+                            <span className="font-mono text-slate-500 text-[11px]">
+                              {timeDisplay}
+                            </span>
+                          </div>
+                          <span
+                            className={cn(
+                              'px-2 py-0.5 rounded-full text-[10px] font-semibold border whitespace-nowrap shrink-0',
+                              isSelling
+                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                                : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                            )}
+                          >
+                            {isSelling ? 'Đang mở bán' : (t.status || 'Bản nháp')}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
                 <Button
                   type="button"
                   variant="light"
@@ -773,27 +897,36 @@ export function ScheduleTimelineMatrix({
                       inspectCell.month.endDateStr
                     );
                   }}
-                  className="w-full font-bold h-8 text-blue-600 bg-blue-50 border-blue-200"
+                  className="w-full font-bold h-9 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 dark:border-blue-800"
                 >
-                  <Plus size={12} className="mr-0.5" /> Sinh thêm
+                  <Plus size={13} className="mr-0.5" /> Sinh thêm
                 </Button>
 
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="primary"
                   size="xs"
                   onClick={() => {
+                    const schId = String(inspectCell.schedule.id);
+                    const monthKey = inspectCell.month.key;
                     setInspectCell(null);
-                    navigate({ to: '/trips' as any });
+                    navigate({
+                      to: '/trips' as any,
+                      search: {
+                        schedule_id: schId,
+                        month: monthKey,
+                        search: inspectCell.schedule.code,
+                      } as any,
+                    });
                   }}
-                  className="w-full font-semibold h-8 flex items-center justify-center gap-1"
+                  className="w-full font-bold h-9 flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
                 >
-                  <ExternalLink size={12} /> Xem chuyến
+                  <ExternalLink size={13} /> Xem trên QL Chuyến
                 </Button>
               </div>
             </div>
 
-            <DialogFooter className="pt-1.5 border-t border-slate-100">
+            <DialogFooter className="pt-1.5 border-t border-slate-100 dark:border-slate-800">
               <Button type="button" variant="light" size="xs" onClick={() => setInspectCell(null)} className="w-full">
                 Đóng
               </Button>

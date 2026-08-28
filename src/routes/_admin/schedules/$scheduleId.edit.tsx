@@ -149,6 +149,7 @@ function getFutureDateString(daysAhead: number) {
 
 function ScheduleEditPage() {
   const { scheduleId } = Route.useParams();
+  const navigate = useNavigate();
   const cacheKey = `superdong_schedule_cache_${scheduleId}`;
 
   const [initialData, setInitialData] = useState<ScheduleFormData | null>(null);
@@ -341,7 +342,23 @@ function ScheduleEditPage() {
       const created = summary?.created_count ?? 0;
       const skipped = summary?.skipped_count ?? 0;
 
-      toast.success(`Đã tạo thành công ${created} chuyến thực tế mới (Bỏ qua ${skipped} chuyến đã tồn tại).`);
+      toast.success(
+        `Đã tạo thành công ${created} chuyến thực tế mới (Bỏ qua ${skipped} chuyến đã tồn tại).`,
+        {
+          duration: 6000,
+          action: {
+            label: 'Xem các chuyến này',
+            onClick: () =>
+              navigate({
+                to: '/trips' as any,
+                search: {
+                  schedule_id: String(scheduleId),
+                  search: scheduleCode || formData.name,
+                } as any,
+              }),
+          },
+        }
+      );
       setOpenGenerateModal(false);
       await hydrateSchedule();
     } catch (err: any) {

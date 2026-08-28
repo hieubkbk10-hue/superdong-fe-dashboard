@@ -468,13 +468,21 @@ function SchedulesPage() {
       const created = summary?.created_count ?? 0;
       const skipped = summary?.skipped_count ?? 0;
 
+      const targetSch = generateTarget;
       toast.success(
         `Đã tạo thành công ${created} chuyến tàu thực tế (${skipped} chuyến đã tồn tại trước đó).`,
         {
-          duration: 5000,
+          duration: 6000,
           action: {
-            label: 'Xem chuyến tàu',
-            onClick: () => navigate({ to: '/trips' as any }),
+            label: 'Xem các chuyến này',
+            onClick: () =>
+              navigate({
+                to: '/trips' as any,
+                search: {
+                  schedule_id: String(targetSch.id),
+                  search: targetSch.code,
+                } as any,
+              }),
           },
         }
       );
