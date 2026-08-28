@@ -332,11 +332,15 @@ function SchedulesPage() {
   };
 
   const handleOpenGenerateForMonth = (sch: ScheduleItem, fromDateStr: string, toDateStr: string) => {
+    const todayStr = getTodayString();
+    // LOGIC: Nếu sinh chuyến cho tháng hiện tại (có ngày trong quá khứ),
+    // tự động lấy mốc bắt đầu là Ngày hôm nay để tránh sinh chuyến trong quá khứ
+    const effectiveFromDate = fromDateStr < todayStr ? todayStr : fromDateStr;
     setGenerateTarget(sch);
-    setFromDate(fromDateStr);
+    setFromDate(effectiveFromDate);
     setToDate(toDateStr);
     setPublishImmediate(true);
-    setGenerateReason(`Khởi tạo chuyến định kỳ tháng từ ${fromDateStr} đến ${toDateStr} cho lịch ${sch.code}`);
+    setGenerateReason(`Khởi tạo chuyến định kỳ tháng từ ${effectiveFromDate} đến ${toDateStr} cho lịch ${sch.code}`);
   };
 
   const handleExecuteGenerateTrips = async () => {
@@ -640,21 +644,30 @@ function SchedulesPage() {
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={() => setToDate(getFutureDateString(7))}
+                      onClick={() => {
+                        setFromDate(getTodayString());
+                        setToDate(getFutureDateString(7));
+                      }}
                       className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     >
                       +7 ngày
                     </button>
                     <button
                       type="button"
-                      onClick={() => setToDate(getFutureDateString(14))}
+                      onClick={() => {
+                        setFromDate(getTodayString());
+                        setToDate(getFutureDateString(14));
+                      }}
                       className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     >
                       +14 ngày
                     </button>
                     <button
                       type="button"
-                      onClick={() => setToDate(getFutureDateString(30))}
+                      onClick={() => {
+                        setFromDate(getTodayString());
+                        setToDate(getFutureDateString(30));
+                      }}
                       className="px-2.5 py-1 text-xs font-medium rounded-lg border border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 font-semibold"
                     >
                       +30 ngày
@@ -671,6 +684,7 @@ function SchedulesPage() {
                       id="from_date"
                       type="date"
                       value={fromDate}
+                      min={getTodayString()}
                       onChange={(e) => setFromDate(e.target.value)}
                       className="h-10 text-sm rounded-lg"
                     />
@@ -683,6 +697,7 @@ function SchedulesPage() {
                       id="to_date"
                       type="date"
                       value={toDate}
+                      min={fromDate || getTodayString()}
                       onChange={(e) => setToDate(e.target.value)}
                       className="h-10 text-sm rounded-lg"
                     />

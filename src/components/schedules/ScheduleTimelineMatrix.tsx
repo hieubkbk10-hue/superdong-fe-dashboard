@@ -292,8 +292,12 @@ export function ScheduleTimelineMatrix({
       setBulkProgress({ current: i + 1, total: bulkSelectedIds.length });
 
       try {
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const effectiveFromDate = bulkMonthTarget.startDateStr < todayStr ? todayStr : bulkMonthTarget.startDateStr;
+
         const res = await generateTripsFromSchedule(schId, {
-          from_date: bulkMonthTarget.startDateStr,
+          from_date: effectiveFromDate,
           to_date: bulkMonthTarget.endDateStr,
           publish: bulkPublish,
           reason: bulkReason.trim() || `Sinh chuyến ${bulkMonthTarget.label}`,
