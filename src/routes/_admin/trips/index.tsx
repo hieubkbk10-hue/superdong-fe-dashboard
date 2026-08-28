@@ -15,6 +15,10 @@ import {
   AlertTriangle,
   RefreshCw,
   Sparkles,
+  Calendar,
+  MapPin,
+  RotateCcw,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -32,20 +36,29 @@ import { getBoats } from '@/apis/boats';
 import { Trip, TripStatus, Boat, Route as JourneyRoute } from '@/types';
 import { Button } from '@/components/common/Button';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
-import { AdminTablePage, ColumnDef, FilterOption } from '@/components/common/TableUtilities';
+import { AdminTablePage, ColumnDef, FilterOption, FilterSelect } from '@/components/common/TableUtilities';
 
 export interface TripsSearch {
   page?: number;
   search?: string;
   status?: string;
+  route_id?: string;
+  boat_id?: string;
+  time?: string;
+  hub?: string;
 }
 
 export const Route = createFileRoute('/_admin/trips/')({
   validateSearch: (search: Record<string, unknown>): TripsSearch => {
     const result: TripsSearch = {};
     if (Number(search?.page) > 1) result.page = Number(search.page);
-    if (typeof search?.search === 'string' && search.search.trim()) result.search = search.search.trim();
+    // LOGIC: Giữ nguyên chuỗi tìm kiếm (kể cả dấu cách khi đang gõ "Côn Đảo")
+    if (typeof search?.search === 'string') result.search = search.search;
     if (typeof search?.status === 'string' && search.status !== 'all') result.status = search.status;
+    if (typeof search?.route_id === 'string' && search.route_id !== 'all') result.route_id = search.route_id;
+    if (typeof search?.boat_id === 'string' && search.boat_id !== 'all') result.boat_id = search.boat_id;
+    if (typeof search?.time === 'string' && search.time !== 'all') result.time = search.time;
+    if (typeof search?.hub === 'string' && search.hub !== 'all') result.hub = search.hub;
     return result;
   },
   component: TripsPage,
@@ -62,6 +75,7 @@ export interface TripRowItem {
   end_at: string;
   departureTimeText: string;
   departureDateText: string;
+  dateYMD: string;
   status: TripStatus;
   version: number;
   shuttle_phone?: string | null;
@@ -103,12 +117,27 @@ const STATUS_LABELS: Record<string, { label: string; colorClass: string; icon: a
 
 const statusOptions: FilterOption[] = [
   { value: 'all', label: 'Tất cả trạng thái' },
-  { value: 'draft', label: 'Bản nháp' },
   { value: 'selling', label: 'Đang mở bán' },
+  { value: 'draft', label: 'Bản nháp' },
   { value: 'closed', label: 'Đã khóa sổ' },
   { value: 'started', label: 'Đã xuất bến' },
   { value: 'completed', label: 'Hoàn thành' },
-  { value: 'cancelled', label: 'Đã hủy' },
+  { value: 'cancelled', label: 'Đã hủy chuyến' },
+];
+
+const timeOptions: FilterOption[] = [
+  { value: 'all', label: 'Tất cả thời gian' },
+  { value: 'today', label: 'Khởi hành hôm nay' },
+  { value: 'upcoming', label: 'Chuyến sắp tới (từ hôm nay)' },
+  { value: 'past', label: 'Chuyến trong quá khứ' },
+];
+
+const HUBS = [
+  { key: 'all', label: 'Tất cả vùng' },
+  { key: 'phu-quoc', label: 'Phú Quốc', keywords: ['phú quốc', 'hà tiên', 'rạch giá'] },
+  { key: 'con-dao', label: 'Côn Đảo', keywords: ['côn đảo', 'sóc trăng', 'trần đề', 'vũng tàu'] },
+  { key: 'nam-du', label: 'Nam Du', keywords: ['nam du'] },
+  { key: 'phu-quy', label: 'Phú Quý', keywords: ['phú quý', 'phan thiết'] },
 ];
 
 function formatTime(isoStr?: string) {
@@ -147,6 +176,11 @@ function formatDate(isoStr?: string) {
   }
 }
 
+function getTodayYMD(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
 function TripsPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const searchParams = Route.useSearch();
@@ -154,8 +188,14 @@ function TripsPage() {
   const currentPage = searchParams.page || 1;
   const searchTerm = searchParams.search || '';
   const statusFilter = searchParams.status || 'all';
+  const routeFilter = searchParams.route_id || 'all';
+  const boatFilter = searchParams.boat_id || 'all';
+  const timeFilter = searchParams.time || 'all';
+  const hubFilter = searchParams.hub || 'all';
 
   const [trips, setTrips] = useState<TripRowItem[]>([]);
+  const [routes, setRoutes] = useState<JourneyRoute[]>([]);
+  const [boats, setBoats] = useState<Boat[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -178,15 +218,20 @@ function TripsPage() {
         getBoats({ limit: 100 }),
       ]);
 
+      const rawRoutes = routesRes?.data || [];
+      const rawBoats = boatsRes?.data || [];
+      setRoutes(rawRoutes);
+      setBoats(rawBoats);
+
       const routesMap = new Map<string, JourneyRoute>(
-        (routesRes?.data || []).map((r: any) => [String(r.id), r])
+        rawRoutes.map((r: any) => [String(r.id), r])
       );
       const boatsMap = new Map<string, Boat>(
-        (boatsRes?.data || []).map((b: any) => [String(b.id), b])
+        rawBoats.map((b: any) => [String(b.id), b])
       );
 
       if (tripsRes && tripsRes.data && Array.isArray(tripsRes.data)) {
-        const mapped: TripRowItem[] = tripsRes.data.map((t: any, idx: number) => {
+        const mapped: TripRowItem[] = tripsRes.data.map((t: any) => {
           const route = t.route || (t.route_id ? routesMap.get(String(t.route_id)) : null);
           const boat = t.boat || (t.boat_id ? boatsMap.get(String(t.boat_id)) : null);
 
@@ -195,6 +240,7 @@ function TripsPage() {
 
           const startAt = t.start_at || t.departure_time || '';
           const endAt = t.end_at || t.arrival_time || '';
+          const dateYMD = typeof startAt === 'string' && startAt.length >= 10 ? startAt.slice(0, 10) : '';
 
           // Cache for Edit page
           localStorage.setItem(`superdong_trip_cache_${t.id}`, JSON.stringify({
@@ -206,14 +252,15 @@ function TripsPage() {
           return {
             id: String(t.id),
             code: `TRIP-${String(t.id).slice(0, 6).toUpperCase()}`,
-            route_id: String(t.route_id || ''),
+            route_id: String(t.route_id || route?.id || ''),
             routeName,
-            boat_id: String(t.boat_id || ''),
+            boat_id: String(t.boat_id || boat?.id || ''),
             boatName,
             start_at: startAt,
             end_at: endAt,
             departureTimeText: `${formatTime(startAt)} - ${formatTime(endAt)}`,
             departureDateText: formatDate(startAt),
+            dateYMD,
             status: (t.status || 'draft') as TripStatus,
             version: typeof t.version === 'number' ? t.version : 1,
             shuttle_phone: t.shuttle_phone,
@@ -238,12 +285,30 @@ function TripsPage() {
     fetchTripsData();
   }, []);
 
+  // Dropdown Options
+  const routeOptions: FilterOption[] = useMemo(() => [
+    { value: 'all', label: 'Tất cả tuyến hải trình' },
+    ...routes.map((r) => ({
+      value: String(r.id),
+      label: r.name ? (r.code ? `${r.name} (${r.code})` : r.name) : `Tuyến ${r.code || r.id}`,
+    })),
+  ], [routes]);
+
+  const boatOptions: FilterOption[] = useMemo(() => [
+    { value: 'all', label: 'Tất cả tàu vận hành' },
+    ...boats.map((b) => ({
+      value: String(b.id),
+      label: b.name ? (b.code ? `${b.name} (${b.code})` : b.name) : 'Tàu Superdong',
+    })),
+  ], [boats]);
+
+  // Handlers with URL State Sync (NO trim to allow typing spaces freely)
   const handleSearchChange = (value: string) => {
     navigate({
       search: (prev: any) => {
         const next: any = { ...prev };
-        if (value && value.trim()) {
-          next.search = value.trim();
+        if (value) {
+          next.search = value;
         } else {
           delete next.search;
         }
@@ -268,6 +333,82 @@ function TripsPage() {
     });
   };
 
+  const handleRouteFilterChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value !== 'all') {
+          next.route_id = value;
+        } else {
+          delete next.route_id;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handleBoatFilterChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value !== 'all') {
+          next.boat_id = value;
+        } else {
+          delete next.boat_id;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handleTimeFilterChange = (value: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (value && value !== 'all') {
+          next.time = value;
+        } else {
+          delete next.time;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handleHubFilterChange = (hubKey: string) => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        if (hubKey && hubKey !== 'all') {
+          next.hub = hubKey;
+        } else {
+          delete next.hub;
+        }
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
+  const handleResetFilters = () => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        delete next.search;
+        delete next.status;
+        delete next.route_id;
+        delete next.boat_id;
+        delete next.time;
+        delete next.hub;
+        delete next.page;
+        return next;
+      },
+    });
+  };
+
   const handlePageChange = (page: number) => {
     navigate({
       search: (prev: any) => {
@@ -282,19 +423,62 @@ function TripsPage() {
     });
   };
 
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (searchTerm.trim()) count += 1;
+    if (statusFilter !== 'all') count += 1;
+    if (routeFilter !== 'all') count += 1;
+    if (boatFilter !== 'all') count += 1;
+    if (timeFilter !== 'all') count += 1;
+    if (hubFilter !== 'all') count += 1;
+    return count;
+  }, [searchTerm, statusFilter, routeFilter, boatFilter, timeFilter, hubFilter]);
+
+  const todayYMD = useMemo(() => getTodayYMD(), []);
+
   const filteredTrips = useMemo(() => {
     return trips.filter((t) => {
+      // 1. Keyword search (matches code, route, boat, departure date text)
       const keyword = searchTerm.trim().toLowerCase();
       const matchesSearch =
         !keyword ||
         t.code.toLowerCase().includes(keyword) ||
         t.routeName.toLowerCase().includes(keyword) ||
-        t.boatName.toLowerCase().includes(keyword);
+        t.boatName.toLowerCase().includes(keyword) ||
+        t.departureDateText.toLowerCase().includes(keyword);
 
+      // 2. Status filter
       const matchesStatus = statusFilter === 'all' || t.status === statusFilter;
-      return matchesSearch && matchesStatus;
+
+      // 3. Route filter
+      const matchesRoute = routeFilter === 'all' || t.route_id === routeFilter;
+
+      // 4. Boat filter
+      const matchesBoat = boatFilter === 'all' || t.boat_id === boatFilter;
+
+      // 5. Time filter
+      let matchesTime = true;
+      if (timeFilter === 'today') {
+        matchesTime = t.dateYMD === todayYMD;
+      } else if (timeFilter === 'upcoming') {
+        matchesTime = t.dateYMD >= todayYMD;
+      } else if (timeFilter === 'past') {
+        matchesTime = t.dateYMD < todayYMD;
+      }
+
+      // 6. Hub Region filter
+      let matchesHub = true;
+      if (hubFilter !== 'all') {
+        const hubConfig = HUBS.find((h) => h.key === hubFilter);
+        if (hubConfig && hubConfig.keywords) {
+          const routeLower = t.routeName.toLowerCase();
+          matchesHub = hubConfig.keywords.some((kw) => routeLower.includes(kw));
+        }
+      }
+
+      return matchesSearch && matchesStatus && matchesRoute && matchesBoat && matchesTime && matchesHub;
     });
-  }, [trips, searchTerm, statusFilter]);
+  }, [trips, searchTerm, statusFilter, routeFilter, boatFilter, timeFilter, hubFilter, todayYMD]);
 
   const handleExecuteStatusAction = async () => {
     if (!actionTarget) return;
@@ -351,25 +535,23 @@ function TripsPage() {
     }
   };
 
-  const statusOptions = [
-    { value: 'all', label: 'Tất cả trạng thái' },
-    { value: 'draft', label: 'Bản nháp' },
-    { value: 'selling', label: 'Đang mở bán' },
-    { value: 'closed', label: 'Đã khóa sổ' },
-    { value: 'started', label: 'Đã xuất bến' },
-    { value: 'completed', label: 'Hoàn thành' },
-    { value: 'cancelled', label: 'Đã hủy' },
-  ];
-
   const columns: ColumnDef<TripRowItem>[] = [
     {
       key: 'code',
       label: 'MÃ CHUYẾN',
       sortable: true,
       render: (t) => (
-        <span className="inline-flex items-center px-2 py-0.5 rounded font-mono font-bold text-xs bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-slate-700 whitespace-nowrap">
-          {t.code}
-        </span>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xs">
+            <Ship size={15} />
+          </div>
+          <div>
+            <span className="font-mono font-bold text-slate-900 dark:text-slate-100 text-xs">
+              {t.code}
+            </span>
+            <div className="text-[11px] text-slate-400 font-mono">ID: {t.id}</div>
+          </div>
+        </div>
       ),
     },
     {
@@ -378,37 +560,41 @@ function TripsPage() {
       sortable: true,
       render: (t) => (
         <div>
-          <p className="font-bold text-slate-900 dark:text-white whitespace-nowrap">{t.routeName}</p>
-          {t.shuttle_phone && (
-            <p className="text-[11px] text-slate-500">Xe đón: {t.shuttle_phone}</p>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'boatName',
-      label: 'TÀU ĐẢM NHẬN',
-      sortable: true,
-      render: (t) => (
-        <span className="text-slate-800 dark:text-slate-200 font-bold flex items-center gap-1.5 whitespace-nowrap">
-          <Ship size={15} className="text-blue-600 dark:text-blue-400 shrink-0" />
-          {t.boatName}
-        </span>
-      ),
-    },
-    {
-      key: 'departureTimeText',
-      label: 'GIỜ CHẠY / NGÀY',
-      sortable: true,
-      render: (t) => (
-        <div>
-          <span className="font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5 whitespace-nowrap font-mono text-xs">
-            <Clock size={14} className="shrink-0" />
-            {t.departureTimeText}
+          <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">
+            {t.routeName}
           </span>
-          <span className="text-xs text-slate-500 font-mono">{t.departureDateText}</span>
+          <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
+            <Ship size={12} className="text-slate-400" />
+            <span className="font-medium text-slate-700 dark:text-slate-300">{t.boatName}</span>
+          </div>
         </div>
       ),
+    },
+    {
+      key: 'departureDateText',
+      label: 'NGÀY KHỞI HÀNH',
+      sortable: true,
+      render: (t) => {
+        const isToday = t.dateYMD === todayYMD;
+        const isUpcoming = t.dateYMD > todayYMD;
+        return (
+          <div>
+            <div className="flex items-center gap-1.5 font-medium text-slate-800 dark:text-slate-200 text-xs sm:text-sm">
+              <Calendar size={13} className="text-blue-500" />
+              <span>{t.departureDateText}</span>
+              {isToday && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                  Hôm nay
+                </span>
+              )}
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
+              <Clock size={12} className="text-slate-400" />
+              <span className="font-semibold text-blue-600 dark:text-blue-400">{t.departureTimeText}</span>
+            </div>
+          </div>
+        );
+      },
     },
     {
       key: 'status',
@@ -556,10 +742,93 @@ function TripsPage() {
         apiError={apiError}
         searchValue={searchTerm}
         onSearchChange={handleSearchChange}
-        searchPlaceholder="Tìm theo mã chuyến (TRIP-...), tuyến hoặc tàu..."
+        searchPlaceholder="Tìm theo mã (TRIP-...), tuyến (Côn Đảo...), tàu, ngày..."
         filterValue={statusFilter}
         onFilterChange={handleStatusFilterChange}
         filterOptions={statusOptions}
+        extraFilters={
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Route Filter */}
+            <FilterSelect
+              value={routeFilter}
+              onChange={handleRouteFilterChange}
+              options={routeOptions}
+              placeholder="Tất cả tuyến hải trình"
+              itemTypeLabel="tuyến"
+            />
+
+            {/* Boat Filter */}
+            <FilterSelect
+              value={boatFilter}
+              onChange={handleBoatFilterChange}
+              options={boatOptions}
+              placeholder="Tất cả tàu vận hành"
+              itemTypeLabel="tàu"
+            />
+
+            {/* Time Filter */}
+            <FilterSelect
+              value={timeFilter}
+              onChange={handleTimeFilterChange}
+              options={timeOptions}
+              placeholder="Tất cả thời gian"
+            />
+
+            {/* Clear Filters Button */}
+            {activeFilterCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResetFilters}
+                className="h-9 px-2.5 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 dark:border-rose-800 gap-1"
+                title="Xóa toàn bộ bộ lọc"
+              >
+                <RotateCcw size={13} />
+                <span>Xóa lọc ({activeFilterCount})</span>
+              </Button>
+            )}
+          </div>
+        }
+        banner={
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-slate-800/80 text-xs">
+            {/* Hub Quick Pills */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="font-semibold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
+                <MapPin size={13} className="text-blue-500" />
+                Vùng cảng:
+              </span>
+              {HUBS.map((h) => {
+                const isActive = hubFilter === h.key;
+                return (
+                  <button
+                    key={h.key}
+                    type="button"
+                    onClick={() => handleHubFilterChange(h.key)}
+                    className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                        : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    {h.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Quick Stats Summary */}
+            <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+              <span>
+                Hiển thị: <strong className="text-slate-900 dark:text-slate-100">{filteredTrips.length}</strong> / {trips.length} chuyến
+              </span>
+              <span className="text-slate-300 dark:text-slate-700">|</span>
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                <CheckCircle2 size={13} />
+                {filteredTrips.filter((t) => t.status === 'selling').length} Đang mở bán
+              </span>
+            </div>
+          </div>
+        }
         columns={columns}
         columnStorageKey="superdong_trips_columns"
         onRefresh={fetchTripsData}

@@ -608,6 +608,7 @@ export interface AdminTablePageProps<T> {
   filterValue?: string;
   onFilterChange?: (value: string) => void;
   filterOptions?: FilterOption[];
+  extraFilters?: React.ReactNode;
 
   // Column Toggle
   columns: ColumnDef<T>[];
@@ -647,6 +648,7 @@ export function AdminTablePage<T>({
   filterValue,
   onFilterChange,
   filterOptions,
+  extraFilters,
   columns,
   columnStorageKey,
   onRefresh,
@@ -803,7 +805,9 @@ export function AdminTablePage<T>({
         visibleColumns={visibleColumns}
         onColumnToggle={handleColumnToggle}
         onColumnReset={handleColumnReset}
-      />
+      >
+        {extraFilters}
+      </TableToolbar>
 
       {/* Data Table Container - Enterprise Crisp Rounded-XL */}
       <div className="rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">

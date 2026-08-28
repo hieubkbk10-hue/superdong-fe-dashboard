@@ -14,6 +14,13 @@ import {
   CalendarDays,
   Layers,
   ArrowRight,
+  ArrowLeft,
+  Sparkles,
+  Check,
+  AlertCircle,
+  CalendarRange,
+  ListFilter,
+  CheckCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -46,7 +53,8 @@ export const Route = createFileRoute('/_admin/schedules/')({
   validateSearch: (search: Record<string, unknown>): SchedulesSearch => {
     const result: SchedulesSearch = {};
     if (Number(search?.page) > 1) result.page = Number(search.page);
-    if (typeof search?.search === 'string' && search.search.trim()) result.search = search.search.trim();
+    // LOGIC: Giữ nguyên chuỗi tìm kiếm (kể cả dấu cách)
+    if (typeof search?.search === 'string') result.search = search.search;
     if (typeof search?.status === 'string' && search.status !== 'all') result.status = search.status;
     if (search?.view === 'table' || search?.view === 'matrix') result.view = search.view;
     return result;
@@ -64,6 +72,16 @@ export interface ScheduleItem {
   operatingDays: string;
   status: 'active' | 'inactive';
   activeTripsCount: number;
+}
+
+export interface TripPreviewItem {
+  dateYMD: string;
+  formattedDate: string;
+  dayOfWeekText: string;
+  isDuplicate: boolean;
+  timeRange: string;
+  boatName: string;
+  routeName: string;
 }
 
 const formatDaysOfWeek = (days: any[]): string => {
@@ -92,15 +110,54 @@ const formatDaysOfWeek = (days: any[]): string => {
   return `Thứ ${mapped.join(', ')}`;
 };
 
+function parseTargetDaysOfWeek(days: any[]): number[] {
+  if (!Array.isArray(days) || days.length === 0) return [0, 1, 2, 3, 4, 5, 6];
+  const map: Record<string, number> = {
+    sun: 0, sunday: 0, cn: 0, '0': 0, '7': 0,
+    mon: 1, monday: 1, t2: 1, '1': 1,
+    tue: 2, tuesday: 2, t3: 2, '2': 2,
+    wed: 3, wednesday: 3, t4: 3, '3': 3,
+    thu: 4, thursday: 4, t5: 4, '4': 4,
+    fri: 5, friday: 5, t6: 5, '5': 5,
+    sat: 6, saturday: 6, t7: 6, '6': 6,
+  };
+  return days
+    .map((d) => map[String(d).toLowerCase()] ?? -1)
+    .filter((n) => n >= 0 && n <= 6);
+}
+
+function getDayOfWeekLabel(dayIdx: number): string {
+  const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+  return days[dayIdx] || '';
+}
+
 function getTodayString() {
   const now = new Date();
-  return now.toISOString().split('T')[0];
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
 function getFutureDateString(daysAhead: number) {
   const now = new Date();
   now.setDate(now.getDate() + daysAhead);
-  return now.toISOString().split('T')[0];
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+function getEndOfMonthString(date = new Date()): string {
+  const y = date.getFullYear();
+  const m = date.getMonth();
+  const lastDay = new Date(y, m + 1, 0).getDate();
+  return `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+}
+
+function getFirstOfNextMonthString(date = new Date()): string {
+  const y = date.getMonth() === 11 ? date.getFullYear() + 1 : date.getFullYear();
+  const m = date.getMonth() === 11 ? 1 : date.getMonth() + 2;
+  return `${y}-${String(m).padStart(2, '0')}-01`;
+}
+
+function getEndOfNextMonthString(date = new Date()): string {
+  const nextMonthDate = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+  return getEndOfMonthString(nextMonthDate);
 }
 
 function SchedulesPage() {
@@ -123,6 +180,7 @@ function SchedulesPage() {
 
   // Generate Trips Modal State
   const [generateTarget, setGenerateTarget] = useState<ScheduleItem | null>(null);
+  const [generateStep, setGenerateStep] = useState<1 | 2>(1);
   const [fromDate, setFromDate] = useState<string>(getTodayString());
   const [toDate, setToDate] = useState<string>(getFutureDateString(30));
   const [publishImmediate, setPublishImmediate] = useState<boolean>(true);
@@ -155,7 +213,6 @@ function SchedulesPage() {
         const schId = String(t.schedule_id);
         const startStr = t.start_at || t.departure_time;
 
-        // Trip counts if not cancelled or completed
         const isNotClosedOrCancelled = t.status !== 'cancelled' && t.status !== 'completed';
         if (!isNotClosedOrCancelled) return;
 
@@ -176,7 +233,6 @@ function SchedulesPage() {
           const daysText = formatDaysOfWeek(daysArr);
           const journeyName = s.name || s.journey?.name || (s.route?.name ? s.route.name : 'Tuyến hải trình Superdong');
 
-          // Resolve Boat Name dynamically from boatsMap or relation
           let resolvedBoatName = 'Tàu Superdong';
           if (s.boat?.name) {
             resolvedBoatName = s.boat.code ? `${s.boat.name} (${s.boat.code})` : s.boat.name;
@@ -185,7 +241,6 @@ function SchedulesPage() {
             resolvedBoatName = foundBoat.code ? `${foundBoat.name} (${foundBoat.code})` : foundBoat.name;
           }
 
-          // Clean display code
           let cleanCode = `SCH-0${idx + 1}`;
           if (s.code && !s.code.includes('5YRO') && !s.code.includes('dzrT') && !s.code.includes('yaEM') && !s.code.includes('OgYP') && s.code.length <= 15) {
             cleanCode = s.code;
@@ -198,6 +253,8 @@ function SchedulesPage() {
             ...s,
             cleanCode,
             activeCount,
+            journeyName,
+            boatName: resolvedBoatName,
           }));
 
           return {
@@ -205,10 +262,10 @@ function SchedulesPage() {
             code: cleanCode,
             name: s.name,
             journey: journeyName,
-            departureTime: s.start_time || s.departure_time || '07:30',
+            departureTime: s.start_time ? s.start_time.slice(0, 5) : '07:30',
             boatName: resolvedBoatName,
             operatingDays: daysText,
-            status: s.status === 'active' || s.is_active === true ? 'active' : 'inactive',
+            status: s.status === 'inactive' ? 'inactive' : 'active',
             activeTripsCount: activeCount,
           };
         });
@@ -219,7 +276,7 @@ function SchedulesPage() {
     } catch (err: any) {
       console.error('Fetch schedules error:', err);
       setSchedules([]);
-      setApiError(err?.response?.data?.message || err?.message || 'Không thể kết nối với Backend API');
+      setApiError(err?.response?.data?.message || err?.message || 'Không thể tải danh sách lịch chạy từ Backend');
       toast.error('Không thể lấy dữ liệu lịch chạy từ Backend API');
     } finally {
       setLoading(false);
@@ -230,26 +287,12 @@ function SchedulesPage() {
     fetchSchedules();
   }, []);
 
-  const handleViewModeChange = (mode: 'matrix' | 'table') => {
-    navigate({
-      search: (prev: any) => {
-        const next = { ...prev };
-        if (mode === 'matrix') {
-          delete next.view;
-        } else {
-          next.view = mode;
-        }
-        return next;
-      },
-    });
-  };
-
   const handleSearchChange = (value: string) => {
     navigate({
       search: (prev: any) => {
         const next: any = { ...prev };
-        if (value && value.trim()) {
-          next.search = value.trim();
+        if (value) {
+          next.search = value;
         } else {
           delete next.search;
         }
@@ -274,6 +317,16 @@ function SchedulesPage() {
     });
   };
 
+  const handleViewModeChange = (mode: 'matrix' | 'table') => {
+    navigate({
+      search: (prev: any) => {
+        const next: any = { ...prev };
+        next.view = mode;
+        return next;
+      },
+    });
+  };
+
   const handlePageChange = (page: number) => {
     navigate({
       search: (prev: any) => {
@@ -290,33 +343,33 @@ function SchedulesPage() {
 
   const filteredSchedules = useMemo(() => {
     return schedules.filter((sch) => {
-      const search = searchTerm.toLowerCase().trim();
+      const keyword = searchTerm.trim().toLowerCase();
       const matchesSearch =
-        !search ||
-        sch.journey.toLowerCase().includes(search) ||
-        sch.code.toLowerCase().includes(search) ||
-        sch.boatName.toLowerCase().includes(search) ||
-        sch.departureTime.toLowerCase().includes(search);
+        !keyword ||
+        sch.code.toLowerCase().includes(keyword) ||
+        sch.journey.toLowerCase().includes(keyword) ||
+        sch.boatName.toLowerCase().includes(keyword);
 
       const matchesStatus = statusFilter === 'all' || sch.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [schedules, searchTerm, statusFilter]);
 
-  const executeDeleteSchedule = async () => {
+  const handleDeleteSchedule = async () => {
     if (!deleteTarget) return;
 
     setDeleting(true);
     try {
-      if (typeof deleteSchedule === 'function') {
-        await deleteSchedule(deleteTarget.id);
-      }
-      toast.success(`Đã xóa lịch chạy tàu ${deleteTarget.code} thành công!`);
+      await deleteSchedule(deleteTarget.id, {
+        reason: `Xóa lịch chạy ${deleteTarget.code} (${deleteTarget.journey}) từ trang quản trị`,
+      });
+
+      toast.success(`Đã xóa lịch chạy ${deleteTarget.code} thành công!`);
       setDeleteTarget(null);
       await fetchSchedules();
     } catch (err: any) {
-      console.error('Failed to delete schedule:', err);
-      const serverMsg = err?.response?.data?.message || err?.message || '';
+      console.error('Delete schedule error:', err);
+      const serverMsg = err?.response?.data?.message || err?.message;
       toast.error(serverMsg || 'Có lỗi xảy ra khi xóa lịch chạy trên Backend');
     } finally {
       setDeleting(false);
@@ -325,6 +378,7 @@ function SchedulesPage() {
 
   const handleOpenGenerateModal = (sch: ScheduleItem) => {
     setGenerateTarget(sch);
+    setGenerateStep(1);
     setFromDate(getTodayString());
     setToDate(getFutureDateString(30));
     setPublishImmediate(true);
@@ -333,15 +387,62 @@ function SchedulesPage() {
 
   const handleOpenGenerateForMonth = (sch: ScheduleItem, fromDateStr: string, toDateStr: string) => {
     const todayStr = getTodayString();
-    // LOGIC: Nếu sinh chuyến cho tháng hiện tại (có ngày trong quá khứ),
-    // tự động lấy mốc bắt đầu là Ngày hôm nay để tránh sinh chuyến trong quá khứ
     const effectiveFromDate = fromDateStr < todayStr ? todayStr : fromDateStr;
     setGenerateTarget(sch);
+    setGenerateStep(1);
     setFromDate(effectiveFromDate);
     setToDate(toDateStr);
     setPublishImmediate(true);
     setGenerateReason(`Khởi tạo chuyến định kỳ tháng từ ${effectiveFromDate} đến ${toDateStr} cho lịch ${sch.code}`);
   };
+
+  // Preview List Calculation for Step 2
+  const previewTrips = useMemo<TripPreviewItem[]>(() => {
+    if (!generateTarget || !fromDate || !toDate) return [];
+    const rawSch = rawSchedules.find((s) => String(s.id) === String(generateTarget.id));
+    const targetDays = parseTargetDaysOfWeek(rawSch?.days_of_week || []);
+
+    const todayStr = getTodayString();
+    const start = fromDate < todayStr ? todayStr : fromDate;
+    const end = toDate;
+    if (start > end) return [];
+
+    // Map of existing trips for this schedule
+    const existingDates = new Set<string>();
+    allTrips.forEach((t: any) => {
+      if (String(t.schedule_id) === String(generateTarget.id)) {
+        const tripDate = typeof t.start_at === 'string' ? t.start_at.slice(0, 10) : '';
+        if (tripDate) existingDates.add(tripDate);
+      }
+    });
+
+    const list: TripPreviewItem[] = [];
+    const curr = new Date(start + 'T00:00:00');
+    const endD = new Date(end + 'T00:00:00');
+
+    while (curr <= endD) {
+      const dayOfWeek = curr.getDay(); // 0 = Sun, 1 = Mon ...
+      if (targetDays.includes(dayOfWeek)) {
+        const dateYMD = `${curr.getFullYear()}-${String(curr.getMonth() + 1).padStart(2, '0')}-${String(curr.getDate()).padStart(2, '0')}`;
+        const isDuplicate = existingDates.has(dateYMD);
+        list.push({
+          dateYMD,
+          formattedDate: `${String(curr.getDate()).padStart(2, '0')}/${String(curr.getMonth() + 1).padStart(2, '0')}/${curr.getFullYear()}`,
+          dayOfWeekText: getDayOfWeekLabel(dayOfWeek),
+          isDuplicate,
+          timeRange: generateTarget.departureTime,
+          boatName: generateTarget.boatName,
+          routeName: generateTarget.journey,
+        });
+      }
+      curr.setDate(curr.getDate() + 1);
+    }
+
+    return list;
+  }, [generateTarget, fromDate, toDate, rawSchedules, allTrips]);
+
+  const previewNewCount = useMemo(() => previewTrips.filter((t) => !t.isDuplicate).length, [previewTrips]);
+  const previewSkippedCount = useMemo(() => previewTrips.filter((t) => t.isDuplicate).length, [previewTrips]);
 
   const handleExecuteGenerateTrips = async () => {
     if (!generateTarget) return;
@@ -449,39 +550,37 @@ function SchedulesPage() {
       label: 'CHUYẾN HOẠT ĐỘNG',
       sortable: true,
       render: (sch) => (
-        <Link
-          to={'/schedules/$scheduleId/edit' as any}
-          params={{ scheduleId: String(sch.id) } as any}
-          className="group inline-flex items-center gap-1.5 cursor-pointer"
-          title="Bấm để xem chi tiết các chuyến sắp chạy của lịch này"
-        >
-          {sch.activeTripsCount > 0 ? (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800 group-hover:bg-blue-100 transition-colors whitespace-nowrap font-mono">
-              <Layers size={12} />
-              {sch.activeTripsCount} chuyến
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 px-2 py-0.5 rounded-full bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 whitespace-nowrap font-mono">
-              0 chuyến
-            </span>
-          )}
-        </Link>
+        <div className="flex items-center gap-1.5 whitespace-nowrap">
+          <CalendarDays size={14} className="text-blue-500 shrink-0" />
+          <span className="font-semibold text-xs text-slate-700 dark:text-slate-200">
+            {sch.activeTripsCount} chuyến sắp tới
+          </span>
+        </div>
       ),
     },
     {
       key: 'status',
       label: 'TRẠNG THÁI',
       sortable: true,
-      render: (sch) =>
-        sch.status === 'active' ? (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 whitespace-nowrap">
-            <CheckCircle2 size={12} /> Đang áp dụng
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-800 whitespace-nowrap">
-            <XCircle size={12} /> Tạm ngưng
-          </span>
-        ),
+      render: (sch) => (
+        <span
+          className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${
+            sch.status === 'active'
+              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+              : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200 dark:border-rose-800'
+          }`}
+        >
+          {sch.status === 'active' ? (
+            <>
+              <CheckCircle2 size={12} /> Đang áp dụng
+            </>
+          ) : (
+            <>
+              <XCircle size={12} /> Tạm ngưng
+            </>
+          )}
+        </span>
+      ),
     },
     {
       key: 'actions',
@@ -489,23 +588,30 @@ function SchedulesPage() {
       align: 'right',
       render: (sch) => (
         <div className="flex items-center justify-end gap-1">
-          {/* Quick Generate Trips Action (Icon-only) */}
           <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30"
+            variant="outline"
+            size="sm"
+            className="h-8 px-2.5 text-xs font-semibold text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950/50 gap-1.5 shadow-2xs"
             onClick={() => handleOpenGenerateModal(sch)}
-            title="Sinh chuyến tàu thực tế theo lịch chạy này"
+            title="Khởi tạo danh sách chuyến tàu thực tế"
           >
-            <CalendarPlus size={16} />
+            <CalendarPlus size={14} />
+            <span>Sinh chuyến</span>
           </Button>
 
           <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 dark:text-blue-400" asChild>
-            <Link to={'/schedules/$scheduleId/edit' as any} params={{ scheduleId: String(sch.id) } as any} title="Chỉnh sửa lịch & Xem các chuyến">
+            <Link to={'/schedules/$scheduleId/edit' as any} params={{ scheduleId: sch.id } as any} title="Chỉnh sửa lịch chạy">
               <Edit size={15} />
             </Link>
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-600 hover:text-rose-700 dark:text-rose-400" onClick={() => setDeleteTarget(sch)} title="Xóa lịch chạy tàu">
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-rose-600 hover:text-rose-700 dark:text-rose-400"
+            onClick={() => setDeleteTarget(sch)}
+            title="Xóa lịch chạy"
+          >
             <Trash2 size={15} />
           </Button>
         </div>
@@ -513,57 +619,50 @@ function SchedulesPage() {
     },
   ];
 
-  const viewModeSwitcher = (
-    <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
-      <div className="inline-flex rounded-lg bg-slate-100 dark:bg-slate-800 p-1 text-xs font-bold">
-        <button
-          type="button"
-          onClick={() => handleViewModeChange('matrix')}
-          className={`px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
-            viewMode === 'matrix'
-              ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-          }`}
-        >
-          <CalendarDays size={14} />
-          <span>Tiến độ tạo lịch theo tháng</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => handleViewModeChange('table')}
-          className={`px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
-            viewMode === 'table'
-              ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-          }`}
-        >
-          <Layers size={14} />
-          <span>Danh sách mẫu lịch</span>
-        </button>
-      </div>
-
-      <div className="text-xs text-slate-500 font-medium">
-        Tổng số: <strong className="text-slate-800 dark:text-slate-200">{schedules.length} lịch chạy</strong>
-      </div>
+  const renderViewSwitcher = () => (
+    <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl w-fit border border-slate-200/80 dark:border-slate-700/80 text-xs font-semibold shadow-2xs">
+      <button
+        type="button"
+        onClick={() => handleViewModeChange('matrix')}
+        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+          viewMode === 'matrix'
+            ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-bold shadow-xs'
+            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+        }`}
+      >
+        <CalendarDays size={14} />
+        <span>Tiến độ tạo lịch theo tháng</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => handleViewModeChange('table')}
+        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+          viewMode === 'table'
+            ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-bold shadow-xs'
+            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+        }`}
+      >
+        <Layers size={14} />
+        <span>Danh sách mẫu lịch</span>
+      </button>
     </div>
   );
 
   return (
     <>
       {viewMode === 'matrix' ? (
-        <div className="space-y-4 font-sans">
+        <div className="space-y-4">
           <PageHeader
-            title="Quản Lý Lịch Chạy Tàu"
-            subtitle="Theo dõi tiến độ phủ lịch theo tháng và sinh chuyến tự động cho các tuyến tàu Superdong"
+            title="Quản Lý Lịch Chạy Định Kỳ"
+            subtitle="Kế hoạch biểu đồ vận hành khung của Superdong, điều phối phân công đội tàu và sinh chuyến tàu tự động"
             icon={Calendar}
-            apiError={apiError}
+            createLink="/schedules/create"
+            createLabel="Tạo Lịch Chạy Mới"
             onRefresh={fetchSchedules}
             refreshing={loading}
-            createLink="/schedules/create"
-            createLabel="Thêm Lịch Mới"
           />
 
-          {viewModeSwitcher}
+          {renderViewSwitcher()}
 
           <ScheduleTimelineMatrix
             schedules={schedules}
@@ -575,14 +674,14 @@ function SchedulesPage() {
         </div>
       ) : (
         <AdminTablePage
-          title="Quản Lý Lịch Chạy Tàu"
-          subtitle="Thiết lập khung giờ xuất bến định kỳ, tần suất khai thác, sinh chuyến thực tế tự động và khởi tạo kho ghế"
+          title="Quản Lý Lịch Chạy Định Kỳ"
+          subtitle="Kế hoạch biểu đồ vận hành khung của Superdong, điều phối phân công đội tàu và sinh chuyến tàu tự động"
           icon={Calendar}
           apiError={apiError}
-          banner={viewModeSwitcher}
+          banner={renderViewSwitcher()}
           searchValue={searchTerm}
           onSearchChange={handleSearchChange}
-          searchPlaceholder="Tìm theo tuyến, mã lịch, tên tàu..."
+          searchPlaceholder="Tìm theo mã lịch (SCH-...), tuyến hoặc tàu..."
           filterValue={statusFilter}
           onFilterChange={handleStatusFilterChange}
           filterOptions={statusOptions}
@@ -591,10 +690,10 @@ function SchedulesPage() {
           onRefresh={fetchSchedules}
           refreshing={loading}
           createLink="/schedules/create"
-          createLabel="Thêm Lịch Mới"
+          createLabel="Tạo Lịch Chạy Mới"
           data={filteredSchedules}
           loading={loading}
-          emptyText="Chưa có lịch chạy định kỳ nào phù hợp với bộ lọc."
+          emptyText="Chưa có lịch chạy nào phù hợp với bộ lọc."
           keyExtractor={(sch) => String(sch.id)}
           entityLabel="lịch chạy"
           currentPage={currentPage}
@@ -602,176 +701,325 @@ function SchedulesPage() {
         />
       )}
 
-      {/* Modal: Sinh chuyến hàng loạt từ Schedule (To, thoáng, tối giản, chuyên nghiệp) */}
+      {/* Modal: Sinh chuyến hàng loạt với 2-Step Interactive Preview Wizard */}
       <Dialog open={!!generateTarget} onOpenChange={(open) => !open && setGenerateTarget(null)}>
         <DialogContent className="sm:max-w-xl md:max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 rounded-2xl shadow-2xl">
           <DialogHeader className="space-y-1.5 pb-2">
-            <DialogTitle className="text-lg font-bold text-slate-900 dark:text-white">
-              Sinh Chuyến Tàu Theo Lịch Định Kỳ
-            </DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <CalendarPlus className="text-blue-600 dark:text-blue-400" size={20} />
+                Sinh Chuyến Tàu Theo Lịch Định Kỳ
+              </DialogTitle>
+              {/* Step indicator pill */}
+              <div className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                <span>Bước {generateStep}/2:</span>
+                <span>{generateStep === 1 ? 'Cấu hình thời gian' : 'Xem trước chuyến sinh'}</span>
+              </div>
+            </div>
             <DialogDescription className="text-sm text-slate-500 dark:text-slate-400">
-              Hệ thống sẽ đối chiếu thứ trong tuần của lịch để sinh chuyến thực tế và tự động khởi tạo sơ đồ ghế trống.
+              {generateStep === 1
+                ? 'Thiết lập khoảng ngày để tự động sinh danh sách các chuyến tàu thực tế theo biểu đồ tuần.'
+                : 'Xem trước danh sách chính xác các chuyến tàu sẽ được tạo trên hệ thống trước khi xác nhận.'}
             </DialogDescription>
           </DialogHeader>
 
           {generateTarget && (
-            <div className="space-y-5 py-3 text-sm">
-              {/* Summary Card */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200/80 dark:border-slate-700/80 space-y-2">
+            <div className="space-y-4 py-2 text-sm">
+              {/* Summary Schedule Header Info */}
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 space-y-1.5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <span className="text-xs text-slate-500 font-medium">Mã & Tuyến chạy:</span>
+                  <span className="text-xs text-slate-500 font-medium">Lịch & Tuyến chạy:</span>
                   <span className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
                     <span className="font-mono text-blue-600 dark:text-blue-400 font-bold mr-2">{generateTarget.code}</span>
                     {generateTarget.journey}
                   </span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <span className="text-xs text-slate-500 font-medium">Giờ xuất bến & Tàu phụ trách:</span>
+                  <span className="text-xs text-slate-500 font-medium">Giờ xuất bến & Tàu:</span>
                   <span className="font-medium text-slate-800 dark:text-slate-200 text-sm">
-                    {generateTarget.departureTime} — {generateTarget.boatName}
+                    <strong className="text-blue-600 font-mono mr-1">{generateTarget.departureTime}</strong> — {generateTarget.boatName}
                   </span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <span className="text-xs text-slate-500 font-medium">Tần suất áp dụng:</span>
-                  <span className="font-medium text-slate-800 dark:text-slate-200 text-sm">{generateTarget.operatingDays}</span>
+                  <span className="text-xs text-slate-500 font-medium">Tần suất hoạt động:</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200 text-xs px-2 py-0.5 bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700">
+                    {generateTarget.operatingDays}
+                  </span>
                 </div>
               </div>
 
-              {/* Date Range Selection */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-semibold text-slate-800 dark:text-slate-200">Khoảng thời gian sinh chuyến</Label>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFromDate(getTodayString());
-                        setToDate(getFutureDateString(7));
-                      }}
-                      className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      +7 ngày
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFromDate(getTodayString());
-                        setToDate(getFutureDateString(14));
-                      }}
-                      className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      +14 ngày
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFromDate(getTodayString());
-                        setToDate(getFutureDateString(30));
-                      }}
-                      className="px-2.5 py-1 text-xs font-medium rounded-lg border border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 font-semibold"
-                    >
-                      +30 ngày
-                    </button>
-                  </div>
-                </div>
+              {/* STEP 1: CẤU HÌNH THỜI GIAN */}
+              {generateStep === 1 && (
+                <div className="space-y-4 animate-in fade-in-50 duration-150">
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <Label className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                        Khoảng thời gian sinh chuyến
+                      </Label>
+                      {/* Smart Presets */}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFromDate(getTodayString());
+                            setToDate(getFutureDateString(7));
+                          }}
+                          className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
+                          +7 ngày
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFromDate(getTodayString());
+                            setToDate(getFutureDateString(14));
+                          }}
+                          className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
+                          +14 ngày
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFromDate(getTodayString());
+                            setToDate(getFutureDateString(30));
+                          }}
+                          className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
+                          +30 ngày
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFromDate(getTodayString());
+                            setToDate(getEndOfMonthString());
+                          }}
+                          className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 transition-colors cursor-pointer"
+                        >
+                          Hết tháng này
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFromDate(getFirstOfNextMonthString());
+                            setToDate(getEndOfNextMonthString());
+                          }}
+                          className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
+                          Trọn tháng tới
+                        </button>
+                      </div>
+                    </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="from_date" className="text-xs text-slate-500 font-medium mb-1.5 block">
+                          Từ ngày (Chỉ chọn từ hôm nay)
+                        </Label>
+                        <Input
+                          id="from_date"
+                          type="date"
+                          value={fromDate}
+                          min={getTodayString()}
+                          onChange={(e) => setFromDate(e.target.value)}
+                          className="h-10 text-sm rounded-lg"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="to_date" className="text-xs text-slate-500 font-medium mb-1.5 block">
+                          Đến ngày
+                        </Label>
+                        <Input
+                          id="to_date"
+                          type="date"
+                          value={toDate}
+                          min={fromDate || getTodayString()}
+                          onChange={(e) => setToDate(e.target.value)}
+                          className="h-10 text-sm rounded-lg"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Reason */}
                   <div>
-                    <Label htmlFor="from_date" className="text-xs text-slate-500 font-medium mb-1.5 block">
-                      Từ ngày
+                    <Label htmlFor="generate_reason" className="text-sm font-semibold text-slate-800 dark:text-slate-200 block mb-1.5">
+                      Ghi chú / Lý do khởi tạo
                     </Label>
                     <Input
-                      id="from_date"
-                      type="date"
-                      value={fromDate}
-                      min={getTodayString()}
-                      onChange={(e) => setFromDate(e.target.value)}
+                      id="generate_reason"
+                      type="text"
+                      value={generateReason}
+                      onChange={(e) => setGenerateReason(e.target.value)}
+                      placeholder="Ví dụ: Khởi tạo chuyến định kỳ tháng tới..."
                       className="h-10 text-sm rounded-lg"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="to_date" className="text-xs text-slate-500 font-medium mb-1.5 block">
-                      Đến ngày
-                    </Label>
-                    <Input
-                      id="to_date"
-                      type="date"
-                      value={toDate}
-                      min={fromDate || getTodayString()}
-                      onChange={(e) => setToDate(e.target.value)}
-                      className="h-10 text-sm rounded-lg"
+
+                  {/* Publish option */}
+                  <div className="flex items-center gap-2.5 pt-1">
+                    <input
+                      id="publish_immediate"
+                      type="checkbox"
+                      checked={publishImmediate}
+                      onChange={(e) => setPublishImmediate(e.target.checked)}
+                      className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer border-slate-300"
                     />
+                    <Label htmlFor="publish_immediate" className="text-sm text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+                      Mở bán vé ngay sau khi sinh (Trạng thái <span className="font-semibold text-emerald-600 dark:text-emerald-400">selling</span>)
+                    </Label>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Reason */}
-              <div>
-                <Label htmlFor="generate_reason" className="text-sm font-semibold text-slate-800 dark:text-slate-200 block mb-1.5">
-                  Ghi chú / Lý do khởi tạo
-                </Label>
-                <Input
-                  id="generate_reason"
-                  type="text"
-                  value={generateReason}
-                  onChange={(e) => setGenerateReason(e.target.value)}
-                  placeholder="Ví dụ: Khởi tạo chuyến theo lịch định kỳ tháng tới..."
-                  className="h-10 text-sm rounded-lg"
-                />
-              </div>
+              {/* STEP 2: PREVIEW TRỰC QUAN DANH SÁCH CHUYẾN */}
+              {generateStep === 2 && (
+                <div className="space-y-3 animate-in fade-in-50 duration-150">
+                  {/* Summary Metric Banner */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3 bg-blue-50/50 dark:bg-blue-950/30 rounded-xl border border-blue-100 dark:border-blue-900/60 text-xs">
+                    <div>
+                      <span className="text-slate-500 block">Sẽ sinh mới:</span>
+                      <strong className="text-sm text-emerald-600 dark:text-emerald-400 font-bold">
+                        +{previewNewCount} chuyến
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Đã có (Bỏ qua):</span>
+                      <strong className="text-sm text-slate-600 dark:text-slate-400 font-semibold">
+                        {previewSkippedCount} chuyến
+                      </strong>
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <span className="text-slate-500 block">Trạng thái:</span>
+                      <strong className={publishImmediate ? 'text-emerald-600 font-bold' : 'text-slate-700 font-bold'}>
+                        {publishImmediate ? 'Mở bán ngay' : 'Lưu nháp'}
+                      </strong>
+                    </div>
+                  </div>
 
-              {/* Publish option */}
-              <div className="flex items-center gap-2.5 pt-1">
-                <input
-                  id="publish_immediate"
-                  type="checkbox"
-                  checked={publishImmediate}
-                  onChange={(e) => setPublishImmediate(e.target.checked)}
-                  className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer border-slate-300"
-                />
-                <Label htmlFor="publish_immediate" className="text-sm text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-                  Mở bán vé ngay sau khi sinh (Trạng thái <span className="font-semibold text-emerald-600 dark:text-emerald-400">selling</span>)
-                </Label>
-              </div>
+                  {/* Scrollable Preview List */}
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+                    <div className="bg-slate-100/80 dark:bg-slate-800/80 px-3.5 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
+                      <span>Danh sách chuyến dự kiến ({previewTrips.length} ngày khớp lịch)</span>
+                      <span className="text-[11px] text-slate-500">Từ {fromDate} ➔ {toDate}</span>
+                    </div>
 
-              <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/70 text-slate-600 dark:text-slate-400 p-3 rounded-xl text-xs leading-relaxed">
-                Hệ thống sẽ tự động đối chiếu các ngày trong khoảng thời gian trên với thứ hoạt động của lịch. Các chuyến đã tạo trước đó sẽ được tự động bỏ qua để tránh trùng lặp.
-              </div>
+                    <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                      {previewTrips.length === 0 ? (
+                        <div className="p-6 text-center text-slate-400">
+                          Không tìm thấy ngày nào phù hợp trong khoảng thời gian đã chọn.
+                        </div>
+                      ) : (
+                        previewTrips.map((pt, idx) => (
+                          <div
+                            key={idx}
+                            className={`p-2.5 px-3.5 flex items-center justify-between gap-3 transition-colors ${
+                              pt.isDuplicate
+                                ? 'bg-slate-50/50 dark:bg-slate-900/40 opacity-60'
+                                : 'hover:bg-blue-50/30 dark:hover:bg-slate-800/40'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-6 h-6 rounded-md bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold text-[11px] shrink-0">
+                                {idx + 1}
+                              </div>
+                              <div>
+                                <div className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                  <span>{pt.dayOfWeekText}, {pt.formattedDate}</span>
+                                  <span className="font-mono text-blue-600 dark:text-blue-400 font-bold">({pt.timeRange})</span>
+                                </div>
+                                <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                                  {pt.boatName}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="shrink-0">
+                              {pt.isDuplicate ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                  ↷ Đã có (Bỏ qua)
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                                  <Check size={11} className="stroke-[3]" /> + Sinh mới
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          <DialogFooter className="gap-3 sm:gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <Button
-              variant="outline"
-              onClick={() => setGenerateTarget(null)}
-              disabled={isGenerating}
-              className="h-10 px-5 text-sm font-medium"
-            >
-              Hủy bỏ
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleExecuteGenerateTrips}
-              disabled={isGenerating}
-              className="h-10 px-6 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-            >
-              {isGenerating ? 'Đang khởi tạo...' : 'Xác Nhận Sinh Chuyến'}
-            </Button>
+          <DialogFooter className="gap-3 sm:gap-2 pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col-reverse sm:flex-row justify-between">
+            {generateStep === 1 ? (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => setGenerateTarget(null)}
+                  disabled={isGenerating}
+                  className="h-10 px-5 text-sm font-medium"
+                >
+                  Hủy bỏ
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => setGenerateStep(2)}
+                  disabled={!fromDate || !toDate || new Date(fromDate) > new Date(toDate)}
+                  className="h-10 px-5 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm gap-1.5"
+                >
+                  <span>Tiếp tục: Xem trước chuyến sinh (Preview)</span>
+                  <ArrowRight size={15} />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => setGenerateStep(1)}
+                  disabled={isGenerating}
+                  className="h-10 px-5 text-sm font-medium gap-1.5"
+                >
+                  <ArrowLeft size={15} />
+                  <span>Quay lại cấu hình</span>
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={handleExecuteGenerateTrips}
+                  disabled={isGenerating || previewNewCount === 0}
+                  className="h-10 px-6 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm gap-1.5"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 size={15} className="animate-spin" />
+                      <span>Đang khởi tạo...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={15} />
+                      <span>Xác Nhận Sinh {previewNewCount} Chuyến Tàu</span>
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <ConfirmModal
         open={!!deleteTarget}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null);
-        }}
-        title="Xác nhận xóa lịch chạy tàu"
-        description={`Bạn có chắc chắn muốn xóa lịch chạy "${deleteTarget?.code}" (${deleteTarget?.journey})? Thao tác này không thể hoàn tác.`}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Xác nhận xóa Lịch chạy định kỳ"
+        description={`Bạn có chắc chắn muốn xóa lịch chạy "${deleteTarget?.code} - ${deleteTarget?.journey}"? Thao tác này sẽ xóa vĩnh viễn cấu hình lịch định kỳ.`}
         confirmLabel={deleting ? 'Đang xóa...' : 'Xóa lịch chạy'}
-        loading={deleting}
         variant="destructive"
-        onConfirm={executeDeleteSchedule}
+        loading={deleting}
+        onConfirm={handleDeleteSchedule}
       />
     </>
   );
