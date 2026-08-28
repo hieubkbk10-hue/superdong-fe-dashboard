@@ -14,6 +14,7 @@ import {
   FormField,
   FormInputField,
   FormSelectField,
+  AdminFormActionBar,
   UnsavedChangesBar,
   useFormDirty,
 } from '@/components/common/FormUtilities';
@@ -22,29 +23,75 @@ export const Route = createFileRoute('/_admin/coupons/$couponId/edit')({
   component: CouponEditPage,
 });
 
+interface CouponFormData {
+  code: string;
+  name: string;
+  description: string;
+  type: 'percentage' | 'fixed_amount';
+  value: number;
+  scope: 'booking' | 'traveler' | 'global';
+  stackable: boolean;
+  min_booking_amount: number;
+  max_discount_amount: number;
+  usage_limit: number;
+  valid_from: string;
+  valid_until: string;
+  is_active: boolean;
+  reason: string;
+}
+
+const DEFAULT_COUPON_FORM: CouponFormData = {
+  code: '',
+  name: '',
+  description: '',
+  type: 'percentage',
+  value: 0,
+  scope: 'booking',
+  stackable: false,
+  min_booking_amount: 0,
+  max_discount_amount: 0,
+  usage_limit: 0,
+  valid_from: '',
+  valid_until: '',
+  is_active: true,
+  reason: '',
+};
+
 function CouponEditPage() {
   const { couponId } = Route.useParams();
   const navigate = useNavigate();
 
   const [expectedVersion, setExpectedVersion] = useState<number | undefined>(undefined);
 
-  // NO FAKE FALLBACK DATA IN INITIAL STATE (Rule 10 SKILL.md)
-  const [initialData, setInitialData] = useState<any>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    code: '',
-    type: 'percentage',
-    value: 0,
-    min_booking_amount: 0,
-    max_discount_amount: 0,
-    usage_limit: 0,
-    valid_from: '',
-    valid_until: '',
-    is_active: true,
-    reason: '',
+  // Instant localStorage cache hydration
+  const [initialData, setInitialData] = useState<CouponFormData | null>(() => {
+    try {
+      const cached = localStorage.getItem(`superdong_coupon_cache_${couponId}`);
+      if (cached) {
+        const c = JSON.parse(cached);
+        return {
+          code: c.code || '',
+          name: c.name || '',
+          description: c.description || '',
+          type: c.discount_type === 'fixed_amount' || c.type === 'fixed_amount' ? 'fixed_amount' : 'percentage',
+          value: Number(c.discount_value !== undefined ? c.discount_value : (c.value !== undefined ? c.value : 0)),
+          scope: (c.scope as any) || 'booking',
+          stackable: Boolean(c.stackable),
+          min_booking_amount: Number(c.min_booking_amount_vnd !== undefined ? c.min_booking_amount_vnd : (c.min_booking_amount || 0)),
+          max_discount_amount: Number(c.max_discount_amount_vnd !== undefined ? c.max_discount_amount_vnd : (c.max_discount_amount || 0)),
+          usage_limit: Number(c.usage_limit || 0),
+          valid_from: c.effective_from ? c.effective_from.split('T')[0] : (c.valid_from ? c.valid_from.split('T')[0] : ''),
+          valid_until: c.effective_to ? c.effective_to.split('T')[0] : (c.valid_until ? c.valid_until.split('T')[0] : ''),
+          is_active: c.status ? c.status === 'active' : c.is_active !== false,
+          reason: '',
+        };
+      }
+    } catch {}
+    return null;
   });
 
-  const [loading, setLoading] = useState(true);
+  const [formData, setFormData] = useState<CouponFormData>(initialData || DEFAULT_COUPON_FORM);
+  const [loading, setLoading] = useState(!initialData);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { isDirty } = useFormDirty(initialData, formData, ['reason', 'notes', 'expected_version']);
@@ -53,7 +100,7 @@ function CouponEditPage() {
   useEffect(() => {
     let isMounted = true;
     const fetchCoupon = async () => {
-      setLoading(true);
+      if (!initialData) setLoading(true);
       setFetchError(null);
       try {
         let c: any = null;
@@ -69,7 +116,7 @@ function CouponEditPage() {
         // If direct fetch failed, search in list fallback
         if (!c) {
           try {
-            const listRes = await getCoupons();
+            const listRes = await getCoupons({ limit: 100 });
             const items = listRes.data || (listRes as any);
             if (Array.isArray(items)) {
               c = items.find((item: any) => String(item.id) === String(couponId) || item.code === couponId);
@@ -84,29 +131,33 @@ function CouponEditPage() {
             const ver = c.version !== undefined ? c.version : (c.expected_version !== undefined ? c.expected_version : 0);
             setExpectedVersion(ver);
 
-            const serverData = {
+            const serverData: CouponFormData = {
               code: c.code || '',
               name: c.name || '',
+              description: c.description || '',
               type: c.discount_type === 'fixed_amount' || c.type === 'fixed_amount' ? 'fixed_amount' : 'percentage',
-              value: c.discount_value !== undefined ? c.discount_value : (c.value !== undefined ? c.value : 0),
-              min_booking_amount: c.min_booking_amount !== undefined ? c.min_booking_amount : (c.min_booking_amount_vnd || 0),
-              max_discount_amount: c.max_discount_amount !== undefined ? c.max_discount_amount : 0,
-              usage_limit: c.usage_limit !== undefined ? c.usage_limit : 0,
+              value: Number(c.discount_value !== undefined ? c.discount_value : (c.value !== undefined ? c.value : 0)),
+              scope: (c.scope as any) || 'booking',
+              stackable: Boolean(c.stackable),
+              min_booking_amount: Number(c.min_booking_amount_vnd !== undefined ? c.min_booking_amount_vnd : (c.min_booking_amount || 0)),
+              max_discount_amount: Number(c.max_discount_amount_vnd !== undefined ? c.max_discount_amount_vnd : (c.max_discount_amount || 0)),
+              usage_limit: Number(c.usage_limit || 0),
               valid_from: c.effective_from ? c.effective_from.split('T')[0] : (c.valid_from ? c.valid_from.split('T')[0] : ''),
               valid_until: c.effective_to ? c.effective_to.split('T')[0] : (c.valid_until ? c.valid_until.split('T')[0] : ''),
-              is_active: c.status ? c.status === 'active' : Boolean(c.is_active),
-              reason: c.reason || '',
+              is_active: c.status ? c.status === 'active' : c.is_active !== false,
+              reason: '',
             };
 
             setInitialData(serverData);
             setFormData(serverData);
-          } else {
+            localStorage.setItem(`superdong_coupon_cache_${couponId}`, JSON.stringify(c));
+          } else if (!initialData) {
             setFetchError('Không tìm thấy dữ liệu Mã khuyến mãi từ Backend API.');
           }
         }
       } catch (err: any) {
         console.warn('Fetch coupon error:', err);
-        if (isMounted) {
+        if (isMounted && !initialData) {
           setFetchError('Không thể nạp thông tin Mã khuyến mãi. Dữ liệu có thể đã bị xóa.');
         }
       } finally {
@@ -147,11 +198,16 @@ function CouponEditPage() {
       const payload: Record<string, any> = {
         code: formData.code.toUpperCase(),
         name: formData.name || `Ưu đãi ${formData.code.toUpperCase()}`,
+        description: formData.description,
         discount_type: formData.type === 'percentage' ? 'percentage' : 'fixed_amount',
         discount_value: Number(formData.value),
+        scope: formData.scope || 'booking',
+        stackable: formData.stackable,
         min_booking_amount: Number(formData.min_booking_amount),
-        max_discount_amount: Number(formData.max_discount_amount),
-        usage_limit: Number(formData.usage_limit),
+        min_booking_amount_vnd: Number(formData.min_booking_amount),
+        max_discount_amount: Number(formData.max_discount_amount) > 0 ? Number(formData.max_discount_amount) : null,
+        max_discount_amount_vnd: Number(formData.max_discount_amount) > 0 ? Number(formData.max_discount_amount) : null,
+        usage_limit: Number(formData.usage_limit) > 0 ? Number(formData.usage_limit) : null,
         status: formData.is_active ? 'active' : 'inactive',
       };
 
@@ -231,6 +287,8 @@ function CouponEditPage() {
             </Badge>
           )
         }
+        onClear={handleReset}
+        clearLabel="Khôi phục"
       />
 
       {/* Main Single Card Form */}
@@ -250,10 +308,24 @@ function CouponEditPage() {
           <FormInputField
             id="coupon-name"
             label="Tên Chương Trình / Ưu Đãi"
+            required
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="VD: Giảm 15% Mùa Hè 2026"
           />
+
+          <div className="md:col-span-2">
+            <FormField id="coupon-description" label="Mô Tả Chương Trình Khuyến Mãi">
+              <textarea
+                id="coupon-description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                placeholder="VD: Chương trình ưu đãi dành riêng cho người cao tuổi đi các tuyến tàu Phú Quốc, Nam Du trong mùa hè 2026..."
+                className="w-full p-3 text-xs border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 outline-none focus:border-blue-500 placeholder:text-slate-400"
+              />
+            </FormField>
+          </div>
         </FormSectionBlock>
 
         {/* SECTION 2: MỨC GIẢM GIÁ & ĐIỀU KIỆN ÁP DỤNG */}
@@ -263,7 +335,7 @@ function CouponEditPage() {
             label="Loại Giảm Giá"
             required
             value={formData.type}
-            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
             options={[
               { value: 'percentage', label: 'Theo Phần Trăm (%)' },
               { value: 'fixed_amount', label: 'Theo Số Tiền Cố Định (VNĐ)' },
@@ -280,6 +352,19 @@ function CouponEditPage() {
             onChange={(e) => setFormData({ ...formData, value: Math.max(0, Number(e.target.value)) })}
             placeholder={formData.type === 'percentage' ? 'VD: 15' : 'VD: 50000'}
             className="font-mono"
+            helperText={formData.type === 'percentage' ? 'Nhập từ 1 đến 100%' : 'Số tiền VNĐ được trừ trực tiếp'}
+          />
+
+          <FormSelectField
+            id="coupon-scope"
+            label="Phạm Vi Áp Dụng"
+            value={formData.scope}
+            onChange={(e) => setFormData({ ...formData, scope: e.target.value as any })}
+            options={[
+              { value: 'booking', label: 'Toàn bộ Đơn hàng (Booking)' },
+              { value: 'traveler', label: 'Từng Hành khách (Traveler)' },
+              { value: 'global', label: 'Toàn hệ thống (Global)' },
+            ]}
           />
 
           <FormInputField
@@ -291,19 +376,34 @@ function CouponEditPage() {
             onChange={(e) => setFormData({ ...formData, min_booking_amount: Math.max(0, Number(e.target.value)) })}
             placeholder="VD: 500000"
             className="font-mono"
+            helperText="0 = Không yêu cầu giá trị tối thiểu"
           />
 
-          <div className="md:col-span-3 max-w-sm">
-            <FormInputField
-              id="coupon-max-discount"
-              label="Mức Giảm Tối Đa (VNĐ)"
-              type="number"
-              min={0}
-              value={formData.max_discount_amount}
-              onChange={(e) => setFormData({ ...formData, max_discount_amount: Math.max(0, Number(e.target.value)) })}
-              placeholder="VD: 100000"
-              className="font-mono"
-            />
+          <FormInputField
+            id="coupon-max-discount"
+            label="Mức Giảm Tối Đa (VNĐ)"
+            type="number"
+            min={0}
+            value={formData.max_discount_amount}
+            onChange={(e) => setFormData({ ...formData, max_discount_amount: Math.max(0, Number(e.target.value)) })}
+            placeholder="VD: 100000"
+            className="font-mono"
+            helperText="Giới hạn số tiền giảm khi giảm theo % (0 = không giới hạn)"
+          />
+
+          <div className="flex flex-col justify-center pt-2">
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800">
+              <input
+                id="coupon-stackable"
+                type="checkbox"
+                checked={formData.stackable}
+                onChange={(e) => setFormData({ ...formData, stackable: e.target.checked })}
+                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+              />
+              <Label htmlFor="coupon-stackable" className="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                Cho phép áp dụng cộng dồn (Stackable)
+              </Label>
+            </div>
           </div>
         </FormSectionBlock>
 
@@ -339,18 +439,20 @@ function CouponEditPage() {
         </FormSectionBlock>
 
         {/* SECTION 4: TRẠNG THÁI & GHI CHÚ */}
-        <FormSectionBlock title="IV. Trạng thái & Ghi chú" columns={1}>
-          <div className="flex items-center gap-2">
-            <input
-              id="coupon-status"
-              type="checkbox"
-              checked={formData.is_active}
-              onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-            />
-            <Label htmlFor="coupon-status" className="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
-              Kích hoạt mã khuyến mãi hoạt động
-            </Label>
+        <FormSectionBlock title="IV. Trạng thái & Ghi chú" columns={2}>
+          <div className="flex flex-col justify-center">
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800">
+              <input
+                id="coupon-status"
+                type="checkbox"
+                checked={formData.is_active}
+                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+              />
+              <Label htmlFor="coupon-status" className="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                Kích hoạt mã khuyến mãi hoạt động
+              </Label>
+            </div>
           </div>
 
           <FormInputField
@@ -359,9 +461,20 @@ function CouponEditPage() {
             value={formData.reason}
             onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
             placeholder="Nhập lý do điều chỉnh chương trình khuyến mãi..."
-            helperText="Không bắt buộc"
+            helperText="Ghi nhận vào nhật ký Audit Log"
           />
         </FormSectionBlock>
+
+        {/* Master Action Bar */}
+        <AdminFormActionBar
+          mode="edit"
+          isDirty={isDirty}
+          isSubmitting={isSubmitting}
+          cancelTo="/coupons"
+          submitLabel="Lưu thay đổi"
+          onClear={handleReset}
+          clearLabel="Khôi phục dữ liệu"
+        />
       </AdminFormCard>
 
       {/* Floating Action Bar for Unsaved Changes */}
@@ -374,4 +487,3 @@ function CouponEditPage() {
     </div>
   );
 }
-

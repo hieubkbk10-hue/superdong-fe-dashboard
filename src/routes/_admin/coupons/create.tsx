@@ -20,11 +20,30 @@ export const Route = createFileRoute('/_admin/coupons/create')({
   component: CouponCreatePage,
 });
 
-const DEFAULT_COUPON_FORM = {
+interface CouponCreateFormData {
+  code: string;
+  name: string;
+  description: string;
+  type: 'percentage' | 'fixed_amount';
+  value: number;
+  scope: 'booking' | 'traveler' | 'global';
+  stackable: boolean;
+  min_booking_amount: number;
+  max_discount_amount: number;
+  usage_limit: number;
+  valid_from: string;
+  valid_until: string;
+  is_active: boolean;
+}
+
+const DEFAULT_COUPON_FORM: CouponCreateFormData = {
   code: '',
   name: '',
+  description: '',
   type: 'percentage',
   value: 15,
+  scope: 'booking',
+  stackable: false,
   min_booking_amount: 500000,
   max_discount_amount: 100000,
   usage_limit: 500,
@@ -35,20 +54,23 @@ const DEFAULT_COUPON_FORM = {
 
 function CouponCreatePage() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState(DEFAULT_COUPON_FORM);
+  const [formData, setFormData] = useState<CouponCreateFormData>(DEFAULT_COUPON_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleClear = () => {
     setFormData({
       code: '',
       name: '',
+      description: '',
       type: 'percentage',
       value: 15,
-      min_booking_amount: 500000,
-      max_discount_amount: 100000,
-      usage_limit: 500,
-      valid_from: '2026-08-10',
-      valid_until: '2026-12-31',
+      scope: 'booking',
+      stackable: false,
+      min_booking_amount: 0,
+      max_discount_amount: 0,
+      usage_limit: 0,
+      valid_from: '',
+      valid_until: '',
       is_active: true,
     });
     toast.success('Đã làm sạch dữ liệu nhập');
@@ -72,14 +94,18 @@ function CouponCreatePage() {
     setIsSubmitting(true);
     try {
       const payload: Record<string, any> = {
-        code: formData.code.toUpperCase(),
+        code: formData.code.toUpperCase().trim(),
         name: formData.name.trim() ? formData.name.trim() : `Ưu đãi ${formData.code.toUpperCase()}`,
+        description: formData.description.trim() ? formData.description.trim() : undefined,
         discount_type: formData.type === 'percentage' ? 'percentage' : 'fixed_amount',
         discount_value: Number(formData.value),
-        scope: 'booking',
+        scope: formData.scope || 'booking',
+        stackable: formData.stackable,
         min_booking_amount: Number(formData.min_booking_amount),
-        max_discount_amount: Number(formData.max_discount_amount),
-        usage_limit: Number(formData.usage_limit),
+        min_booking_amount_vnd: Number(formData.min_booking_amount),
+        max_discount_amount: Number(formData.max_discount_amount) > 0 ? Number(formData.max_discount_amount) : null,
+        max_discount_amount_vnd: Number(formData.max_discount_amount) > 0 ? Number(formData.max_discount_amount) : null,
+        usage_limit: Number(formData.usage_limit) > 0 ? Number(formData.usage_limit) : null,
         status: formData.is_active ? 'active' : 'inactive',
       };
 
@@ -135,15 +161,28 @@ function CouponCreatePage() {
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="VD: Ưu Đãi Mùa Hè 2026"
           />
+
+          <div className="md:col-span-2">
+            <FormField id="coupon-description" label="Mô Tả Chương Trình Khuyến Mãi">
+              <textarea
+                id="coupon-description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                placeholder="VD: Chương trình ưu đãi dành riêng cho người cao tuổi đi các tuyến tàu Phú Quốc, Nam Du trong mùa hè 2026..."
+                className="w-full p-3 text-xs border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 outline-none focus:border-blue-500 placeholder:text-slate-400"
+              />
+            </FormField>
+          </div>
         </FormSectionBlock>
 
         {/* Section 2: Mức giảm giá & Điều kiện áp dụng */}
-        <FormSectionBlock title="II. Mức giảm giá & Điều kiện áp dụng" columns={4}>
+        <FormSectionBlock title="II. Mức giảm giá & Điều kiện áp dụng" columns={3}>
           <FormSelectField
             id="discount-type"
             label="Loại Giảm Giá"
             value={formData.type}
-            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
             options={[
               { value: 'percentage', label: 'Theo Phần Trăm (%)' },
               { value: 'fixed_amount', label: 'Số Tiền Cố Định (VND)' },
@@ -158,6 +197,19 @@ function CouponCreatePage() {
             value={formData.value}
             onChange={(e) => setFormData({ ...formData, value: Number(e.target.value) })}
             min={1}
+            helperText={formData.type === 'percentage' ? 'Nhập từ 1 đến 100%' : 'Số tiền VNĐ được trừ trực tiếp'}
+          />
+
+          <FormSelectField
+            id="coupon-scope"
+            label="Phạm Vi Áp Dụng"
+            value={formData.scope}
+            onChange={(e) => setFormData({ ...formData, scope: e.target.value as any })}
+            options={[
+              { value: 'booking', label: 'Toàn bộ Đơn hàng (Booking)' },
+              { value: 'traveler', label: 'Từng Hành khách (Traveler)' },
+              { value: 'global', label: 'Toàn hệ thống (Global)' },
+            ]}
           />
 
           <FormInputField
@@ -167,6 +219,7 @@ function CouponCreatePage() {
             value={formData.min_booking_amount}
             onChange={(e) => setFormData({ ...formData, min_booking_amount: Number(e.target.value) })}
             min={0}
+            helperText="0 = Không yêu cầu giá trị tối thiểu"
           />
 
           <FormInputField
@@ -176,20 +229,27 @@ function CouponCreatePage() {
             value={formData.max_discount_amount}
             onChange={(e) => setFormData({ ...formData, max_discount_amount: Number(e.target.value) })}
             min={0}
+            helperText="Giới hạn số tiền giảm khi giảm theo % (0 = không giới hạn)"
           />
+
+          <div className="flex flex-col justify-center pt-2">
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800">
+              <input
+                id="coupon-stackable"
+                type="checkbox"
+                checked={formData.stackable}
+                onChange={(e) => setFormData({ ...formData, stackable: e.target.checked })}
+                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+              />
+              <Label htmlFor="coupon-stackable" className="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                Cho phép áp dụng cộng dồn (Stackable)
+              </Label>
+            </div>
+          </div>
         </FormSectionBlock>
 
         {/* Section 3: Thời hạn & Giới hạn sử dụng */}
         <FormSectionBlock title="III. Thời hạn & Giới hạn sử dụng" columns={3}>
-          <FormInputField
-            id="usage-limit"
-            label="Giới Hạn Lượt Sử Dụng"
-            type="number"
-            value={formData.usage_limit}
-            onChange={(e) => setFormData({ ...formData, usage_limit: Number(e.target.value) })}
-            min={1}
-          />
-
           <FormField id="valid-from" label="Ngày Bắt Đầu Hiệu Lực">
             <DateBox
               id="valid-from"
@@ -205,6 +265,16 @@ function CouponCreatePage() {
               onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
             />
           </FormField>
+
+          <FormInputField
+            id="usage-limit"
+            label="Giới Hạn Lượt Sử Dụng"
+            type="number"
+            value={formData.usage_limit}
+            onChange={(e) => setFormData({ ...formData, usage_limit: Number(e.target.value) })}
+            min={0}
+            helperText="0 = không giới hạn lượt dùng"
+          />
         </FormSectionBlock>
 
         {/* Section 4: Trạng thái kích hoạt */}

@@ -463,6 +463,9 @@ export interface TravelerType {
   status?: 'active' | 'inactive';
   is_active?: boolean;
   version?: number;
+  expected_version?: number;
+  reason?: string;
+  tracking_id?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -476,9 +479,12 @@ export interface Coupon {
   discount_type?: 'percentage' | 'fixed_amount';
   value?: number;
   discount_value?: number;
+  scope?: 'booking' | 'traveler' | 'global';
+  stackable?: boolean;
   min_booking_amount?: number;
   min_booking_amount_vnd?: number;
   max_discount_amount?: number;
+  max_discount_amount_vnd?: number;
   usage_limit?: number;
   usage_count?: number;
   valid_from?: string;
@@ -487,6 +493,10 @@ export interface Coupon {
   effective_to?: string;
   is_active?: boolean;
   status?: string;
+  version?: number;
+  expected_version?: number;
+  reason?: string;
+  tracking_id?: string;
   created_at?: string;
   updated_at?: string;
 }

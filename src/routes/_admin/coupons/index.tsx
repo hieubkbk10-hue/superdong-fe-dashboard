@@ -66,6 +66,9 @@ function CouponsPage() {
     try {
       const res = await getCoupons();
       if (res && res.data && Array.isArray(res.data)) {
+        res.data.forEach((c: any) => {
+          localStorage.setItem(`superdong_coupon_cache_${c.id}`, JSON.stringify(c));
+        });
         setCoupons(res.data);
       } else {
         setCoupons([]);

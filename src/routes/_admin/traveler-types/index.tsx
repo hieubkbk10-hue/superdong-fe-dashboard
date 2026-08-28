@@ -79,6 +79,9 @@ function TravelerTypesPage() {
     try {
       const res = await getTravelerTypes();
       if (res && res.data && Array.isArray(res.data)) {
+        res.data.forEach((t: any) => {
+          localStorage.setItem(`superdong_traveler_type_cache_${t.id}`, JSON.stringify(t));
+        });
         setTypes(res.data);
       } else {
         setTypes([]);
