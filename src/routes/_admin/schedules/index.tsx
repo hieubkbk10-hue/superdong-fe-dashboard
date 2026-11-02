@@ -96,10 +96,18 @@ const formatDaysOfWeek = (days: any[]): string => {
     fri: '6',
     sat: '7',
     sun: 'CN',
+    // Hỗ trợ mã số legacy tiếng Việt (1=CN, 2=T2..7=T7)
+    '1': 'CN',
+    '2': '2',
+    '3': '3',
+    '4': '4',
+    '5': '5',
+    '6': '6',
+    '7': '7',
   };
-  const mapped = days.map((d) => dayMap[String(d).toLowerCase()] || String(d).toUpperCase());
+  const mapped = Array.from(new Set(days.map((d) => dayMap[String(d).toLowerCase()] || String(d).toUpperCase())));
   const hasCN = mapped.includes('CN');
-  const numberDays = mapped.filter((m) => m !== 'CN');
+  const numberDays = mapped.filter((m) => m !== 'CN').sort();
 
   if (hasCN && numberDays.length > 0) {
     return `Thứ ${numberDays.join(', ')}, CN`;
@@ -107,19 +115,36 @@ const formatDaysOfWeek = (days: any[]): string => {
   if (hasCN && numberDays.length === 0) {
     return 'Chủ Nhật';
   }
-  return `Thứ ${mapped.join(', ')}`;
+  return `Thứ ${numberDays.join(', ')}`;
 };
 
 function parseTargetDaysOfWeek(days: any[]): number[] {
   if (!Array.isArray(days) || days.length === 0) return [0, 1, 2, 3, 4, 5, 6];
   const map: Record<string, number> = {
-    sun: 0, sunday: 0, cn: 0, '0': 0, '7': 0,
-    mon: 1, monday: 1, t2: 1, '1': 1,
-    tue: 2, tuesday: 2, t3: 2, '2': 2,
-    wed: 3, wednesday: 3, t4: 3, '3': 3,
-    thu: 4, thursday: 4, t5: 4, '4': 4,
-    fri: 5, friday: 5, t6: 5, '5': 5,
-    sat: 6, saturday: 6, t7: 6, '6': 6,
+    // English chuẩn (0=Sun, 1=Mon, ..., 6=Sat)
+    sun: 0, sunday: 0,
+    mon: 1, monday: 1,
+    tue: 2, tuesday: 2,
+    wed: 3, wednesday: 3,
+    thu: 4, thursday: 4,
+    fri: 5, friday: 5,
+    sat: 6, saturday: 6,
+    // Tiếng Việt / Thứ trong tuần
+    cn: 0, 'chủ nhật': 0, '0': 0,
+    t2: 1, 'thứ 2': 1, 'thứ hai': 1,
+    t3: 2, 'thứ 3': 2, 'thứ ba': 2,
+    t4: 3, 'thứ 4': 3, 'thứ tư': 3,
+    t5: 4, 'thứ 5': 4, 'thứ năm': 4,
+    t6: 5, 'thứ 6': 5, 'thứ sáu': 5,
+    t7: 6, 'thứ 7': 6, 'thứ bảy': 6,
+    // Legacy mapping: Thứ 2 = Monday (1) .. Thứ 7 = Saturday (6), 1 = Chủ Nhật (0)
+    '1': 0,
+    '2': 1,
+    '3': 2,
+    '4': 3,
+    '5': 4,
+    '6': 5,
+    '7': 6,
   };
   return days
     .map((d) => map[String(d).toLowerCase()] ?? -1)

@@ -210,6 +210,18 @@ function ScheduleEditPage() {
         }
       }
 
+      // LOGIC: Chuẩn hóa nếu gặp legacy format số thứ trong tuần (1=sun, 2=mon...7=sat)
+      const legacyDayMap: Record<string, string> = {
+        '1': 'sun',
+        '2': 'mon',
+        '3': 'tue',
+        '4': 'wed',
+        '5': 'thu',
+        '6': 'fri',
+        '7': 'sat',
+      };
+      parsedDays = parsedDays.map((d) => legacyDayMap[d] || d);
+
       const serverForm: ScheduleFormData = {
         name: sch.name || '',
         route_id: String(sch.route_id || sch.route?.id || ''),
